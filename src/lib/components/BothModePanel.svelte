@@ -1,6 +1,7 @@
 <script>
 	import { appState } from '$state/appState.svelte.js';
 	import { convertToWav, isSupportedAudioFormat } from '$utils/audioEncoder.js';
+	import { generateSpectrogram } from '$utils/spectrogramGenerator.js';
 	import Icon from './Icon.svelte';
 	
 	let audioRecorder = null;
@@ -40,6 +41,17 @@
 					}
 				}
 				stream.getTracks().forEach(t => t.stop());
+
+				if (appState.audioBlob) {
+					appState.isGeneratingSpectrogram = true;
+					try {
+						appState.spectrogramBlob = await generateSpectrogram(appState.audioBlob);
+					} catch {
+						appState.spectrogramBlob = null;
+					} finally {
+						appState.isGeneratingSpectrogram = false;
+					}
+				}
 			};
 			
 			audioRecorder.start();

@@ -26,7 +26,8 @@
 		const data = await analyze({
 			mode: appState.currentMode,
 			audio: appState.audioBlob,
-			image: appState.imageBlob
+			image: appState.imageBlob,
+			spectrogram: appState.spectrogramBlob
 		});
 			
 			appState.result = data;

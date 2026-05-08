@@ -1,5 +1,6 @@
 /**
- * API client — supports both Cloudflare Pages Function and external Colab backend
+ * API client — sends spectrogram + photo to Cloudflare Pages Function
+ * which proxies to OpenRouter (Gemma 4 via free endpoints)
  */
 
 let customApiUrl = '';
@@ -18,38 +19,22 @@ export function getApiUrl() {
 	return customApiUrl;
 }
 
-function baseUrl() {
-	return customApiUrl || '';
-}
-
-function endpoint(path) {
-	if (customApiUrl) {
-		// External backend (Colab) uses /analyze/audio, /analyze/image, /analyze/both
-		return `${customApiUrl}${path}`;
-	}
-	// Pages Function uses /api/analyze (POST multipart, auto-detects mode)
-	return '/api/analyze';
-}
-
-/**
- * @param {Object} params
- * @param {string} params.mode - 'audio' | 'image' | 'both'
- * @param {Blob|null} params.audio
- * @param {Blob|null} params.image
- */
-export async function analyze({ mode, audio, image }) {
+export async function analyze({ mode, audio, image, spectrogram }) {
 	const formData = new FormData();
 
-	if (mode !== 'image' && audio) {
-		formData.append('audio', audio, 'cry.wav');
+	if (mode !== 'image' && spectrogram) {
+		formData.append('spectrogram', spectrogram, 'spectrogram.png');
 	}
+
 	if (mode !== 'audio' && image) {
 		formData.append('image', image, 'baby.jpg');
 	}
 
+	formData.append('mode', mode);
+
 	const url = customApiUrl
-		? `${customApiUrl}/analyze/${mode}`  // Colab: individual endpoints
-		: '/api/analyze';                     // Pages: single endpoint
+		? `${customApiUrl}/analyze/${mode}`
+		: '/api/analyze';
 
 	const response = await fetch(url, { method: 'POST', body: formData });
 	const data = await response.json();

@@ -30,53 +30,57 @@
 			</div>
 
 			<div class="panel-body">
-				<div class="section">
-					<h4>Backend URL</h4>
-					<p class="desc">Leave empty to use Cloudflare Pages Function (default). Paste a Colab ngrok URL to use real Gemma 4 E4B.</p>
-					<input
-						type="url"
-						placeholder="https://xxxx-xxxx.ngrok-free.app"
-						bind:value={inputUrl}
-						class="url-input"
-					/>
-					<button class="save-btn" onclick={save} type="button">
-						{#if saved}
-							<Icon name="check" size={16} />
-							Saved
-						{:else}
-							Save
-						{/if}
-					</button>
-				</div>
+<div class="section">
+				<h4>Backend URL</h4>
+				<p class="desc">Leave empty to use Cloudflare Pages + OpenRouter (default). Set a custom URL to override.</p>
+				<input
+					type="url"
+					placeholder="https://your-space.hf.space (leave empty for default)"
+					bind:value={inputUrl}
+					class="url-input"
+				/>
+				<button class="save-btn" onclick={save} type="button">
+					{#if saved}
+						<Icon name="check" size={16} />
+						Saved
+					{:else}
+						Save
+					{/if}
+				</button>
+			</div>
 
-				<div class="divider"></div>
+			<div class="divider"></div>
 
-				<div class="section">
-					<h4>About ROO</h4>
-					<div class="details">
-						<div class="detail-row">
-							<span class="detail-label">Version</span>
-							<span class="detail-value">1.0.0</span>
-						</div>
-						<div class="detail-row">
-							<span class="detail-label">Model (Cloud)</span>
-							<span class="detail-value">Gemini 2.0 Flash</span>
-						</div>
-						<div class="detail-row">
-							<span class="detail-label">Model (Colab)</span>
-							<span class="detail-value">Gemma 4 E4B</span>
-						</div>
-						<div class="detail-row">
-							<span class="detail-label">Audio</span>
-							<span class="detail-value">16kHz Mono, max 30s</span>
-						</div>
+			<div class="section">
+				<h4>About ROO</h4>
+				<div class="details">
+					<div class="detail-row">
+						<span class="detail-label">Version</span>
+						<span class="detail-value">2.0.0</span>
+					</div>
+					<div class="detail-row">
+						<span class="detail-label">Model (Audio/Image)</span>
+						<span class="detail-value">Gemma 4 26B A4B</span>
+					</div>
+					<div class="detail-row">
+						<span class="detail-label">Model (Both)</span>
+						<span class="detail-value">Gemma 4 31B</span>
+					</div>
+					<div class="detail-row">
+						<span class="detail-label">Runtime</span>
+						<span class="detail-value">CF Pages → OpenRouter</span>
+					</div>
+					<div class="detail-row">
+						<span class="detail-label">Audio</span>
+						<span class="detail-value">Mel Spectrogram + VLM</span>
 					</div>
 				</div>
+			</div>
 
-				<div class="tip">
-					<Icon name="info-circle" size={16} color="var(--mint)" />
-					<p>For the best accuracy with real Gemma 4 E4B audio, deploy the Colab backend and paste its URL above.</p>
-				</div>
+			<div class="tip">
+				<Icon name="info-circle" size={16} color="var(--mint)" />
+				<p>Audio is converted to a mel spectrogram image and analyzed visually by Gemma 4. Face photos are analyzed directly. Both mode uses the 31B model for cross-modal reasoning.</p>
+			</div>
 			</div>
 		</div>
 	</div>

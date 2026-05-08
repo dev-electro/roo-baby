@@ -33,7 +33,14 @@
 	
 	<!-- Capture Card -->
 	<div class="capture-card glass">
-		{#if appState.currentMode === 'audio'}
+		{#if appState.isConvertingAudio || appState.isGeneratingSpectrogram}
+			<div class="processing-state">
+				<div class="processing-spinner"></div>
+				<p class="processing-text">
+					{appState.isConvertingAudio ? 'Converting audio…' : 'Generating spectrogram…'}
+				</p>
+			</div>
+		{:else if appState.currentMode === 'audio'}
 			<AudioRecorder />
 		{:else if appState.currentMode === 'image'}
 			<CameraCapture />
@@ -56,7 +63,7 @@
 	{/if}
 	
 	<footer class="footer">
-		<p>Powered by Gemma 4 E4B · Audio + Vision · Built for DEV Challenge</p>
+		<p>Powered by Gemma 4 · Spectrogram + Vision · DEV × Gemma 4</p>
 	</footer>
 </div>
 
@@ -107,6 +114,29 @@
 		color: var(--text-faint);
 		font-weight: 600;
 		letter-spacing: 0.08em;
+	}
+
+	.processing-state {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 12px;
+		padding: 32px;
+	}
+
+	.processing-spinner {
+		width: 36px;
+		height: 36px;
+		border: 3px solid var(--border);
+		border-top-color: var(--coral);
+		border-radius: 50%;
+		animation: spin-slow 1s linear infinite;
+	}
+
+	.processing-text {
+		font-size: 0.85rem;
+		color: var(--text-muted);
+		font-weight: 600;
 	}
 
 	@media (max-width: 380px) {

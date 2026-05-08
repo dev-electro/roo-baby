@@ -1,76 +1,244 @@
-// functions/api/analyze.js
-// Cloudflare Pages Function — receives audio/image, calls Gemini API
+// Cloudflare Pages Function — proxies to OpenRouter API
+// Sends spectrogram images + face photos + reference atlas to Gemma 4 models
+// Uses 26B A4B for single-modality, 31B for cross-modal (both) mode
+// All model IDs configurable via env vars
 
-const PROMPT = (mode) =>
-`You are ROO, the world's best baby cry analyst. ${mode==='both'?'CROSS-REFERENCE audio AND image.':'Input: '+mode+' only.'}
+const OPENROUTER_BASE = 'https://openrouter.ai/api/v1';
 
-CRY: HUNGER=rhythmic neh, builds slow, 400-600Hz → feed. PAIN=sudden sharp, 600-800Hz, pauses → soothe. TIRED=whiny nasal, irregular fade → sleep. DISCOMFORT=sustained medium, grunting → adjust. BURPING=short bursts, dropping pitch → burp.
-VISUAL: Hunger=rooting+hands. Pain=scrunched+shut+red. Tired=droopy+glassy. Discomfort=arched+legs.
+const PROMPTS = {
+	audio: `You are ROO, the world's best baby cry analyst. Analyze this spectrogram of a baby's cry.
 
-Think step by step. Output ONLY JSON:
-{"category":"HUNGER","confidence":87,"severity":"MEDIUM","reasoning":"…","parent_action":"Feed baby now.","response_sound":"heartbeat","pre_cry":false,"pre_cry_message":null}
-severity:LOW|MEDIUM|HIGH|CRITICAL  sound:heartbeat|whitenoise|lullaby|shush`;
+SPECTROGRAM READING GUIDE:
+- X-axis: time (seconds), Y-axis: frequency (Hz), Color brightness: intensity
+- HUNGER: rhythmic vertical bands at 400-600Hz, gradual intensity buildup
+- PAIN: sudden bright spikes at 600-800Hz with dark silence gaps between cries
+- TIRED: dim low-frequency smears at 300-450Hz, fading in and out
+- DISCOMFORT: steady mid-frequency glow at 400-500Hz, sustained
+- BURPING: short isolated bursts, pitch descending with each burst
 
-export async function onRequest(context) {
-	const { request, env } = context;
-	const KEY = env.GEMINI_API_KEY;
-	const MODEL = env.GEMINI_MODEL_NAME || 'gemini-2.0-flash';
+The first image is a REFERENCE ATLAS showing labeled example spectrograms for each cry category. The second image is the USER'S spectrogram to analyze.
 
-	if (!KEY) return r({ error: 'GEMINI_API_KEY not set in Pages env vars.' }, 500);
-	if (request.method !== 'POST') return r({ error: 'Use POST.' }, 405);
+Compare the user's spectrogram pattern against the reference atlas and the signatures above. Respond with ONLY valid JSON:
+{"category":"HUNGER","confidence":85,"severity":"MEDIUM","reasoning":"Rhythmic vertical bands around 450Hz with gradual buildup, consistent with hunger pattern","parent_action":"Feed the baby now","response_sound":"heartbeat","pre_cry":false,"pre_cry_message":null}
+severity: LOW|MEDIUM|HIGH|CRITICAL  sound: heartbeat|whitenoise|lullaby|shush`,
 
-	try {
-		const form = await request.formData();
-		const parts = [];
-		let ha = false, hi = false;
+	image: `You are ROO, the world's best baby cry analyst. Analyze this baby's face and body language.
 
-		const a = form.get('audio');
-		if (a?.size > 0) {
-			if (!/wav|mpeg|mp3|flac|ogg|aac|m4a/i.test(a.type || '')) return r({ error: 'Unsupported audio. Use WAV/MP3.' }, 400);
-			parts.push({ inlineData: { mimeType: a.type || 'audio/wav', data: await b64(a) } });
-			ha = true;
-		}
-		const img = form.get('image');
-		if (img?.size > 0) {
-			parts.push({ inlineData: { mimeType: 'image/jpeg', data: await b64(img) } });
-			hi = true;
-		}
+VISUAL CUES:
+- HUNGER: rooting reflex, hands moving to mouth, lip smacking → feed
+- PAIN: scrunched face, eyes shut tight, redness → soothe immediately
+- TIRED: droopy eyes, glassy stare, eye rubbing → help sleep
+- DISCOMFORT: arched back, legs drawn up, fidgeting → adjust position
+- BURPING: squirming, brief back arching → burp
 
-		if (!parts.length) return r({ error: 'No audio or image.' }, 400);
-		parts.push({ text: PROMPT(ha && hi ? 'both' : ha ? 'audio' : 'image') });
+Respond with ONLY valid JSON:
+{"category":"HUNGER","confidence":78,"severity":"MEDIUM","reasoning":"Rooting reflex visible with hands moving toward mouth area","parent_action":"Feed soon","response_sound":"heartbeat","pre_cry":true,"pre_cry_message":"Baby may be getting hungry soon"}
+severity: LOW|MEDIUM|HIGH|CRITICAL  sound: heartbeat|whitenoise|lullaby|shush`,
 
-		const res = await fetch(
-			`https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${KEY}`,
-			{ method: 'POST', headers: { 'Content-Type': 'application/json' },
-			  body: JSON.stringify({ contents: [{ parts }], generationConfig: { temperature: 0.1, maxOutputTokens: 400 } }) }
-		);
-		if (!res.ok) {
-			const err = await res.text();
-			return r({ error: `Gemini ${res.status}: ${err.slice(0,200)}`, model: MODEL }, 502);
-		}
+	both: `You are ROO, the world's best baby cry analyst. CROSS-REFERENCE both the spectrogram AND the baby's face for the highest accuracy diagnosis.
 
-		const d = await res.json();
-		const raw = (d?.candidates?.[0]?.content?.parts?.[0]?.text || '')
-			.replace(/```(?:json)?\s*/gi, '').replace(/\s*```/gi, '').trim();
+The first image is a REFERENCE ATLAS showing labeled example spectrograms for each cry category. The second image is the USER'S spectrogram. The third image is the baby's face.
 
-		let out;
-		try { out = JSON.parse(raw); } catch { out = { category:'UNKNOWN', confidence:0, severity:'LOW', reasoning:'Parse error.', parent_action:'Try again.', response_sound:'whitenoise', pre_cry:false, pre_cry_message:null }; }
-		out._meta = { model: MODEL, timestamp: new Date().toISOString(), mode: ha && hi ? 'both' : ha ? 'audio' : 'image' };
-		return r(out);
-	} catch (e) {
-		return r({ error: e.message || 'Internal error' }, 500);
-	}
-}
+SPECTROGRAM READING GUIDE:
+- X-axis: time, Y-axis: frequency, Color brightness: intensity
+- HUNGER: rhythmic bands 400-600Hz, gradual buildup
+- PAIN: bright spikes 600-800Hz, silence gaps
+- TIRED: dim smears 300-450Hz, fading
+- DISCOMFORT: steady glow 400-500Hz, sustained
+- BURPING: short bursts, descending pitch
 
-async function b64(file) {
-	const b = new Uint8Array(await file.arrayBuffer()), c = [];
-	for (let i = 0; i < b.length; i += 4096) c.push(String.fromCharCode(...b.slice(i, i + 4096)));
-	return btoa(c.join(''));
-}
+FACIAL CUES:
+- HUNGER: rooting, hands to mouth, lip smacking
+- PAIN: scrunched face, shut eyes, redness
+- TIRED: droopy eyes, glassy stare, rubbing
+- DISCOMFORT: arched back, legs up, fidgeting
+- BURPING: squirming, brief arching
 
-function r(data, status = 200) {
+STEP 1: Read the reference atlas. STEP 2: Compare user's spectrogram against reference patterns. STEP 3: Analyze the facial expression. STEP 4: Do spectrogram and face signals AGREE? Higher confidence when both agree.
+Respond with ONLY valid JSON:
+{"category":"HUNGER","confidence":91,"severity":"HIGH","reasoning":"Spectrogram matches hunger reference pattern (rhythmic 450Hz bands) AND face shows rooting reflex — both signals agree strongly","parent_action":"Feed immediately","response_sound":"heartbeat","pre_cry":false,"pre_cry_message":null}
+severity: LOW|MEDIUM|HIGH|CRITICAL  sound: heartbeat|whitenoise|lullaby|shush`
+};
+
+function jsonRes(data, status = 200) {
 	return new Response(JSON.stringify(data), {
 		status,
 		headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
 	});
+}
+
+export async function onRequestOptions() {
+	return new Response(null, {
+		headers: {
+			'Access-Control-Allow-Origin': '*',
+			'Access-Control-Allow-Methods': 'POST, OPTIONS',
+			'Access-Control-Allow-Headers': 'Content-Type',
+			'Access-Control-Max-Age': '86400'
+		}
+	});
+}
+
+async function blobToBase64(blob) {
+	const buf = new Uint8Array(await blob.arrayBuffer());
+	let binary = '';
+	for (let i = 0; i < buf.length; i += 4096) {
+		binary += String.fromCharCode(...buf.slice(i, i + 4096));
+	}
+	return btoa(binary);
+}
+
+let atlasBase64Cache = null;
+
+async function getAtlasBase64(env) {
+	if (atlasBase64Cache) return atlasBase64Cache;
+	const siteUrl = env.SITE_URL || 'https://roo-baby.pages.dev';
+	try {
+		const res = await fetch(`${siteUrl}/atlas/atlas_master.webp`, { signal: AbortSignal.timeout(5000) });
+		if (res.ok) {
+			const buf = await res.arrayBuffer();
+			const bytes = new Uint8Array(buf);
+			let binary = '';
+			for (let i = 0; i < bytes.length; i += 4096) {
+				binary += String.fromCharCode(...bytes.slice(i, i + 4096));
+			}
+			atlasBase64Cache = btoa(binary);
+			return atlasBase64Cache;
+		}
+	} catch {}
+	return null;
+}
+
+async function callOpenRouter(apiKey, model, messages, retries = 1) {
+	for (let attempt = 0; attempt <= retries; attempt++) {
+		const res = await fetch(`${OPENROUTER_BASE}/chat/completions`, {
+			method: 'POST',
+			headers: {
+				'Authorization': `Bearer ${apiKey}`,
+				'Content-Type': 'application/json',
+				'HTTP-Referer': env.SITE_URL || 'https://roo-baby.pages.dev',
+				'X-Title': 'ROO Baby Cry Analyzer'
+			},
+			body: JSON.stringify({
+				model,
+				messages,
+				max_tokens: 400,
+				temperature: 0.1,
+				response_format: { type: 'json_object' }
+			})
+		});
+
+		if (res.status === 429 && attempt < retries) {
+			await new Promise(r => setTimeout(r, 2000));
+			continue;
+		}
+
+		if (!res.ok) {
+			const err = await res.text();
+			throw new Error(`OpenRouter ${res.status}: ${err.slice(0, 300)}`);
+		}
+
+		return res.json();
+	}
+}
+
+function parseJSON(text) {
+	if (!text) return null;
+	const raw = text.replace(/```(?:json)?\s*/gi, '').replace(/\s*```/gi, '').trim();
+	try { return JSON.parse(raw); } catch {}
+	const s = raw.indexOf('{');
+	const e = raw.lastIndexOf('}');
+	if (s >= 0 && e > s) {
+		try { return JSON.parse(raw.slice(s, e + 1)); } catch {}
+	}
+	return null;
+}
+
+export async function onRequest(context) {
+	const { request, env } = context;
+	const apiKey = env.OPENROUTER_API_KEY;
+	const modelSingle = env.MODEL_SINGLE || 'google/gemma-4-26b-a4b-it:free';
+	const modelBoth = env.MODEL_BOTH || 'google/gemma-4-31b-it:free';
+	const modelFallback = env.MODEL_FALLBACK || 'google/gemma-4-31b-it:free';
+
+	if (!apiKey) return jsonRes({ error: 'OPENROUTER_API_KEY not set in Cloudflare Pages env vars.' }, 500);
+	if (request.method !== 'POST') return jsonRes({ error: 'Use POST.' }, 405);
+
+	try {
+		const form = await request.formData();
+		const mode = form.get('mode') || 'audio';
+		const spectrogramBlob = form.get('spectrogram');
+		const imageBlob = form.get('image');
+
+		if (!spectrogramBlob?.size && !imageBlob?.size) {
+			return jsonRes({ error: 'No spectrogram or image provided.' }, 400);
+		}
+
+		const contentParts = [];
+
+		// Prepend atlas reference image for audio/both modes
+		if ((mode === 'audio' || mode === 'both') && spectrogramBlob?.size) {
+			const atlasB64 = await getAtlasBase64(env);
+			if (atlasB64) {
+				contentParts.push({
+					type: 'image_url',
+					image_url: { url: `data:image/webp;base64,${atlasB64}` }
+				});
+			}
+		}
+
+		if (spectrogramBlob?.size > 0) {
+			const specB64 = await blobToBase64(spectrogramBlob);
+			contentParts.push({
+				type: 'image_url',
+				image_url: { url: `data:image/png;base64,${specB64}` }
+			});
+		}
+
+		if (imageBlob?.size > 0) {
+			const imgB64 = await blobToBase64(imageBlob);
+			const mimeType = imageBlob.type || 'image/jpeg';
+			contentParts.push({
+				type: 'image_url',
+				image_url: { url: `data:${mimeType};base64,${imgB64}` }
+			});
+		}
+
+		contentParts.push({ type: 'text', text: PROMPTS[mode] });
+
+		const model = mode === 'both' ? modelBoth : modelSingle;
+		const messages = [{ role: 'user', content: contentParts }];
+
+		let data;
+		try {
+			data = await callOpenRouter(apiKey, model, messages);
+		} catch (err) {
+			if (modelFallback && model !== modelFallback) {
+				data = await callOpenRouter(apiKey, modelFallback, messages);
+			} else {
+				throw err;
+			}
+		}
+
+		const rawText = data?.choices?.[0]?.message?.content || '';
+		const result = parseJSON(rawText);
+
+		if (!result || !result.category) {
+			return jsonRes({
+				error: 'Model did not return valid JSON',
+				raw: rawText.slice(0, 500),
+				model: data?.model || model
+			}, 502);
+		}
+
+		result._meta = {
+			model: data?.model || model,
+			model_requested: model,
+			timestamp: new Date().toISOString(),
+			mode,
+			atlas_used: !!atlasBase64Cache
+		};
+		return jsonRes(result);
+	} catch (e) {
+		return jsonRes({ error: e.message || 'Internal error' }, 500);
+	}
 }

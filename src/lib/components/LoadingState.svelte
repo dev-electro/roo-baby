@@ -3,7 +3,7 @@
 	
 	const texts = [
 		'ROO is listening…',
-		'Analyzing cry patterns…',
+		'Reading spectrogram…',
 		'Consulting Gemma 4…',
 		'Almost there…'
 	];

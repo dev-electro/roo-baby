@@ -1,6 +1,7 @@
 <script>
 	import { appState } from '$state/appState.svelte.js';
 	import { convertToWav, isSupportedAudioFormat } from '$utils/audioEncoder.js';
+	import { generateSpectrogram } from '$utils/spectrogramGenerator.js';
 	import Icon from './Icon.svelte';
 	
 	let mediaRecorder = null;
@@ -28,7 +29,6 @@
 				if (isSupportedAudioFormat(rawBlob.type)) {
 					appState.audioBlob = rawBlob;
 				} else {
-					// Convert WebM/Opus to WAV
 					appState.isConvertingAudio = true;
 					try {
 						const wavBlob = await convertToWav(rawBlob);
@@ -38,6 +38,18 @@
 						showFallback = true;
 					} finally {
 						appState.isConvertingAudio = false;
+					}
+				}
+
+				const audioForSpectrogram = appState.audioBlob;
+				if (audioForSpectrogram) {
+					appState.isGeneratingSpectrogram = true;
+					try {
+						appState.spectrogramBlob = await generateSpectrogram(audioForSpectrogram);
+					} catch {
+						appState.spectrogramBlob = null;
+					} finally {
+						appState.isGeneratingSpectrogram = false;
 					}
 				}
 				
@@ -81,6 +93,18 @@
 		if (file) {
 			appState.audioBlob = file;
 			appState.clearError();
+			generateSpectrogramFromFile(file);
+		}
+	}
+
+	async function generateSpectrogramFromFile(blob) {
+		appState.isGeneratingSpectrogram = true;
+		try {
+			appState.spectrogramBlob = await generateSpectrogram(blob);
+		} catch {
+			appState.spectrogramBlob = null;
+		} finally {
+			appState.isGeneratingSpectrogram = false;
 		}
 	}
 	
@@ -107,8 +131,8 @@
 				<Icon name="check" size={28} color="var(--mint)" />
 			</div>
 			<p class="done-text">Cry recorded</p>
-			<p class="done-sub">Ready to analyze</p>
-			<button class="re-record-btn" onclick={() => { appState.audioBlob = null; showFallback = false; }}>
+			<p class="done-sub">{appState.isGeneratingSpectrogram ? 'Generating spectrogram...' : 'Ready to analyze'}</p>
+			<button class="re-record-btn" onclick={() => { appState.audioBlob = null; appState.spectrogramBlob = null; showFallback = false; }}>
 				<Icon name="refresh" size={14} />
 				Re-record
 			</button>

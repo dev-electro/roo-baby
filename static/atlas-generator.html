@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>ROO Atlas Generator (Placeholder)</title>
+<style>
+body { font-family: system-ui; max-width: 600px; margin: 40px auto; padding: 0 20px; background: #1a1a2e; color: #eee; }
+h1 { color: #ff7b5c; }
+.btn { background: linear-gradient(135deg, #ff7b5c, #ffb347); color: #fff; border: none; padding: 14px 28px; border-radius: 12px; font-size: 16px; font-weight: 700; cursor: pointer; margin: 8px; }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.preview { background: #16213e; border-radius: 12px; padding: 16px; margin: 16px 0; }
+#status { color: #52d9c1; margin: 16px 0; font-weight: 600; }
+canvas { display: none; }
+</style>
+</head>
+<body>
+<h1>🍼 ROO Atlas Generator</h1>
+<p>Generates placeholder spectrogram reference images for development. For production, use <code>scripts/generate_atlas.py</code> with real datasets.</p>
+<button class="btn" onclick="generate()" id="genBtn">Generate Placeholder Atlas</button>
+<div id="status"></div>
+<div id="previews" class="preview"></div>
+<canvas id="canvas"></canvas>
+
+<script>
+const SR = 16000, MELS = 128, FFT = 2048, HOP = 512, W = 512, H = 256;
+const CATEGORIES = {
+	HUNGER: { color: '#FF7B5C', desc: 'Rhythmic "neh" pattern, 400-600Hz, gradual buildup' },
+	PAIN: { color: '#FF4D6D', desc: 'Sudden sharp spikes, 600-800Hz, silence gaps' },
+	TIRED: { color: '#7B8CDE', desc: 'Whiny nasal, 300-450Hz, irregular fading' },
+	DISCOMFORT: { color: '#FFB347', desc: 'Sustained mid-range, 400-500Hz, grunting' },
+	BURPING: { color: '#52D9C1', desc: 'Short isolated bursts, descending pitch' }
+};
+const MAGMA = [
+	[0,.0,.0,.014],[.14,.117,.067,.396],[.29,.416,.075,.498],
+	[.43,.643,.243,.396],[.57,.860,.478,.188],[.71,.976,.753,.094],
+	[.86,.988,.976,.361],[1,.987,.991,.750]
+];
+
+function magma(t) {
+	if (t<=0) return MAGMA[0].slice(1);
+	if (t>=1) return MAGMA[MAGMA.length-1].slice(1);
+	for (let i=0;i<MAGMA.length-1;i++) {
+		if (t>=MAGMA[i][0]&&t<=MAGMA[i+1][0]) {
+			const f=(t-MAGMA[i][0])/(MAGMA[i+1][0]-MAGMA[i][0]||1);
+			return [MAGMA[i][1]+f*(MAGMA[i+1][1]-MAGMA[i][1]),
+					MAGMA[i][2]+f*(MAGMA[i+1][2]-MAGMA[i][2]),
+					MAGMA[i][3]+f*(MAGMA[i+1][3]-MAGMA[i][3])];
+		}
+	}
+	return MAGMA[MAGMA.length-1].slice(1);
+}
+
+function syntheticMel(cat, seed) {
+	const rng = ((s)=>()=>{s=Math.sin(s*9301+49297)%233280;return(s<0?s+233280:s)/233280})(seed);
+	const frames = 80 + Math.floor(rng()*40);
+	const mel = [];
+	for (let f=0;f<frames;f++) {
+		const col = new Float32Array(MELS);
+		for (let b=0;b<MELS;b++) {
+			const freq = 80 + (b/MELS)*7920;
+			let v = -60 + rng()*10;
+			if (cat==='HUNGER' && freq>400 && freq<600) v+=20*Math.sin(f*0.15+rng()*2)*(1+f/frames);
+			else if (cat==='PAIN' && freq>600 && freq<800) v+=rng()>0.6?25*(1+(rng()-0.5)*0.3):0;
+			else if (cat==='TIRED' && freq>300 && freq<450) v+=12*(0.5+0.5*Math.sin(f*0.07))*(1+0.3*rng());
+			else if (cat==='DISCOMFORT' && freq>400 && freq<500) v+=14+3*rng();
+			else if (cat==='BURPING' && freq>500 && freq<900) v+=rng()>0.75?20*(1-((f%20)/20)*0.4):0;
+			col[b]=v;
+		}
+		mel.push(col);
+	}
+	return mel;
+}
+
+function renderSpectrogram(mel) {
+	const c=document.getElementById('canvas');
+	c.width=W;c.height=H;
+	const ctx=c.getContext('2d');
+	const frames=mel.length, vMin=-80, vMax=0;
+	ctx.fillStyle='#000';ctx.fillRect(0,0,W,H);
+	const xS=W/frames,yS=H/MELS;
+	for(let f=0;f<frames;f++)for(let b=0;b<MELS;b++){
+		const t=Math.max(0,Math.min(1,(mel[f][b]-vMin)/(vMax-vMin)));
+		const [r,g,bl]=magma(t);
+		ctx.fillStyle=`rgb(${Math.round(r*255)},${Math.round(g*255)},${Math.round(bl*255)})`;
+		ctx.fillRect(Math.floor(f*xS),H-Math.floor((b+1)*yS),Math.ceil(xS)+1,Math.ceil(yS)+1);
+	}
+	return c.toDataURL('image/webp',0.92);
+}
+
+async function generate() {
+	document.getElementById('genBtn').disabled=true;
+	const status=document.getElementById('status');
+	const previews=document.getElementById('previews');
+	previews.innerHTML='';
+	status.textContent='Generating...';
+
+	const manifest={categories:{},total_samples:0,placeholder:true};
+	let allExemplars={};
+
+	for (const [cat,info] of Object.entries(CATEGORIES)) {
+		status.textContent=`Generating ${cat}...`;
+		allExemplars[cat]=[];
+		for(let i=0;i<5;i++){
+			const mel=syntheticMel(cat,cat.charCodeAt(0)*100+i*7+42);
+			const dataUrl=renderSpectrogram(mel);
+			const filename=`${cat.toLowerCase()}_${String(i+1).padStart(2,'0')}.webp`;
+			allExemplars[cat].push(filename);
+
+			const img=document.createElement('img');
+			img.src=dataUrl;img.style.width='180px';img.style.borderRadius='8px';img.style.border='3px solid '+info.color;
+			previews.appendChild(img);
+
+			const a=document.createElement('a');
+			a.href=dataUrl;a.download=filename;a.textContent=`${filename}  `;
+			a.style.color=info.color;a.style.marginRight='12px';
+			previews.appendChild(a);
+		}
+		previews.appendChild(document.createElement('br'));
+		manifest.categories[cat]={description:info.desc,color:info.color,exemplars:allExemplars[cat]};
+	}
+
+	// Save manifest
+	const mBlob=new Blob([JSON.stringify(manifest,null,2)],{type:'application/json'});
+	const mUrl=URL.createObjectURL(mBlob);
+	const mA=document.createElement('a');mA.href=mUrl;mA.download='atlas_manifest.json';mA.textContent='Download atlas_manifest.json';
+	previews.appendChild(document.createElement('br'));previews.appendChild(mA);
+
+	// Create composite atlas card
+	status.textContent='Creating atlas card...';
+	const atlasCanvas=document.createElement('canvas');
+	atlasCanvas.width=1400;atlasCanvas.height=1800;
+	const ctx=atlasCanvas.getContext('2d');
+	ctx.fillStyle='#121218';ctx.fillRect(0,0,1400,1800);
+	ctx.font='bold 22px system-ui';ctx.fillStyle='#fff';
+	ctx.fillText('ROO BABY CRY ANALYZER — REFERENCE SPECTROGRAMS',20,35);
+	ctx.font='14px system-ui';ctx.fillStyle='#aaa';
+	ctx.fillText('Compare spectrogram against these patterns. Frequency (Hz) on Y, Time on X, Brightness = Intensity.',20,60);
+
+	let y=90;
+	for(const [cat,info] of Object.entries(CATEGORIES)){
+		ctx.fillStyle=info.color;ctx.font='bold 15px system-ui';
+		ctx.fillText(`■ ${cat}`,20,y);
+		ctx.fillStyle='#bbb';ctx.font='11px system-ui';
+		ctx.fillText(info.desc,140,y);
+		y+=30;
+		for(let i=0;i<3&&i<5;i++){
+			const mel=syntheticMel(cat,cat.charCodeAt(0)*100+i*7+42);
+			// Render inline (simplified)
+			const tw=256,th=128,tFrames=80;
+			const vMin=-80,vMax=0;
+			for(let f=0;f<tFrames;f++)for(let b=0;b<MELS;b+=2){
+				const t=Math.max(0,Math.min(1,(mel[f][b]-vMin)/(vMax-vMin)));
+				const [r,g,bl]=magma(t);
+				ctx.fillStyle=`rgb(${Math.round(r*255)},${Math.round(g*255)},${Math.round(bl*255)})`;
+				ctx.fillRect(20+i*(tw+10)+f*tw/tFrames,y+((MELS-b)/MELS)*th,Math.ceil(tw/tFrames)+1,Math.ceil(th/MELS*2)+1);
+			}
+		}
+		y+=128+40;
+	}
+
+	// Guide
+	ctx.fillStyle='#fff';ctx.font='bold 15px system-ui';ctx.fillText('HOW TO READ:',20,y);y+=25;
+	ctx.fillStyle='#ccc';ctx.font='12px system-ui';
+	const guide=[
+		'• X-axis = Time, Y-axis = Frequency, Brightness = Intensity',
+		'• HUNGER: Rhythmic vertical bands 400-600Hz, gradual buildup',
+		'• PAIN: Sudden bright spikes 600-800Hz, dark gaps between',
+		'• TIRED: Dim low-frequency smears 300-450Hz, fading in/out',
+		'• DISCOMFORT: Steady mid-range glow 400-500Hz',
+		'• BURPING: Short isolated bursts, each slightly lower'
+	];
+	guide.forEach(l=>{ctx.fillText(l,20,y);y+=18;});
+
+	const atlasDataUrl=atlasCanvas.toDataURL('image/webp',0.95);
+	const aA=document.createElement('a');aA.href=atlasDataUrl;aA.download='atlas_master.webp';aA.textContent='  Download atlas_master.webp';aA.style.color='#52d9c1';aA.style.fontWeight='bold';aA.style.fontSize='16px';
+	previews.appendChild(document.createElement('br'));previews.appendChild(aA);
+
+	status.textContent='Done! Download files above and place in static/atlas/';
+	document.getElementById('genBtn').disabled=false;
+}
+</script>
+</body>
+</html>
