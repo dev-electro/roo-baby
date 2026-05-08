@@ -5,180 +5,48 @@
 	import { playResponseSound, ensureAudioResumed } from '$utils/soundGenerator.js';
 	import { speak, unlockSpeech } from '$utils/ttsEngine.js';
 	import { saveToHistory } from '$utils/historyStore.js';
-	import Icon from './Icon.svelte';
-	
-	const RESPONSE_MESSAGES = {
-		HUNGER: "Shh little one… food is on the way. You're safe.",
-		PAIN: "It's okay baby… I'm right here. You're not alone.",
-		TIRED: "Sleep now little one… the world can wait.",
-		DISCOMFORT: "Shh shh… let's make you comfortable. Better soon.",
-		BURPING: "Let it out… you'll feel much better. Good baby.",
-		UNKNOWN: "Shh shh… it's okay little one. Everything is fine."
+
+	const MSGS = {
+		HUNGER:"Shh little one… food is on the way. You're safe.",
+		PAIN:"It's okay baby… I'm right here. You're not alone.",
+		TIRED:"Sleep now little one… the world can wait.",
+		DISCOMFORT:"Shh shh… let's make you comfortable.",
+		BURPING:"Let it out… good baby. You'll feel better.",
+		UNKNOWN:"Shh… it's okay. Everything is fine."
 	};
-	
-	let analyzing = false;
 
-	async function handleAnalyze() {
-		if (!appState.isReady || appState.isAnalyzing || analyzing) return;
-		analyzing = true;
-		
-		appState.isAnalyzing = true;
-		appState.clearError();
-		appState.result = null;
-		
-		// Unlock audio subsystems (requires user gesture on mobile)
-		unlockSpeech();
-		ensureAudioResumed();
+	let busy=$state(false);
 
-		// Stop any currently playing sounds from previous analysis
-		const { stopAllSounds } = await import('$utils/soundGenerator.js');
-		const { stopSpeaking } = await import('$utils/ttsEngine.js');
-		stopAllSounds();
-		stopSpeaking();
-		
+	async function run() {
+		if (!appState.isReady || appState.isAnalyzing || busy) return;
+		busy=true; appState.isAnalyzing=true; appState.clearError(); appState.result=null;
+		unlockSpeech(); ensureAudioResumed();
 		try {
-			let audioFeatures = null;
-			if (appState.audioBlob) {
-				try {
-					audioFeatures = await extractAudioFeatures(appState.audioBlob);
-				} catch {
-					audioFeatures = null;
-				}
-			}
-			
-			const data = await analyze({
-				mode: appState.currentMode,
-				audio: appState.audioBlob,
-				image: appState.imageBlob,
-				spectrogram: appState.spectrogramBlob,
-				audioFeatures
-			});
-			
-			appState.result = data;
-			saveToHistory(data);
-			
-			if (data.response_sound) {
-				playResponseSound(data.response_sound);
-			}
-			
-			const msg = RESPONSE_MESSAGES[data.category] || RESPONSE_MESSAGES.UNKNOWN;
-			setTimeout(() => speak(msg), 1500);
-			
-		} catch (err) {
-			appState.setError(err.message || 'Analysis failed. Please try again.');
-		} finally {
-			appState.isAnalyzing = false;
-			analyzing = false;
-		}
+			let feat=null;
+			if(appState.audioBlob){try{feat=await extractAudioFeatures(appState.audioBlob)}catch{}}
+			const data=await analyze({mode:appState.currentMode,audio:appState.audioBlob,image:appState.imageBlob,spectrogram:appState.spectrogramBlob,audioFeatures:feat});
+			appState.result=data; saveToHistory(data);
+			if(data.response_sound) playResponseSound(data.response_sound);
+			const msg=MSGS[data.category]||MSGS.UNKNOWN;
+			setTimeout(()=>speak(msg),1500);
+		}catch(err){appState.setError(err.message||'Analysis failed')}
+		finally{appState.isAnalyzing=false;busy=false}
 	}
 </script>
 
-<button
-	class="analyze-btn"
-	class:ready={appState.isReady}
-	class:generating={appState.isConvertingAudio || appState.isGeneratingSpectrogram}
-	disabled={!appState.isReady || appState.isAnalyzing || appState.isConvertingAudio || appState.isGeneratingSpectrogram}
-	onclick={handleAnalyze}
-	type="button"
->
+<button class="btn" class:on={appState.isReady} disabled={!appState.isReady||appState.isAnalyzing} onclick={run}>
 	{#if appState.isAnalyzing}
-		<span class="btn-shimmer"></span>
-		<span class="btn-text">Analyzing…</span>
-	{:else if appState.isConvertingAudio || appState.isGeneratingSpectrogram}
-		<span class="btn-content">
-			<div class="mini-spinner"></div>
-			<span>{appState.isConvertingAudio ? 'Optimizing…' : 'Preparing…'}</span>
-		</span>
+		<span class="shimmer"></span><span>Analyzing…</span>
 	{:else}
-		<span class="btn-content">
-			<Icon name="arrow-right" size={18} color="currentColor" />
-			<span>Analyze Cry</span>
-		</span>
+		🔍 Analyze Cry
 	{/if}
 </button>
 
 <style>
-	.analyze-btn {
-		width: 100%;
-		padding: 20px 28px;
-		border-radius: var(--radius-xl);
-		font-size: 1.05rem;
-		font-weight: 800;
-		letter-spacing: 0.03em;
-		color: rgba(255,255,255,0.4);
-		background: var(--surface);
-		border: 1px solid var(--border);
-		position: relative;
-		overflow: hidden;
-		transition: all var(--transition-base);
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		min-height: 60px;
-	}
-
-	.analyze-btn.ready {
-		background: linear-gradient(135deg, var(--primary), var(--secondary));
-		color: #fff;
-		border: none;
-		box-shadow: 0 6px 24px rgba(255,140,107,0.3), inset 0 1px 0 rgba(255,255,255,0.15);
-		cursor: pointer;
-	}
-
-	.analyze-btn.ready:hover:not(:disabled) {
-		transform: translateY(-2px);
-		box-shadow: 0 10px 36px rgba(255,140,107,0.4), inset 0 1px 0 rgba(255,255,255,0.15);
-	}
-
-	.analyze-btn.ready:active:not(:disabled) {
-		transform: translateY(0);
-		box-shadow: 0 4px 16px rgba(255,140,107,0.25);
-	}
-
-	.analyze-btn:disabled {
-		opacity: 0.5;
-		cursor: not-allowed;
-	}
-
-	.analyze-btn.generating {
-		background: var(--surface);
-		color: var(--text-muted);
-		border: 1px solid var(--border-glow);
-		cursor: wait;
-	}
-
-	.btn-content {
-		display: flex;
-		align-items: center;
-		gap: 10px;
-		position: relative;
-		z-index: 1;
-	}
-
-	.mini-spinner {
-		width: 16px;
-		height: 16px;
-		border: 2px solid var(--border);
-		border-top-color: var(--primary);
-		border-radius: 50%;
-		animation: spin-slow 0.8s linear infinite;
-	}
-
-	.btn-text {
-		position: relative;
-		z-index: 1;
-	}
-
-	.btn-shimmer {
-		position: absolute;
-		inset: 0;
-		background: linear-gradient(
-			90deg,
-			transparent,
-			rgba(255,255,255,0.12),
-			transparent
-		);
-		background-size: 200% 100%;
-		animation: shimmer 1.5s infinite;
-	}
+	.btn{width:100%;padding:18px;border-radius:var(--radius);font-size:1rem;font-weight:800;letter-spacing:.02em;color:var(--text-dim);background:var(--card-bg);border:1px solid var(--card-border);position:relative;overflow:hidden;transition:all .2s}
+	.btn.on{background:linear-gradient(135deg,var(--pink),var(--gold));color:#fff;border:none;box-shadow:0 6px 20px rgba(255,107,122,.3);cursor:pointer}
+	.btn.on:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 10px 28px rgba(255,107,122,.4)}
+	.btn.on:active:not(:disabled){transform:translateY(0)}
+	.btn:disabled{opacity:.5;cursor:not-allowed}
+	.shimmer{position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.1),transparent);background-size:200% 100%;animation:shimmer 1.5s infinite}
 </style>

@@ -1,117 +1,34 @@
 <script>
 	import { appState } from '$state/appState.svelte.js';
-	import Icon from './Icon.svelte';
-	
+
 	const modes = [
-		{ id: 'audio', label: 'Audio', icon: 'mic', desc: 'Cry only' },
-		{ id: 'image', label: 'Photo', icon: 'camera', desc: 'Face only' },
-		{ id: 'both', label: 'Best', icon: 'bolt', desc: 'Both' }
+		{ id: 'audio',  emoji: '🎤', label: 'Audio',  sub: 'Cry only' },
+		{ id: 'image',  emoji: '📸', label: 'Photo',  sub: 'Face only' },
+		{ id: 'both',   emoji: '⭐', label: 'Best',   sub: 'Audio+Photo' },
 	];
-	
-	function selectMode(mode) {
+
+	function pick(mode) {
 		appState.currentMode = mode;
 		appState.reset();
 	}
 </script>
 
-<div class="tabs">
-	{#each modes as mode}
-		<button
-			class="tab"
-			class:active={appState.currentMode === mode.id}
-			onclick={() => selectMode(mode.id)}
-			type="button"
-		>
-			<Icon name={mode.icon} size={18} color={appState.currentMode === mode.id ? '#fff' : 'var(--text-muted)'} />
-			<div class="tab-text">
-				<span class="tab-label">{mode.label}</span>
-				<span class="tab-desc">{mode.desc}</span>
-			</div>
+<nav class="tabs">
+	{#each modes as m}
+		<button class="tab" class:on={appState.currentMode === m.id} onclick={() => pick(m.id)}>
+			<span class="tab-e">{m.emoji}</span>
+			<span class="tab-l">{m.label}</span>
+			<span class="tab-s">{m.sub}</span>
 		</button>
 	{/each}
-</div>
+</nav>
 
 <style>
-	.tabs {
-		display: grid;
-		grid-template-columns: repeat(3, 1fr);
-		gap: 8px;
-		padding: 6px;
-		background: var(--surface);
-		border: 1px solid var(--border);
-		border-radius: var(--radius-lg);
-		backdrop-filter: blur(20px);
-	}
-
-	.tab {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		gap: 8px;
-		padding: 12px 8px;
-		border-radius: var(--radius-md);
-		font-size: 0.82rem;
-		font-weight: 700;
-		letter-spacing: 0.02em;
-		color: var(--text-muted);
-		background: transparent;
-		transition: all var(--transition-base);
-		position: relative;
-		overflow: hidden;
-	}
-
-	.tab::before {
-		content: '';
-		position: absolute;
-		inset: 0;
-		background: linear-gradient(135deg, rgba(255,140,107,0.12), rgba(255,184,108,0.08));
-		border-radius: inherit;
-		opacity: 0;
-		transition: opacity var(--transition-base);
-	}
-
-	.tab:hover:not(.active) {
-		color: var(--text);
-		background: var(--surface-hover);
-	}
-
-	.tab.active {
-		color: #fff;
-	}
-
-	.tab.active::before {
-		opacity: 1;
-	}
-
-	.tab.active::after {
-		content: '';
-		position: absolute;
-		inset: 0;
-		border-radius: inherit;
-		border: 1px solid rgba(255,140,107,0.25);
-		box-shadow: 0 4px 20px rgba(255,140,107,0.15);
-	}
-
-	.tab-text {
-		display: flex;
-		flex-direction: column;
-		align-items: flex-start;
-	}
-
-	.tab-desc {
-		font-size: 0.6rem;
-		font-weight: 500;
-		opacity: 0.6;
-		letter-spacing: 0.04em;
-	}
-
-	:global(.tab svg) {
-		position: relative;
-		z-index: 1;
-		transition: transform var(--transition-fast);
-	}
-
-	.tab:hover :global(svg) {
-		transform: translateY(-1px);
-	}
+	.tabs{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;padding:5px;background:var(--card-bg);border:1px solid var(--card-border);border-radius:var(--radius)}
+	.tab{display:flex;flex-direction:column;align-items:center;gap:2px;padding:10px 4px;border-radius:var(--radius-sm);font-weight:600;transition:all .2s;color:var(--text-soft)}
+	.tab:hover:not(.on){background:rgba(128,128,128,.06)}
+	.tab.on{background:linear-gradient(135deg,var(--pink-soft),var(--gold-soft));color:var(--text);box-shadow:0 0 0 1px var(--pink)}
+	.tab-e{font-size:1.2rem;line-height:1}
+	.tab-l{font-size:.78rem}
+	.tab-s{font-size:.58rem;opacity:.5}
 </style>

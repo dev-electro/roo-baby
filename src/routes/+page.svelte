@@ -2,7 +2,8 @@
 	import { appState } from '$state/appState.svelte.js';
 	import { stopAllSounds } from '$utils/soundGenerator.js';
 	import { stopSpeaking } from '$utils/ttsEngine.js';
-	
+	import { saveToHistory } from '$utils/historyStore.js';
+
 	import Header from '$components/Header.svelte';
 	import ModeTabs from '$components/ModeTabs.svelte';
 	import AudioRecorder from '$components/AudioRecorder.svelte';
@@ -14,8 +15,7 @@
 	import ResponsePlayer from '$components/ResponsePlayer.svelte';
 	import ErrorToast from '$components/ErrorToast.svelte';
 	import HistoryCard from '$components/HistoryCard.svelte';
-	import Icon from '$components/Icon.svelte';
-	
+
 	function handleReset() {
 		stopAllSounds();
 		stopSpeaking();
@@ -25,20 +25,18 @@
 
 <svelte:head>
 	<title>ROO — Baby Cry Analyzer</title>
-	<meta name="description" content="AI-powered baby cry analyzer. Understand why your baby is crying in seconds." />
+	<meta name="description" content="Understand why your baby is crying. AI-powered cry analysis in seconds." />
 </svelte:head>
 
 <div class="page">
 	<Header />
 	<ModeTabs />
-	
-	<div class="capture-card glass">
+
+	<div class="card">
 		{#if appState.isConvertingAudio || appState.isGeneratingSpectrogram}
-			<div class="processing-state">
-				<div class="processing-spinner"></div>
-				<p class="processing-text">
-					{appState.isConvertingAudio ? 'Optimizing audio…' : 'Creating spectrogram…'}
-				</p>
+			<div class="processing">
+				<div class="spinner"></div>
+				<p>{appState.isConvertingAudio ? 'Optimizing…' : 'Creating spectrogram…'}</p>
 			</div>
 		{:else if appState.currentMode === 'audio'}
 			<AudioRecorder />
@@ -48,95 +46,40 @@
 			<BothModePanel />
 		{/if}
 	</div>
-	
+
 	<ErrorToast />
 	<AnalyzeButton />
 	<LoadingState />
 	<ResultCard />
 	<ResponsePlayer />
-	<HistoryCard />
-	
+
 	{#if appState.result}
-		<button class="reset-btn animate-fade-in" onclick={handleReset} type="button">
-			<Icon name="refresh" size={14} />
-			<span>Analyze Another Cry</span>
+		<button class="reset-btn animate-scale" onclick={handleReset}>
+			🔄 Analyze Another Cry
 		</button>
 	{/if}
-	
-	<footer class="footer">
-		<p>Powered by Gemma 4 · Multimodal AI</p>
-	</footer>
+
+	<HistoryCard />
 </div>
 
 <style>
-	.page {
-		display: flex;
-		flex-direction: column;
-		gap: 16px;
+	.page{display:flex;flex-direction:column;gap:14px}
+
+	.card{
+		background:var(--card-bg);border:1px solid var(--card-border);
+		border-radius:var(--radius-xl);overflow:hidden;
+		min-height:180px;display:flex;align-items:center;justify-content:center;
 	}
 
-	.capture-card {
-		min-height: 200px;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		border-radius: var(--radius-2xl);
-	}
+	.processing{display:flex;flex-direction:column;align-items:center;gap:12px;padding:36px}
+	.spinner{width:28px;height:28px;border:3px solid var(--card-border);border-top-color:var(--pink);border-radius:50%;animation:spin .8s linear infinite}
+	.processing p{font-size:.85rem;color:var(--text-soft);font-weight:600}
 
-	.reset-btn {
-		align-self: center;
-		display: flex;
-		align-items: center;
-		gap: 8px;
-		padding: 12px 24px;
-		border-radius: var(--radius-full);
-		font-size: 0.88rem;
-		font-weight: 700;
-		color: var(--text-muted);
-		background: var(--surface);
-		border: 1px solid var(--border);
-		transition: all var(--transition-fast);
+	.reset-btn{
+		align-self:center;padding:12px 28px;border-radius:100px;
+		font-size:.88rem;font-weight:700;color:var(--text-soft);
+		border:1px solid var(--card-border);background:var(--card-bg);
+		transition:all .15s;
 	}
-
-	.reset-btn:hover {
-		background: var(--surface-hover);
-		color: var(--text);
-		border-color: var(--border-glow);
-	}
-
-	.footer {
-		text-align: center;
-		padding-top: 16px;
-	}
-
-	.footer p {
-		font-size: 0.68rem;
-		color: var(--text-faint);
-		font-weight: 600;
-		letter-spacing: 0.1em;
-		text-transform: uppercase;
-	}
-
-	.processing-state {
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		gap: 14px;
-		padding: 40px;
-	}
-
-	.processing-spinner {
-		width: 32px;
-		height: 32px;
-		border: 3px solid var(--border);
-		border-top-color: var(--primary);
-		border-radius: 50%;
-		animation: spin-slow 1s linear infinite;
-	}
-
-	.processing-text {
-		font-size: 0.85rem;
-		color: var(--text-muted);
-		font-weight: 600;
-	}
+	.reset-btn:hover{border-color:var(--pink);color:var(--text)}
 </style>

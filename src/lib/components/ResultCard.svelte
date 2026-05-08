@@ -1,287 +1,53 @@
 <script>
 	import { appState } from '$state/appState.svelte.js';
-	import Icon from './Icon.svelte';
-	
-	const CATEGORY_ICONS = {
-		HUNGER: 'heart',
-		PAIN: 'bandage',
-		TIRED: 'moon',
-		DISCOMFORT: 'thermometer',
-		BURPING: 'wind',
-		UNKNOWN: 'info-circle'
-	};
-	
-	const CATEGORY_LABELS = {
-		HUNGER: 'Hunger',
-		PAIN: 'Pain',
-		TIRED: 'Tired',
-		DISCOMFORT: 'Discomfort',
-		BURPING: 'Burping',
-		UNKNOWN: 'Unknown'
-	};
-	
-	const CATEGORY_COLORS = {
-		HUNGER: 'var(--secondary)',
-		PAIN: 'var(--danger)',
-		TIRED: 'var(--lavender)',
-		DISCOMFORT: 'var(--warn)',
-		BURPING: 'var(--accent)',
-		UNKNOWN: 'var(--text-muted)'
-	};
-	
-	const SEVERITY_CONFIG = {
-		LOW: { color: 'var(--accent)', bg: 'rgba(110,231,183,0.1)', label: 'Low' },
-		MEDIUM: { color: 'var(--warn)', bg: 'rgba(255,209,102,0.1)', label: 'Medium' },
-		HIGH: { color: 'var(--primary)', bg: 'rgba(255,140,107,0.1)', label: 'High' },
-		CRITICAL: { color: 'var(--danger)', bg: 'rgba(255,107,138,0.12)', label: 'Critical' }
-	};
-	
-	let confidenceWidth = $state(0);
-	
-	$effect(() => {
-		if (appState.result) {
-			requestAnimationFrame(() => {
-				setTimeout(() => {
-					confidenceWidth = appState.result?.confidence || 0;
-				}, 150);
-			});
-		} else {
-			confidenceWidth = 0;
-		}
-	});
+
+	const EM = { HUNGER:'🍼', PAIN:'🩹', TIRED:'😴', DISCOMFORT:'🌡️', BURPING:'💫', UNKNOWN:'❓' };
+	const LB = { HUNGER:'Hunger', PAIN:'Pain', TIRED:'Tired', DISCOMFORT:'Discomfort', BURPING:'Burping', UNKNOWN:'Unknown' };
+	const SV = { LOW:{c:'var(--teal)',bg:'var(--teal-soft)'}, MEDIUM:{c:'var(--gold)',bg:'var(--gold-soft)'}, HIGH:{c:'var(--pink)',bg:'var(--pink-soft)'}, CRITICAL:{c:'var(--red)',bg:'var(--red)'} };
+
+	let w=$state(0);
+	$effect(()=>{if(appState.result){requestAnimationFrame(()=>setTimeout(()=>w=appState.result?.confidence||0,100))}else w=0});
 </script>
 
 {#if appState.result}
-	<div class="result-card animate-slide-up">
-		<div class="result-header">
-			<div class="category-row">
-				<div class="category-icon-wrap" style="--icon-color: {CATEGORY_COLORS[appState.result.category] || 'var(--text-muted)'}">
-					<Icon
-						name={CATEGORY_ICONS[appState.result.category] || 'info-circle'}
-						size={28}
-						color="currentColor"
-					/>
-				</div>
-				<div class="category-info">
-					<h2 class="category-name gradient-text">
-						{CATEGORY_LABELS[appState.result.category] || appState.result.category}
-					</h2>
-					<p class="category-sub">Your baby may be {CATEGORY_LABELS[appState.result.category]?.toLowerCase() || 'upset'}</p>
-				</div>
-				<div class="severity-badge" style="--sev-color: {(SEVERITY_CONFIG[appState.result.severity] || SEVERITY_CONFIG.MEDIUM).color}; --sev-bg: {(SEVERITY_CONFIG[appState.result.severity] || SEVERITY_CONFIG.MEDIUM).bg}">
-					{(SEVERITY_CONFIG[appState.result.severity] || SEVERITY_CONFIG.MEDIUM).label}
-				</div>
+	<div class="rc animate-slide">
+		<div class="rc-top">
+			<div class="rc-cat">
+				<span class="rc-emoji">{EM[appState.result.category]||'❓'}</span>
+				<div><div class="rc-name">{LB[appState.result.category]||appState.result.category}</div><div class="rc-sub">Your baby may be {LB[appState.result.category]?.toLowerCase()||'upset'}</div></div>
 			</div>
-			
-			<div class="confidence-wrap">
-				<div class="confidence-label">
-					<span>Confidence</span>
-					<span class="confidence-value">{appState.result.confidence}%</span>
-				</div>
-				<div class="confidence-track">
-					<div class="confidence-fill" style="width: {confidenceWidth}%"></div>
-				</div>
-			</div>
+			<div class="rc-sev" style="--sc:{(SV[appState.result.severity]||SV.MEDIUM).c};--sb:{(SV[appState.result.severity]||SV.MEDIUM).bg}">{appState.result.severity}</div>
 		</div>
-		
-		<div class="result-body">
-			{#if appState.result.reasoning}
-				<div class="reasoning-box">
-					<div class="reasoning-label">Why</div>
-					<p class="reasoning-text">"{appState.result.reasoning}"</p>
-				</div>
-			{/if}
-			
-			{#if appState.result.parent_action}
-				<div class="action-box">
-					<div class="action-label">What to do</div>
-					<div class="action-text">{appState.result.parent_action}</div>
-				</div>
-			{/if}
-			
-			{#if appState.result.pre_cry}
-				<div class="precry-alert">
-					<Icon name="warning" size={16} color="var(--warn)" />
-					<span>{appState.result.pre_cry_message || 'Early signs detected — act now'}</span>
-				</div>
-			{/if}
+		<div class="rc-conf">
+			<div class="rc-conf-h"><span>Confidence</span><span class="rc-conf-v">{appState.result.confidence}%</span></div>
+			<div class="rc-conf-t"><div class="rc-conf-f" style="width:{w}%"></div></div>
 		</div>
+		{#if appState.result.reasoning}
+			<div class="rc-box"><div class="rc-box-l">Why</div><p class="rc-reason">"{appState.result.reasoning}"</p></div>
+		{/if}
+		{#if appState.result.parent_action}
+			<div class="rc-action"><div class="rc-box-l action-l">What to do</div><div class="rc-action-t">{appState.result.parent_action}</div></div>
+		{/if}
 	</div>
 {/if}
 
 <style>
-	.result-card {
-		background: var(--surface);
-		border: 1px solid var(--border);
-		border-radius: var(--radius-2xl);
-		overflow: hidden;
-		backdrop-filter: blur(20px);
-		box-shadow: var(--shadow-lg);
-	}
-
-	.result-header {
-		padding: 24px 20px 20px;
-		background: linear-gradient(160deg, rgba(255,140,107,0.06) 0%, rgba(255,184,108,0.03) 100%);
-		border-bottom: 1px solid var(--border);
-	}
-
-	.category-row {
-		display: flex;
-		align-items: center;
-		gap: 14px;
-	}
-
-	.category-icon-wrap {
-		width: 52px;
-		height: 52px;
-		border-radius: var(--radius-md);
-		background: rgba(255,255,255,0.04);
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		color: var(--icon-color);
-		flex-shrink: 0;
-	}
-
-	.category-info {
-		flex: 1;
-		min-width: 0;
-	}
-
-	.category-name {
-		font-family: 'Fraunces', serif;
-		font-size: 1.7rem;
-		font-weight: 700;
-		line-height: 1.15;
-	}
-
-	.category-sub {
-		font-size: 0.78rem;
-		color: var(--text-muted);
-		margin-top: 2px;
-	}
-
-	.severity-badge {
-		padding: 5px 12px;
-		border-radius: var(--radius-full);
-		font-size: 0.65rem;
-		font-weight: 800;
-		letter-spacing: 0.08em;
-		text-transform: uppercase;
-		color: var(--sev-color);
-		background: var(--sev-bg);
-		border: 1px solid currentColor;
-		flex-shrink: 0;
-		align-self: flex-start;
-	}
-
-	.confidence-wrap {
-		margin-top: 16px;
-	}
-
-	.confidence-label {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		font-size: 0.72rem;
-		font-weight: 700;
-		color: var(--text-muted);
-		margin-bottom: 8px;
-		letter-spacing: 0.06em;
-		text-transform: uppercase;
-	}
-
-	.confidence-value {
-		color: var(--text);
-		font-size: 0.9rem;
-		font-family: 'Fraunces', serif;
-		letter-spacing: 0;
-		text-transform: none;
-	}
-
-	.confidence-track {
-		height: 5px;
-		background: rgba(255,255,255,0.06);
-		border-radius: var(--radius-full);
-		overflow: hidden;
-	}
-
-	.confidence-fill {
-		height: 100%;
-		border-radius: var(--radius-full);
-		background: linear-gradient(90deg, var(--primary), var(--secondary));
-		transition: width 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-		box-shadow: 0 0 12px rgba(255,140,107,0.35);
-	}
-
-	.result-body {
-		padding: 18px 20px 20px;
-		display: flex;
-		flex-direction: column;
-		gap: 12px;
-	}
-
-	.reasoning-box {
-		background: rgba(255,255,255,0.03);
-		border: 1px solid var(--border);
-		border-radius: var(--radius-md);
-		padding: 14px 16px;
-	}
-
-	.reasoning-label {
-		font-size: 0.65rem;
-		font-weight: 800;
-		letter-spacing: 0.12em;
-		text-transform: uppercase;
-		color: var(--text-faint);
-		margin-bottom: 6px;
-	}
-
-	.reasoning-text {
-		font-size: 0.88rem;
-		color: var(--text-muted);
-		line-height: 1.6;
-		font-style: italic;
-	}
-
-	.action-box {
-		background: linear-gradient(135deg, rgba(110,231,183,0.08), rgba(110,231,183,0.03));
-		border: 1px solid rgba(110,231,183,0.15);
-		border-radius: var(--radius-md);
-		padding: 14px 16px;
-	}
-
-	.action-label {
-		font-size: 0.65rem;
-		font-weight: 800;
-		letter-spacing: 0.12em;
-		text-transform: uppercase;
-		color: var(--accent);
-		margin-bottom: 5px;
-	}
-
-	.action-text {
-		font-size: 0.95rem;
-		font-weight: 700;
-		color: var(--text);
-		line-height: 1.45;
-	}
-
-	.precry-alert {
-		display: flex;
-		align-items: center;
-		gap: 10px;
-		background: rgba(255,209,102,0.06);
-		border: 1px solid rgba(255,209,102,0.15);
-		border-radius: var(--radius-md);
-		padding: 12px 14px;
-		font-size: 0.82rem;
-		color: var(--warn);
-		font-weight: 600;
-	}
-
-	@media (max-width: 380px) {
-		.category-name { font-size: 1.4rem; }
-		.category-icon-wrap { width: 44px; height: 44px; }
-	}
+	.rc{background:var(--card-bg);border:1px solid var(--card-border);border-radius:var(--radius-xl);overflow:hidden}
+	.rc-top{padding:16px;display:flex;align-items:flex-start;justify-content:space-between;gap:8px;background:linear-gradient(135deg,var(--pink-soft),var(--gold-soft));border-bottom:1px solid var(--card-border)}
+	.rc-cat{display:flex;align-items:center;gap:10px}
+	.rc-emoji{font-size:1.8rem;line-height:1}
+	.rc-name{font-family:'Fraunces',serif;font-size:1.4rem;font-weight:700;color:var(--text)}
+	.rc-sub{font-size:.72rem;color:var(--text-soft)}
+	.rc-sev{padding:3px 10px;border-radius:100px;font-size:.6rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--sc);background:var(--sb);border:1px solid var(--sc);flex-shrink:0}
+	.rc-conf{padding:12px 16px}
+	.rc-conf-h{display:flex;justify-content:space-between;font-size:.68rem;font-weight:700;color:var(--text-soft);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+	.rc-conf-v{font-family:'Fraunces',serif;font-size:.85rem;color:var(--text);text-transform:none;letter-spacing:0}
+	.rc-conf-t{height:4px;background:var(--card-border);border-radius:2px;overflow:hidden}
+	.rc-conf-f{height:100%;background:linear-gradient(90deg,var(--pink),var(--gold));border-radius:2px;transition:width 1s cubic-bezier(.25,.46,.45,.94);box-shadow:0 0 8px var(--pink)}
+	.rc-box{padding:12px 16px;border-bottom:1px solid var(--card-border)}
+	.rc-box-l{font-size:.6rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim);margin-bottom:4px}
+	.rc-reason{font-size:.82rem;color:var(--text-soft);line-height:1.55;font-style:italic}
+	.rc-action{padding:14px 16px;background:var(--teal-soft)}
+	.action-l{color:var(--teal)!important}
+	.rc-action-t{font-size:.9rem;font-weight:700;color:var(--text);line-height:1.4}
 </style>
