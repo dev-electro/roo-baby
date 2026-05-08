@@ -1,115 +1,173 @@
-# ROO — Baby Cry Analyzer
+# ROO — Baby Cry Analyzer 🍼
 
-**Multimodal baby cry analyzer + responder. Built for the DEV x Gemma 4 Challenge.**
+**World's first multimodal baby cry analyzer + responder.**  
+Built for the [DEV x Gemma 4 Challenge](https://dev.to/challenges/gemma4).
 
 ---
 
-## Architecture
+## Architecture (Dual Backend)
 
 ```
-Browser (SvelteKit SPA)
-    │
-    │ POST /api/analyze  (multipart: audio + image)
-    ▼
-Cloudflare Pages Function (functions/api/analyze.js)
-    │
-    │ Gemini API HTTPS call
-    ▼
-Google Gemini API (gemma-4-26b-a4b-it or gemini-2.0-flash)
-    │
-    ▼ JSON result
-Browser (displays category, confidence, plays soothing sound)
+┌─────────────────────────────────────────────────────────────────┐
+│                      ROO Frontend (SvelteKit PWA)                │
+│                    https://roo-baby.pages.dev                    │
+└──────────┬──────────────────────────────────┬───────────────────┘
+           │                                  │
+           ▼                                  ▼
+┌──────────────────────┐         ┌──────────────────────────────┐
+│  Cloud Pages Function│         │  Google Colab + ngrok        │
+│  (/api/analyze)      │         │  (FastAPI on T4 GPU)         │
+│                      │         │                              │
+│  Gemini 2.0 Flash    │         │  Gemma 4 E4B (8B params)    │
+│  ★ Fast demo         │         │  ★ True audio+vision model   │
+│  ★ No GPU needed     │         │  ★ Challenge-winning accuracy│
+│  ★ Always online     │         │  ★ 30s audio, multilingual   │
+└──────────────────────┘         └──────────────────────────────┘
 ```
 
-**Single deployment on Cloudflare Pages.** The `functions/` directory is auto-detected and deployed as Pages Functions (runs on Workers runtime).
+**One frontend, two backends.** Toggle in Settings. Cloud for instant demo. Colab for real Gemma 4 E4B.
 
 ---
 
 ## Features
 
-- **Audio + Image + Combined** analysis modes
-- **Client-side WebM→WAV** conversion via Web Audio API
-- **Web Audio soothing sounds** (heartbeat, white noise, lullaby, shush)
-- **TTS** with gentle voice selection
-- **PWA** — installable on mobile, offline cache
-- **Analysis history** — persisted in localStorage
-- **Zero CORS** — same-origin API
+- **Audio Analysis** — Record cries, WebM→WAV auto-conversion, instant AI analysis
+- **Image Analysis** — Capture baby face, detect distress signals before crying starts
+- **Best Mode (Both)** — Combined audio + vision, cross-referenced for highest accuracy
+- **Soothing Response** — Web Audio heartbeat, white noise, lullaby, shush
+- **TTS Comfort** — Gentle maternal voice speaks to baby
+- **PWA** — Install on mobile, offline cache, service worker
+- **Analysis History** — All results persisted in localStorage
+- **Dual Backend** — Pages Function for quick demo, Colab for true Gemma 4 E4B
 
 ---
 
-## Deploy to Cloudflare Pages
+## Quick Start (Cloud Demo)
 
-### 1. Set environment variables in Pages dashboard
+### 1. Deploy on Cloudflare Pages
 
-| Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `GEMINI_API_KEY` | ✅ | — | From aistudio.google.com/apikey |
-| `GEMINI_MODEL_NAME` | ❌ | `gemini-2.0-flash` | Model (audio needs gemini-2.0-flash) |
-
-### 2. Connect Git repo
-
-1. Cloudflare Dashboard → Workers & Pages → **Pages** tab → Create Project
-2. Connect GitHub → select `dev-electro/roo-baby`
-3. **Build command:** `npm run build`
-4. **Build output directory:** `build`
-5. Set environment variables (step 1)
-6. Deploy
-
-### 3. Verify
-
-```
-curl https://roo-baby.pages.dev/api/health
-```
-Should return `{"status":"ok","config":{"api_key_set":true,...}}`
-
----
-
-## Local Development
+| Setting | Value |
+|---------|-------|
+| Build command | `npm run build` |
+| Build output | `.svelte-kit/cloudflare` |
+| Env: `GEMINI_API_KEY` | From [aistudio.google.com/apikey](https://aistudio.google.com/app/apikey) |
 
 ```bash
+git clone https://github.com/dev-electro/roo-baby.git
+cd roo-baby
 npm install
-npm run dev          # SvelteKit SPA on :5173
-npx wrangler pages dev build -- npm run dev   # Full Pages + Functions
+npm run build
+```
+
+Deploy via Cloudflare Dashboard → Pages → Connect Git → `dev-electro/roo-baby`.
+
+### 2. Verify
+
+```bash
+curl https://roo-baby.pages.dev/api/health
+# {"status":"ok","key_set":true,"model":"gemini-2.0-flash"}
 ```
 
 ---
 
-## Model Options
+## True Gemma 4 E4B (Colab GPU)
 
-| Model | Audio | Image | Notes |
-|-------|-------|-------|-------|
-| `gemini-2.0-flash` | ✅ | ✅ | Default — fast, cheap, reliable |
-| `gemma-4-26b-a4b-it` | ❌ | ✅ | Gemma 4 26B via API, image only |
-| `gemma-4-e4b-it` | ✅ | ✅ | True E4B — requires local GPU (Hugging Face) |
+For the **real Gemma 4 E4B** with native audio analysis:
 
-Change via `GEMINI_MODEL_NAME` in Pages env vars. No code deploy needed.
+### 1. Open Google Colab
 
-> Only E2B/E4B Gemma 4 variants support native audio. The 26B/31B on Gemini API are text+image only. Use `gemini-2.0-flash` for cloud-based audio analysis.
+Copy the cells from `backend/colab_setup.sh` into a new Colab notebook with **T4 GPU** runtime.
+
+### 2. Get ngrok URL
+
+The Colab script auto-starts the server and prints:
+```
+🍼 ROO API URL: https://xxxx-xxxx.ngrok-free.app
+```
+
+### 3. Configure Frontend
+
+1. Open https://roo-baby.pages.dev
+2. Tap settings gear (bottom-right)
+3. Paste the ngrok URL
+4. Save → now using true Gemma 4 E4B
 
 ---
 
-## API
+## Backend API
 
-**POST /api/analyze** — Multipart form with `audio` (WAV/MP3/FLAC) and/or `image` (JPEG)
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/health` | GET | Status check |
+| `/analyze/audio` | POST | Audio-only cry analysis |
+| `/analyze/image` | POST | Image-only face analysis |
+| `/analyze/both` | POST | Combined audio + image |
+| `/api/analyze` | POST | Pages Function (auto-detects mode) |
 
-Response:
+### Response Format
+
 ```json
 {
   "category": "HUNGER",
-  "confidence": 89,
-  "severity": "MEDIUM",
-  "reasoning": "Rhythmic pattern with gradual buildup",
-  "parent_action": "Feed baby now.",
+  "confidence": 91,
+  "severity": "HIGH",
+  "reasoning": "Both audio rhythm and visual rooting confirm hunger",
+  "parent_action": "Baby is hungry. Feed immediately.",
   "response_sound": "heartbeat",
   "pre_cry": false,
-  "_meta": { "mode": "both", "model": "gemma-4-26b-a4b-it", "timestamp": "..." }
+  "pre_cry_message": null
 }
 ```
 
-**GET /api/health** — Config status check
+---
+
+## Benchmark
+
+```bash
+cd backend
+python benchmark.py
+```
+
+Tests against [Donate a Cry corpus](https://github.com/gveres/donateacry-corpus) across 5 categories. Results saved to `benchmark_results.json`.
 
 ---
 
-## Gemma 4 E4B (Real-Time Audio)
+## Project Structure
 
-For true native Gemma 4 E4B audio (Hugging Face, local GPU), use the Colab setup in `/colab/` (coming soon). Cloud version uses Gemini API.
+```
+roo-baby/
+├── src/                    # SvelteKit frontend
+│   ├── routes/             # Pages + layout
+│   ├── lib/components/     # 11 Svelte 5 components
+│   ├── lib/utils/          # Audio, API, TTS, sounds, history
+│   └── lib/state/          # Svelte 5 runes state
+├── functions/api/          # Cloudflare Pages Functions
+│   ├── analyze.js          # Gemini API proxy
+│   └── health.js           # Deployment health
+├── backend/                # Colab Python backend
+│   ├── app.py              # FastAPI server
+│   ├── model.py            # Gemma 4 E4B loader
+│   ├── prompts.py          # Analysis prompt templates
+│   ├── benchmark.py        # Accuracy testing
+│   ├── requirements.txt    # Python deps
+│   └── colab_setup.sh      # One-click Colab setup
+├── static/                 # PWA assets
+├── svelte.config.js        # adapter-static
+└── README.md
+```
+
+---
+
+## Model Comparison
+
+| Model | Audio | Image | Access | Best For |
+|-------|-------|-------|--------|----------|
+| **Gemma 4 E4B** | ✅ Native | ✅ | HuggingFace / Colab GPU | Challenge submission |
+| **Gemini 2.0 Flash** | ✅ | ✅ | Gemini API / Pages | Instant demo |
+| Gemma 4 26B A4B | ❌ | ✅ | Gemini API | Image-only |
+
+> Only **E2B** and **E4B** Gemma 4 variants support native audio. We deploy E4B via Colab for the challenge.
+
+---
+
+*Built with love for tired parents everywhere. Powered by Gemma 4.*
