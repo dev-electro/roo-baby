@@ -1,8 +1,9 @@
 <script>
 	import { appState } from '$state/appState.svelte.js';
 	import Icon from './Icon.svelte';
+	import { onMount, onDestroy } from 'svelte';
 	
-let videoElement;
+	let videoElement;
 	let canvasElement;
 	let previewUrl = '';
 	let showFallback = false;
@@ -10,13 +11,12 @@ let videoElement;
 	let hasPermission = false;
 	let cameraActive = false;
 	let facingMode = 'user';
-	
-	$: if (videoElement && appState.currentMode === 'image') {
-		startCamera();
-	}
+	let starting = false;
 	
 	async function startCamera() {
-		if (cameraActive) return;
+		if (cameraActive || starting) return;
+		if (appState.imageBlob) return;
+		starting = true;
 		stopCamera();
 		try {
 			const stream = await navigator.mediaDevices.getUserMedia({
@@ -24,12 +24,14 @@ let videoElement;
 			});
 			appState.cameraStream = stream;
 			cameraActive = true;
+			starting = false;
 			if (videoElement) {
 				videoElement.srcObject = stream;
-				await videoElement.play();
+				try { await videoElement.play(); } catch {}
 			}
 			hasPermission = true;
 		} catch (err) {
+			starting = false;
 			showFallback = true;
 			hasPermission = false;
 		}
@@ -38,6 +40,7 @@ let videoElement;
 	async function flipCamera() {
 		facingMode = facingMode === 'user' ? 'environment' : 'user';
 		if (cameraActive) {
+			cameraActive = false;
 			await startCamera();
 		}
 	}
@@ -52,6 +55,7 @@ let videoElement;
 		ctx.drawImage(video, 0, 0);
 		canvas.toBlob((blob) => {
 			if (blob) {
+				if (previewUrl) URL.revokeObjectURL(previewUrl);
 				appState.imageBlob = blob;
 				previewUrl = URL.createObjectURL(blob);
 				stopCamera();
@@ -62,13 +66,14 @@ let videoElement;
 	function handleFileUpload(e) {
 		const file = e.target.files[0];
 		if (file) {
+			if (previewUrl) URL.revokeObjectURL(previewUrl);
 			appState.imageBlob = file;
 			previewUrl = URL.createObjectURL(file);
-			stopCamera();
 		}
 	}
 	
 	function retake() {
+		if (previewUrl) URL.revokeObjectURL(previewUrl);
 		appState.imageBlob = null;
 		previewUrl = '';
 		showFallback = false;
@@ -83,9 +88,16 @@ let videoElement;
 		}
 		cameraActive = false;
 	}
-</script>
 
-<svelte:window on:beforeunload={stopCamera} />
+	onMount(() => {
+		if (!appState.imageBlob) startCamera();
+	});
+
+	onDestroy(() => {
+		stopCamera();
+		if (previewUrl) URL.revokeObjectURL(previewUrl);
+	});
+</script>
 
 <div class="camera-section">
 	{#if appState.imageBlob && previewUrl}
@@ -97,10 +109,17 @@ let videoElement;
 				<Icon name="check" size={14} color="var(--mint)" />
 				<span>Image captured</span>
 			</div>
-			<button class="retake-btn" onclick={retake}>
-				<Icon name="refresh" size={14} />
-				Retake
-			</button>
+			<div class="preview-actions">
+				<button class="retake-btn" onclick={retake}>
+					<Icon name="refresh" size={14} />
+					Retake
+				</button>
+				<label class="upload-btn">
+					<Icon name="upload" size={14} />
+					Upload different
+					<input type="file" accept="image/jpeg,image/png" onchange={handleFileUpload} class="hidden-input" />
+				</label>
+			</div>
 		</div>
 	{:else if showFallback || !hasPermission}
 		<div class="fallback-mode">
@@ -121,7 +140,7 @@ let videoElement;
 			<div class="fallback-divider">
 				<span>or</span>
 			</div>
-			<button class="try-camera-btn" onclick={() => { showFallback = false; startCamera(); }}>
+			<button class="try-camera-btn" onclick={() => { showFallback = false; hasPermission = false; startCamera(); }}>
 				<Icon name="camera" size={16} />
 				Try Camera
 			</button>
@@ -157,14 +176,11 @@ let videoElement;
 			</button>
 		</div>
 		
-		<div class="upload-alt">
-			<span>or</span>
-			<label class="upload-link">
-				<input type="file" accept="image/jpeg,image/png" onchange={handleFileUpload} class="hidden-input" />
-				<Icon name="upload" size={14} />
-				Upload photo
-			</label>
-		</div>
+		<label class="upload-link">
+			<input type="file" accept="image/jpeg,image/png" onchange={handleFileUpload} class="hidden-input" />
+			<Icon name="upload" size={14} />
+			Or upload a photo
+		</label>
 	{/if}
 	
 	<canvas bind:this={canvasElement} class="hidden-canvas"></canvas>
@@ -303,27 +319,26 @@ let videoElement;
 		transform: translateX(-50%) scale(0.97);
 	}
 
-	.upload-alt {
-		display: flex;
-		align-items: center;
-		gap: 10px;
-		font-size: 0.78rem;
-		color: var(--text-faint);
-	}
-
 	.upload-link {
 		display: flex;
 		align-items: center;
-		gap: 5px;
-		color: var(--text-muted);
+		gap: 6px;
+		font-size: 0.82rem;
 		font-weight: 600;
+		color: var(--text-muted);
 		cursor: pointer;
-		transition: color var(--transition-fast);
+		padding: 10px 20px;
+		border-radius: var(--radius-full);
+		border: 1px solid var(--border);
+		background: var(--surface);
+		transition: all var(--transition-fast);
 		position: relative;
 	}
 
 	.upload-link:hover {
-		color: var(--coral);
+		border-color: var(--border-glow);
+		background: var(--surface-hover);
+		color: var(--text);
 	}
 
 	.preview {
@@ -336,7 +351,7 @@ let videoElement;
 
 	.preview-frame {
 		width: 100%;
-		max-width: 360px;
+		max-width: 400px;
 		border-radius: var(--radius-lg);
 		overflow: hidden;
 		border: 2px solid rgba(82,217,193,0.25);
@@ -353,18 +368,24 @@ let videoElement;
 		display: flex;
 		align-items: center;
 		gap: 6px;
-		font-size: 0.78rem;
+		font-size: 0.82rem;
 		font-weight: 700;
 		color: var(--mint);
 		letter-spacing: 0.06em;
 		text-transform: uppercase;
 	}
 
+	.preview-actions {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+	}
+
 	.retake-btn {
 		display: flex;
 		align-items: center;
 		gap: 6px;
-		padding: 10px 22px;
+		padding: 10px 20px;
 		border-radius: var(--radius-full);
 		font-size: 0.82rem;
 		font-weight: 600;
@@ -375,6 +396,28 @@ let videoElement;
 	}
 
 	.retake-btn:hover {
+		background: var(--surface-hover);
+		color: var(--text);
+	}
+
+	.upload-btn {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		padding: 10px 20px;
+		border-radius: var(--radius-full);
+		font-size: 0.82rem;
+		font-weight: 600;
+		color: var(--text-muted);
+		background: var(--surface);
+		border: 1px solid var(--border);
+		transition: all var(--transition-fast);
+		cursor: pointer;
+		position: relative;
+	}
+
+	.upload-btn:hover {
+		border-color: var(--border-glow);
 		background: var(--surface-hover);
 		color: var(--text);
 	}

@@ -3,6 +3,7 @@
 	import { convertToWav, isSupportedAudioFormat } from '$utils/audioEncoder.js';
 	import { generateSpectrogram } from '$utils/spectrogramGenerator.js';
 	import Icon from './Icon.svelte';
+	import { onMount, onDestroy } from 'svelte';
 	
 	let audioChunks = [];
 	let isRecordingAudio = false;
@@ -18,6 +19,9 @@
 	let cameraActive = false;
 	let showImageFallback = false;
 	let imageFileInput;
+	let facingMode = 'user';
+	let starting = false;
+	let previewUrl = '';
 	
 	const MAX_AUDIO = 10;
 	
@@ -61,6 +65,7 @@
 			
 			audioRecorder.start();
 			isRecordingAudio = true;
+			appState.isRecording = true;
 			audioElapsed = 0;
 			audioTimer = setInterval(() => {
 				audioElapsed++;
@@ -76,6 +81,7 @@
 		if (audioRecorder?.state === 'recording') audioRecorder.stop();
 		clearInterval(audioTimer);
 		isRecordingAudio = false;
+		appState.isRecording = false;
 	}
 	
 	function toggleAudio() {
@@ -102,12 +108,18 @@
 		}
 	}
 	
-	let facingMode = 'user';
+	function resetAudio() {
+		appState.audioBlob = null;
+		appState.spectrogramBlob = null;
+		appState.isRecording = false;
+		showAudioFallback = false;
+		audioElapsed = 0;
+	}
 	
 	async function startCamera() {
-		if (cameraActive || appState.cameraStream) {
-			if (cameraActive) return;
-		}
+		if (cameraActive || starting) return;
+		if (imageCaptured || appState.imageBlob) return;
+		starting = true;
 		stopCamera();
 		try {
 			const stream = await navigator.mediaDevices.getUserMedia({
@@ -120,11 +132,13 @@
 			});
 			appState.cameraStream = stream;
 			cameraActive = true;
+			starting = false;
 			if (videoElement) {
 				videoElement.srcObject = stream;
-				await videoElement.play();
+				try { await videoElement.play(); } catch {}
 			}
 		} catch {
+			starting = false;
 			showImageFallback = true;
 		}
 	}
@@ -132,6 +146,7 @@
 	async function flipCamera() {
 		facingMode = facingMode === 'user' ? 'environment' : 'user';
 		if (cameraActive) {
+			cameraActive = false;
 			await startCamera();
 		}
 	}
@@ -144,7 +159,9 @@
 		canvas.getContext('2d').drawImage(videoElement, 0, 0);
 		canvas.toBlob((blob) => {
 			if (blob) {
+				if (previewUrl) URL.revokeObjectURL(previewUrl);
 				appState.imageBlob = blob;
+				previewUrl = URL.createObjectURL(blob);
 				imageCaptured = true;
 				stopCamera();
 			}
@@ -154,15 +171,19 @@
 	function handleImageUpload(e) {
 		const file = e.target.files[0];
 		if (file) {
+			if (previewUrl) URL.revokeObjectURL(previewUrl);
 			appState.imageBlob = file;
+			previewUrl = URL.createObjectURL(file);
 			imageCaptured = true;
 			stopCamera();
 		}
 	}
 	
 	function retakeImage() {
+		if (previewUrl) URL.revokeObjectURL(previewUrl);
 		appState.imageBlob = null;
 		imageCaptured = false;
+		previewUrl = '';
 		showImageFallback = false;
 		cameraActive = false;
 		startCamera();
@@ -176,16 +197,21 @@
 		cameraActive = false;
 	}
 	
-	$: if (appState.currentMode === 'both' && !imageCaptured) {
-		startCamera();
-	}
-	
 	function formatTime(s) {
 		return `0:${s.toString().padStart(2, '0')}`;
 	}
-</script>
 
-<svelte:window on:beforeunload={stopCamera} />
+	onMount(() => {
+		if (!imageCaptured && !appState.imageBlob) startCamera();
+	});
+
+	onDestroy(() => {
+		stopCamera();
+		if (audioRecorder?.state === 'recording') stopAudio();
+		clearInterval(audioTimer);
+		if (previewUrl) URL.revokeObjectURL(previewUrl);
+	});
+</script>
 
 <div class="both-panel">
 	<!-- Audio Section -->
@@ -201,13 +227,13 @@
 				<span>{appState.isConvertingAudio ? 'Converting…' : 'Processing spectrogram…'}</span>
 			</div>
 		{:else if appState.audioBlob && !isRecordingAudio}
-			<div class="audio-done">
+			<div class="audio-done animate-scale-in">
 				<Icon name="check" size={20} color="var(--mint)" />
 				<div class="audio-done-info">
 					<span class="audio-done-label">Cry recorded</span>
 					<span class="audio-done-sub">{appState.spectrogramBlob ? 'Spectrogram ready' : 'Audio ready'}</span>
 				</div>
-				<button class="redo-btn" onclick={() => { appState.audioBlob = null; appState.spectrogramBlob = null; showAudioFallback = false; }}>
+				<button class="redo-btn" onclick={resetAudio}>
 					<Icon name="refresh" size={12} />
 				</button>
 			</div>
@@ -260,19 +286,43 @@
 		</div>
 		
 		{#if imageCaptured && appState.imageBlob}
-			<div class="image-captured animate-scale-in">
-				<Icon name="check" size={20} color="var(--mint)" />
-				<span>Face captured</span>
-				<button class="redo-btn" onclick={retakeImage}>
-					<Icon name="refresh" size={12} />
-				</button>
+			<div class="image-captured-wrap animate-scale-in">
+				{#if previewUrl}
+					<div class="image-thumb">
+						<img src={previewUrl} alt="Captured face" />
+					</div>
+				{:else}
+					<div class="image-thumb-placeholder">
+						<Icon name="check" size={24} color="var(--mint)" />
+					</div>
+				{/if}
+				<div class="captured-info">
+					<span class="captured-label">Face captured</span>
+				</div>
+				<div class="captured-actions">
+					<button class="action-btn" onclick={retakeImage}>
+						<Icon name="refresh" size={12} />
+						Retake
+					</button>
+					<label class="action-btn upload-action">
+						<Icon name="upload" size={12} />
+						Upload
+						<input type="file" accept="image/jpeg,image/png" onchange={handleImageUpload} class="hidden-input" />
+					</label>
+				</div>
 			</div>
 		{:else if showImageFallback}
-			<label class="upload-area upload-area-img">
-				<Icon name="upload" size={24} color="var(--text-muted)" />
-				<span>Upload photo</span>
-				<input type="file" accept="image/jpeg,image/png" onchange={handleImageUpload} class="hidden-input" />
-			</label>
+			<div class="fallback-wrap">
+				<label class="upload-area upload-area-img">
+					<Icon name="upload" size={24} color="var(--text-muted)" />
+					<span>Upload photo</span>
+					<input type="file" accept="image/jpeg,image/png" onchange={handleImageUpload} class="hidden-input" />
+				</label>
+				<button class="try-camera-btn" onclick={() => { showImageFallback = false; startCamera(); }}>
+					<Icon name="camera" size={14} />
+					Try camera instead
+				</button>
+			</div>
 		{:else}
 			<div class="camera-container">
 				<video bind:this={videoElement} autoplay playsinline muted class="camera-video" class:mirror={facingMode === 'user'}></video>
@@ -295,7 +345,7 @@
 			<label class="upload-link">
 				<input type="file" accept="image/jpeg,image/png" onchange={handleImageUpload} class="hidden-input" />
 				<Icon name="upload" size={12} />
-				or upload photo
+				Or upload photo
 			</label>
 		{/if}
 	</div>
@@ -585,11 +635,105 @@
 		font-size: 0.7rem;
 		color: var(--text-faint);
 		cursor: pointer;
-		transition: color var(--transition-fast);
+		padding: 8px 14px;
+		border-radius: var(--radius-full);
+		border: 1px solid var(--border);
+		background: var(--surface);
+		transition: all var(--transition-fast);
+		position: relative;
 	}
 
 	.upload-link:hover {
 		color: var(--text-muted);
+		border-color: var(--border-glow);
+		background: var(--surface-hover);
+	}
+
+	/* ── Image captured ── */
+	.image-captured-wrap {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 8px;
+		width: 100%;
+	}
+
+	.image-thumb {
+		width: 100%;
+		max-width: 240px;
+		border-radius: var(--radius-md);
+		overflow: hidden;
+		border: 2px solid rgba(82,217,193,0.25);
+		box-shadow: 0 0 16px rgba(82,217,193,0.08);
+	}
+
+	.image-thumb img {
+		width: 100%;
+		height: auto;
+		display: block;
+	}
+
+	.image-thumb-placeholder {
+		width: 100%;
+		max-width: 240px;
+		aspect-ratio: 4/3;
+		border-radius: var(--radius-md);
+		background: rgba(82,217,193,0.08);
+		border: 2px solid rgba(82,217,193,0.2);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.captured-info {
+		display: flex;
+		align-items: center;
+		gap: 4px;
+	}
+
+	.captured-label {
+		font-size: 0.8rem;
+		font-weight: 700;
+		color: var(--mint);
+	}
+
+	.captured-actions {
+		display: flex;
+		gap: 8px;
+	}
+
+	.action-btn {
+		display: flex;
+		align-items: center;
+		gap: 4px;
+		padding: 6px 12px;
+		border-radius: var(--radius-full);
+		font-size: 0.72rem;
+		font-weight: 600;
+		color: var(--text-muted);
+		background: var(--surface);
+		border: 1px solid var(--border);
+		cursor: pointer;
+		transition: all var(--transition-fast);
+	}
+
+	.action-btn:hover {
+		background: var(--surface-hover);
+		color: var(--text);
+		border-color: var(--border-glow);
+	}
+
+	.upload-action {
+		position: relative;
+	}
+
+	/* ── Fallback ── */
+	.fallback-wrap {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 12px;
+		width: 100%;
 	}
 
 	.upload-area {
@@ -619,17 +763,25 @@
 		aspect-ratio: 3/4;
 	}
 
-	.image-captured {
+	.try-camera-btn {
 		display: flex;
 		align-items: center;
-		gap: 10px;
-		padding: 12px 16px;
-		background: rgba(82,217,193,0.06);
-		border: 1px solid rgba(82,217,193,0.15);
-		border-radius: var(--radius-md);
-		font-size: 0.82rem;
-		font-weight: 700;
-		color: var(--mint);
+		gap: 6px;
+		padding: 8px 16px;
+		border-radius: var(--radius-full);
+		font-size: 0.78rem;
+		font-weight: 600;
+		color: var(--text-muted);
+		background: var(--surface);
+		border: 1px solid var(--border);
+		cursor: pointer;
+		transition: all var(--transition-fast);
+	}
+
+	.try-camera-btn:hover {
+		background: var(--surface-hover);
+		color: var(--text);
+		border-color: var(--border-glow);
 	}
 
 	.redo-btn {

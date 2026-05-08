@@ -123,7 +123,7 @@ async function getAtlasBase64(siteUrl) {
 	return null;
 }
 
-async function callOpenRouter(apiKey, model, messages, retries = 1, siteUrl = 'https://roo-baby.pages.dev') {
+async function callOpenRouter(apiKey, model, messages, retries = 2, siteUrl = 'https://roo-baby.pages.dev') {
 	for (let attempt = 0; attempt <= retries; attempt++) {
 		const res = await fetch(`${OPENROUTER_BASE}/chat/completions`, {
 			method: 'POST',
@@ -143,7 +143,8 @@ async function callOpenRouter(apiKey, model, messages, retries = 1, siteUrl = 'h
 		});
 
 		if (res.status === 429 && attempt < retries) {
-			await new Promise(r => setTimeout(r, 2000));
+			const delay = 2000 * Math.pow(2, attempt);
+			await new Promise(r => setTimeout(r, delay));
 			continue;
 		}
 
@@ -246,15 +247,20 @@ export async function onRequest(context) {
 		const messages = [{ role: 'user', content: contentParts }];
 
 		let data;
-		try {
-			data = await callOpenRouter(apiKey, model, messages, 1, siteUrl);
-		} catch (err) {
-			if (modelFallback && model !== modelFallback) {
-				data = await callOpenRouter(apiKey, modelFallback, messages, 1, siteUrl);
-			} else {
-				throw err;
+		let lastError;
+		const tried = new Set();
+
+		for (const m of [model, modelFallback].filter(Boolean)) {
+			if (tried.has(m)) continue;
+			tried.add(m);
+			try {
+				data = await callOpenRouter(apiKey, m, messages, 2, siteUrl);
+				break;
+			} catch (err) {
+				lastError = err;
 			}
 		}
+		if (!data) throw lastError;
 
 		const rawText = data?.choices?.[0]?.message?.content || '';
 		const result = parseJSON(rawText);
