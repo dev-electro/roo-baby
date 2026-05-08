@@ -8,20 +8,28 @@
 	let showFallback = false;
 	let fileInput;
 	let hasPermission = false;
+	let cameraActive = false;
 	
 	$: if (videoElement && appState.currentMode === 'image') {
 		startCamera();
 	}
 	
 	async function startCamera() {
-		if (appState.cameraStream) return;
+		if (cameraActive || appState.cameraStream) return;
 		try {
 			const stream = await navigator.mediaDevices.getUserMedia({
-				video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }
+				video: {
+					facingMode: 'user',
+					width: { ideal: 640 },
+					height: { ideal: 480 },
+					frameRate: { ideal: 30, max: 30 }
+				}
 			});
 			appState.cameraStream = stream;
+			cameraActive = true;
 			if (videoElement) {
 				videoElement.srcObject = stream;
+				await videoElement.play();
 			}
 			hasPermission = true;
 		} catch (err) {
@@ -32,18 +40,17 @@
 	
 	function captureImage() {
 		if (!videoElement || !canvasElement) return;
-		
 		const video = videoElement;
 		const canvas = canvasElement;
 		canvas.width = video.videoWidth || 640;
 		canvas.height = video.videoHeight || 480;
 		const ctx = canvas.getContext('2d');
 		ctx.drawImage(video, 0, 0);
-		
 		canvas.toBlob((blob) => {
 			if (blob) {
 				appState.imageBlob = blob;
 				previewUrl = URL.createObjectURL(blob);
+				stopCamera();
 			}
 		}, 'image/jpeg', 0.92);
 	}
@@ -53,24 +60,28 @@
 		if (file) {
 			appState.imageBlob = file;
 			previewUrl = URL.createObjectURL(file);
+			stopCamera();
 		}
 	}
 	
 	function retake() {
 		appState.imageBlob = null;
 		previewUrl = '';
-		if (!hasPermission) {
-			showFallback = true;
-		}
+		showFallback = false;
+		cameraActive = false;
+		startCamera();
 	}
 	
-	function cleanup() {
+	function stopCamera() {
 		if (appState.cameraStream) {
 			appState.cameraStream.getTracks().forEach(t => t.stop());
 			appState.cameraStream = null;
 		}
+		cameraActive = false;
 	}
 </script>
+
+<svelte:window on:beforeunload={stopCamera} />
 
 <div class="camera-section">
 	{#if appState.imageBlob && previewUrl}
@@ -88,39 +99,63 @@
 			</button>
 		</div>
 	{:else if showFallback || !hasPermission}
-		<div class="fallback animate-fade-in">
-			<div class="fallback-icon">
-				<Icon name="upload" size={32} color="var(--text-muted)" />
+		<div class="fallback-mode">
+			<div class="fallback-upload animate-fade-in">
+				<div class="fallback-icon">
+					<Icon name="upload" size={32} color="var(--text-muted)" />
+				</div>
+				<p class="fallback-text">Upload baby photo</p>
+				<p class="fallback-sub">JPG or PNG, well-lit preferred</p>
+				<input
+					bind:this={fileInput}
+					type="file"
+					accept="image/jpeg,image/png"
+					onchange={handleFileUpload}
+					class="hidden-input"
+				/>
 			</div>
-			<p class="fallback-text">Upload baby photo</p>
-			<p class="fallback-sub">JPG or PNG, well-lit preferred</p>
-			<input
-				bind:this={fileInput}
-				type="file"
-				accept="image/jpeg,image/png"
-				onchange={handleFileUpload}
-				class="hidden-input"
-			/>
+			<div class="fallback-divider">
+				<span>or</span>
+			</div>
+			<button class="try-camera-btn" onclick={() => { showFallback = false; startCamera(); }}>
+				<Icon name="camera" size={16} />
+				Try Camera
+			</button>
 		</div>
 	{:else}
-		<div class="camera-viewfinder">
-				<video
-					bind:this={videoElement}
-					autoplay
-					playsinline
-					muted
-					class="camera-video"
-				></video>
+		<div class="camera-viewfinder animate-fade-in">
+			<video
+				bind:this={videoElement}
+				autoplay
+				playsinline
+				muted
+				class="camera-video"
+			></video>
 			<div class="camera-overlay">
+				<div class="face-guide">
+					<svg viewBox="0 0 120 120" class="face-oval">
+						<ellipse cx="60" cy="60" rx="48" ry="58" fill="none" stroke="rgba(255,123,92,0.35)" stroke-width="1.5" stroke-dasharray="4 4" />
+					</svg>
+				</div>
 				<div class="corner tl"></div>
 				<div class="corner tr"></div>
 				<div class="corner bl"></div>
 				<div class="corner br"></div>
+				<div class="camera-hint">Position baby's face in frame</div>
 			</div>
 			<button class="capture-btn" onclick={captureImage} type="button">
-				<Icon name="camera" size={22} color="#fff" />
-				<span>Capture Face</span>
+				<Icon name="camera" size={20} color="#fff" />
+				<span>Capture</span>
 			</button>
+		</div>
+		
+		<div class="upload-alt">
+			<span>or</span>
+			<label class="upload-link">
+				<input type="file" accept="image/jpeg,image/png" onchange={handleFileUpload} class="hidden-input" />
+				<Icon name="upload" size={14} />
+				Upload photo
+			</label>
 		</div>
 	{/if}
 	
@@ -140,11 +175,12 @@
 	.camera-viewfinder {
 		position: relative;
 		width: 100%;
-		max-width: 320px;
-		border-radius: var(--radius-lg);
+		max-width: 400px;
+		border-radius: var(--radius-xl);
 		overflow: hidden;
 		aspect-ratio: 4/3;
 		background: var(--bg-elevated);
+		box-shadow: 0 0 30px rgba(255,123,92,0.08);
 	}
 
 	.camera-video {
@@ -152,6 +188,7 @@
 		height: 100%;
 		object-fit: cover;
 		display: block;
+		transform: scaleX(-1);
 	}
 
 	.camera-overlay {
@@ -160,46 +197,101 @@
 		pointer-events: none;
 	}
 
-	.corner {
+	.face-guide {
 		position: absolute;
-		width: 24px;
-		height: 24px;
-		border-color: var(--coral);
-		border-style: solid;
+		inset: 0;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding: 30px 20px;
+	}
+
+	.face-oval {
+		width: 70%;
+		height: 85%;
 		opacity: 0.6;
 	}
 
-	.corner.tl { top: 10px; left: 10px; border-width: 2px 0 0 2px; }
-	.corner.tr { top: 10px; right: 10px; border-width: 2px 2px 0 0; }
-	.corner.bl { bottom: 10px; left: 10px; border-width: 0 0 2px 2px; }
-	.corner.br { bottom: 10px; right: 10px; border-width: 0 2px 2px 0; }
+	.corner {
+		position: absolute;
+		width: 28px;
+		height: 28px;
+		border-color: var(--coral);
+		border-style: solid;
+		opacity: 0.7;
+	}
+
+	.corner.tl { top: 8px; left: 8px; border-width: 2.5px 0 0 2.5px; border-radius: 4px 0 0 0; }
+	.corner.tr { top: 8px; right: 8px; border-width: 2.5px 2.5px 0 0; border-radius: 0 4px 0 0; }
+	.corner.bl { bottom: 8px; left: 8px; border-width: 0 0 2.5px 2.5px; border-radius: 0 0 0 4px; }
+	.corner.br { bottom: 8px; right: 8px; border-width: 0 2.5px 2.5px 0; border-radius: 0 0 4px 0; }
+
+	.camera-hint {
+		position: absolute;
+		bottom: 60px;
+		left: 50%;
+		transform: translateX(-50%);
+		font-size: 0.72rem;
+		font-weight: 600;
+		color: rgba(255,255,255,0.65);
+		background: rgba(0,0,0,0.45);
+		backdrop-filter: blur(8px);
+		padding: 5px 14px;
+		border-radius: var(--radius-full);
+		white-space: nowrap;
+		letter-spacing: 0.04em;
+	}
 
 	.capture-btn {
 		position: absolute;
-		bottom: 14px;
+		bottom: 16px;
 		left: 50%;
 		transform: translateX(-50%);
 		display: flex;
 		align-items: center;
 		gap: 8px;
-		padding: 10px 20px;
+		padding: 12px 28px;
 		border-radius: var(--radius-full);
 		background: linear-gradient(135deg, var(--coral), var(--amber));
 		color: #fff;
-		font-size: 0.85rem;
+		font-size: 0.9rem;
 		font-weight: 700;
-		box-shadow: var(--shadow-md);
+		box-shadow: 0 4px 20px rgba(255,123,92,0.4);
+		pointer-events: auto;
 		transition: all var(--transition-fast);
 		z-index: 2;
 	}
 
 	.capture-btn:hover {
 		transform: translateX(-50%) scale(1.05);
-		box-shadow: var(--shadow-lg);
+		box-shadow: 0 6px 28px rgba(255,123,92,0.5);
 	}
 
 	.capture-btn:active {
-		transform: translateX(-50%) scale(0.98);
+		transform: translateX(-50%) scale(0.97);
+	}
+
+	.upload-alt {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		font-size: 0.78rem;
+		color: var(--text-faint);
+	}
+
+	.upload-link {
+		display: flex;
+		align-items: center;
+		gap: 5px;
+		color: var(--text-muted);
+		font-weight: 600;
+		cursor: pointer;
+		transition: color var(--transition-fast);
+		position: relative;
+	}
+
+	.upload-link:hover {
+		color: var(--coral);
 	}
 
 	.preview {
@@ -212,11 +304,11 @@
 
 	.preview-frame {
 		width: 100%;
-		max-width: 280px;
+		max-width: 360px;
 		border-radius: var(--radius-lg);
 		overflow: hidden;
 		border: 2px solid rgba(82,217,193,0.25);
-		box-shadow: 0 0 20px rgba(82,217,193,0.1);
+		box-shadow: 0 0 24px rgba(82,217,193,0.1);
 	}
 
 	.preview-frame img {
@@ -240,9 +332,9 @@
 		display: flex;
 		align-items: center;
 		gap: 6px;
-		padding: 8px 18px;
+		padding: 10px 22px;
 		border-radius: var(--radius-full);
-		font-size: 0.8rem;
+		font-size: 0.82rem;
 		font-weight: 600;
 		color: var(--text-muted);
 		background: var(--surface);
@@ -255,15 +347,23 @@
 		color: var(--text);
 	}
 
-	.fallback {
+	.fallback-mode {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 16px;
+		width: 100%;
+	}
+
+	.fallback-upload {
 		display: flex;
 		flex-direction: column;
 		align-items: center;
 		gap: 10px;
-		padding: 40px 24px;
+		padding: 36px 24px;
 		width: 100%;
-		max-width: 300px;
-		border-radius: var(--radius-lg);
+		max-width: 320px;
+		border-radius: var(--radius-xl);
 		background: var(--surface);
 		border: 2px dashed var(--border);
 		cursor: pointer;
@@ -271,7 +371,7 @@
 		position: relative;
 	}
 
-	.fallback:hover {
+	.fallback-upload:hover {
 		border-color: var(--border-glow);
 		background: var(--surface-hover);
 	}
@@ -297,6 +397,44 @@
 		color: var(--text-faint);
 	}
 
+	.fallback-divider {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+		width: 200px;
+		color: var(--text-faint);
+		font-size: 0.75rem;
+		font-weight: 600;
+	}
+
+	.fallback-divider::before,
+	.fallback-divider::after {
+		content: '';
+		flex: 1;
+		height: 1px;
+		background: var(--border);
+	}
+
+	.try-camera-btn {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		padding: 10px 22px;
+		border-radius: var(--radius-full);
+		font-size: 0.82rem;
+		font-weight: 600;
+		color: var(--text-muted);
+		background: var(--surface);
+		border: 1px solid var(--border);
+		transition: all var(--transition-fast);
+	}
+
+	.try-camera-btn:hover {
+		background: var(--surface-hover);
+		color: var(--text);
+		border-color: var(--border-glow);
+	}
+
 	.hidden-input {
 		position: absolute;
 		inset: 0;
@@ -306,5 +444,14 @@
 
 	.hidden-canvas {
 		display: none;
+	}
+
+	@media (max-width: 380px) {
+		.camera-viewfinder {
+			max-width: 300px;
+		}
+		.preview-frame {
+			max-width: 280px;
+		}
 	}
 </style>
