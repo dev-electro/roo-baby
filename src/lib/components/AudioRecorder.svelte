@@ -136,14 +136,14 @@
 	{#if appState.isConvertingAudio}
 		<div class="converting-state">
 			<div class="converting-spinner">
-				<Icon name="loader" size={32} color="var(--coral)" />
+				<Icon name="loader" size={32} color="var(--primary)" />
 			</div>
 			<p class="converting-text">Optimizing audio...</p>
 		</div>
 	{:else if appState.audioBlob && !appState.isRecording}
 		<div class="done-state animate-scale-in">
 			<div class="done-icon-wrap">
-				<Icon name="check" size={28} color="var(--mint)" />
+				<Icon name="check" size={28} color="var(--accent)" />
 			</div>
 			<p class="done-text">Cry recorded</p>
 			<p class="done-sub">{appState.isGeneratingSpectrogram ? 'Generating spectrogram...' : 'Ready to analyze'}</p>
@@ -248,7 +248,7 @@
 		width: 90px;
 		height: 90px;
 		border-radius: 50%;
-		background: linear-gradient(145deg, var(--danger), var(--coral));
+		background: linear-gradient(145deg, var(--danger), var(--primary));
 		box-shadow: 0 8px 32px rgba(255,77,109,0.45), 0 0 0 4px rgba(255,77,109,0.12);
 		display: flex;
 		align-items: center;
@@ -294,7 +294,7 @@
 		bottom: -28px;
 		font-family: 'Fraunces', serif;
 		font-size: 1.1rem;
-		color: var(--coral);
+		color: var(--primary);
 		font-weight: 600;
 		letter-spacing: 0.05em;
 	}
@@ -318,7 +318,7 @@
 
 	.progress-fill {
 		fill: none;
-		stroke: var(--coral);
+		stroke: var(--primary);
 		stroke-width: 2;
 		stroke-linecap: round;
 		transition: stroke-dasharray 0.3s ease;
@@ -356,7 +356,7 @@
 	.bar {
 		width: 4px;
 		border-radius: 100px;
-		background: linear-gradient(180deg, var(--coral), var(--amber));
+		background: linear-gradient(180deg, var(--primary), var(--secondary));
 		animation: wave-bar 1.2s ease-in-out infinite;
 		height: 6px;
 	}

@@ -69,7 +69,7 @@
 		font-weight: 800;
 		letter-spacing: 0.12em;
 		text-transform: uppercase;
-		color: var(--mint);
+		color: var(--accent);
 	}
 
 	.sound-bars {
@@ -82,7 +82,7 @@
 	.bar {
 		width: 4px;
 		border-radius: 100px;
-		background: linear-gradient(180deg, var(--mint), rgba(110,231,183,0.25));
+		background: linear-gradient(180deg, var(--accent), rgba(110,231,183,0.25));
 		animation: sound-bar 1.4s ease-in-out infinite;
 		transform-origin: bottom;
 	}

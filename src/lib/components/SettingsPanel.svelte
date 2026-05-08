@@ -74,7 +74,7 @@
 				</div>
 
 				<div class="tip">
-					<Icon name="info-circle" size={16} color="var(--mint)" />
+					<Icon name="info-circle" size={16} color="var(--accent)" />
 					<p>Audio is converted to a mel spectrogram and analyzed visually by Gemma 4. Face photos are analyzed directly. Both mode cross-references audio + visual for higher accuracy.</p>
 				</div>
 			</div>
@@ -131,7 +131,7 @@
 		display: flex; align-items: center; gap: 6px;
 		padding: 10px 18px; border-radius: var(--radius-md);
 		font-size: 0.82rem; font-weight: 700; color: #fff;
-		background: linear-gradient(135deg, var(--coral), var(--amber));
+		background: linear-gradient(135deg, var(--primary), var(--secondary));
 		align-self: flex-end;
 		transition: all var(--transition-fast);
 	}

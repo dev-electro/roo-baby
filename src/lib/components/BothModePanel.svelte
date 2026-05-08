@@ -228,7 +228,7 @@
 	<!-- Audio Section -->
 	<div class="audio-section">
 		<div class="section-label">
-			<Icon name="mic" size={14} color="var(--coral)" />
+			<Icon name="mic" size={14} color="var(--primary)" />
 			<span>Audio</span>
 		</div>
 		
@@ -239,7 +239,7 @@
 			</div>
 		{:else if appState.audioBlob && !isRecordingAudio}
 			<div class="audio-done animate-scale-in">
-				<Icon name="check" size={20} color="var(--mint)" />
+				<Icon name="check" size={20} color="var(--accent)" />
 				<div class="audio-done-info">
 					<span class="audio-done-label">Cry recorded</span>
 					<span class="audio-done-sub">{appState.spectrogramBlob ? 'Spectrogram ready' : 'Audio ready'}</span>
@@ -292,7 +292,7 @@
 	<!-- Image Section -->
 	<div class="image-section">
 		<div class="section-label">
-			<Icon name="camera" size={14} color="var(--amber)" />
+			<Icon name="camera" size={14} color="var(--secondary)" />
 			<span>Face</span>
 		</div>
 		
@@ -304,7 +304,7 @@
 					</div>
 				{:else}
 					<div class="image-thumb-placeholder">
-						<Icon name="check" size={24} color="var(--mint)" />
+						<Icon name="check" size={24} color="var(--accent)" />
 					</div>
 				{/if}
 				<div class="captured-info">
@@ -420,7 +420,7 @@
 		width: 60px;
 		height: 60px;
 		border-radius: 50%;
-		background: linear-gradient(145deg, var(--danger), var(--coral));
+		background: linear-gradient(145deg, var(--danger), var(--primary));
 		display: flex;
 		align-items: center;
 		justify-content: center;
@@ -444,7 +444,7 @@
 		gap: 6px;
 		font-family: 'Fraunces', serif;
 		font-size: 1rem;
-		color: var(--coral);
+		color: var(--primary);
 		font-weight: 600;
 	}
 
@@ -458,7 +458,7 @@
 
 	.audio-progress-fill {
 		height: 100%;
-		background: linear-gradient(90deg, var(--coral), var(--amber));
+		background: linear-gradient(90deg, var(--primary), var(--secondary));
 		border-radius: 2px;
 		transition: width 1s linear;
 	}
@@ -491,7 +491,7 @@
 		width: 28px;
 		height: 28px;
 		border: 3px solid var(--border);
-		border-top-color: var(--coral);
+		border-top-color: var(--primary);
 		border-radius: 50%;
 		animation: spin-slow 1s linear infinite;
 	}
@@ -520,7 +520,7 @@
 	.audio-done-label {
 		font-size: 0.82rem;
 		font-weight: 700;
-		color: var(--mint);
+		color: var(--accent);
 	}
 
 	.audio-done-sub {
@@ -625,7 +625,7 @@
 		position: absolute;
 		width: 20px;
 		height: 20px;
-		border-color: var(--amber);
+		border-color: var(--secondary);
 		border-style: solid;
 		opacity: 0.6;
 	}
@@ -643,7 +643,7 @@
 		width: 44px;
 		height: 44px;
 		border-radius: 50%;
-		background: linear-gradient(135deg, var(--coral), var(--amber));
+		background: linear-gradient(135deg, var(--primary), var(--secondary));
 		display: flex;
 		align-items: center;
 		justify-content: center;
@@ -722,7 +722,7 @@
 	.captured-label {
 		font-size: 0.8rem;
 		font-weight: 700;
-		color: var(--mint);
+		color: var(--accent);
 	}
 
 	.captured-actions {

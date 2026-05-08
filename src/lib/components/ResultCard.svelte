@@ -21,18 +21,18 @@
 	};
 	
 	const CATEGORY_COLORS = {
-		HUNGER: 'var(--amber)',
+		HUNGER: 'var(--secondary)',
 		PAIN: 'var(--danger)',
 		TIRED: 'var(--lavender)',
 		DISCOMFORT: 'var(--warn)',
-		BURPING: 'var(--mint)',
+		BURPING: 'var(--accent)',
 		UNKNOWN: 'var(--text-muted)'
 	};
 	
 	const SEVERITY_CONFIG = {
-		LOW: { color: 'var(--mint)', bg: 'rgba(110,231,183,0.1)', label: 'Low' },
+		LOW: { color: 'var(--accent)', bg: 'rgba(110,231,183,0.1)', label: 'Low' },
 		MEDIUM: { color: 'var(--warn)', bg: 'rgba(255,209,102,0.1)', label: 'Medium' },
-		HIGH: { color: 'var(--coral)', bg: 'rgba(255,140,107,0.1)', label: 'High' },
+		HIGH: { color: 'var(--primary)', bg: 'rgba(255,140,107,0.1)', label: 'High' },
 		CRITICAL: { color: 'var(--danger)', bg: 'rgba(255,107,138,0.12)', label: 'Critical' }
 	};
 	
@@ -209,7 +209,7 @@
 	.confidence-fill {
 		height: 100%;
 		border-radius: var(--radius-full);
-		background: linear-gradient(90deg, var(--coral), var(--amber));
+		background: linear-gradient(90deg, var(--primary), var(--secondary));
 		transition: width 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 		box-shadow: 0 0 12px rgba(255,140,107,0.35);
 	}
@@ -256,7 +256,7 @@
 		font-weight: 800;
 		letter-spacing: 0.12em;
 		text-transform: uppercase;
-		color: var(--mint);
+		color: var(--accent);
 		margin-bottom: 5px;
 	}
 

@@ -33,20 +33,22 @@
 	<ModeTabs />
 	
 	<div class="capture-card glass">
-		{#if appState.isConvertingAudio || appState.isGeneratingSpectrogram}
-			<div class="processing-state">
-				<div class="processing-spinner"></div>
-				<p class="processing-text">
-					{appState.isConvertingAudio ? 'Optimizing audio…' : 'Creating spectrogram…'}
-				</p>
-			</div>
-		{:else if appState.currentMode === 'audio'}
-			<AudioRecorder />
-		{:else if appState.currentMode === 'image'}
-			<CameraCapture />
-		{:else}
-			<BothModePanel />
-		{/if}
+		{#key appState.currentMode}
+			{#if appState.isConvertingAudio || appState.isGeneratingSpectrogram}
+				<div class="processing-state">
+					<div class="processing-spinner"></div>
+					<p class="processing-text">
+						{appState.isConvertingAudio ? 'Optimizing audio…' : 'Creating spectrogram…'}
+					</p>
+				</div>
+			{:else if appState.currentMode === 'audio'}
+				<AudioRecorder />
+			{:else if appState.currentMode === 'image'}
+				<CameraCapture />
+			{:else}
+				<BothModePanel />
+			{/if}
+		{/key}
 	</div>
 	
 	<ErrorToast />
@@ -129,7 +131,7 @@
 		width: 32px;
 		height: 32px;
 		border: 3px solid var(--border);
-		border-top-color: var(--coral);
+		border-top-color: var(--primary);
 		border-radius: 50%;
 		animation: spin-slow 1s linear infinite;
 	}

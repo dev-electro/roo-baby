@@ -118,7 +118,7 @@
 	}
 
 	.analyze-btn.ready {
-		background: linear-gradient(135deg, var(--coral), var(--amber));
+		background: linear-gradient(135deg, var(--primary), var(--secondary));
 		color: #fff;
 		border: none;
 		box-shadow: 0 6px 24px rgba(255,140,107,0.3), inset 0 1px 0 rgba(255,255,255,0.15);
@@ -159,7 +159,7 @@
 		width: 16px;
 		height: 16px;
 		border: 2px solid var(--border);
-		border-top-color: var(--coral);
+		border-top-color: var(--primary);
 		border-radius: 50%;
 		animation: spin-slow 0.8s linear infinite;
 	}
