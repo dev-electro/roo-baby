@@ -1,8 +1,9 @@
-// Cloudflare Pages Function — proxies to OpenRouter API
+// Cloudflare Pages Function — dual-provider proxy
+// Primary: Google Gemini API (direct, higher rate limits)
+// Fallback: OpenRouter API (free endpoints)
 // Sends spectrogram images + face photos + reference atlas to Gemma 4 models
-// Uses 26B A4B for single-modality, 31B for cross-modal (both) mode
-// All model IDs configurable via env vars
 
+const GEMINI_BASE = 'https://generativelanguage.googleapis.com/v1beta';
 const OPENROUTER_BASE = 'https://openrouter.ai/api/v1';
 
 const PROMPTS = {
@@ -103,10 +104,16 @@ async function blobToBase64(blob) {
 	return btoa(binary);
 }
 
+async function blobToBase64Raw(blob) {
+	const buf = await blob.arrayBuffer();
+	return new Uint8Array(buf);
+}
+
 let atlasBase64Cache = null;
+let atlasMimeCache = null;
 
 async function getAtlasBase64(siteUrl) {
-	if (atlasBase64Cache) return atlasBase64Cache;
+	if (atlasBase64Cache) return { b64: atlasBase64Cache, mime: atlasMimeCache };
 	try {
 		const res = await fetch(`${siteUrl}/atlas/atlas_master.webp`, { signal: AbortSignal.timeout(5000) });
 		if (res.ok) {
@@ -117,12 +124,45 @@ async function getAtlasBase64(siteUrl) {
 				binary += String.fromCharCode(...bytes.slice(i, i + 4096));
 			}
 			atlasBase64Cache = btoa(binary);
-			return atlasBase64Cache;
+			atlasMimeCache = 'image/webp';
+			return { b64: atlasBase64Cache, mime: atlasMimeCache };
 		}
 	} catch {}
 	return null;
 }
 
+// ── Google Gemini API ──
+async function callGemini(apiKey, model, contents, retries = 2) {
+	for (let attempt = 0; attempt <= retries; attempt++) {
+		const res = await fetch(`${GEMINI_BASE}/models/${model}:generateContent?key=${apiKey}`, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({
+				contents: [{ role: 'user', parts: contents }],
+				generationConfig: {
+					maxOutputTokens: 400,
+					temperature: 0.1,
+					responseMimeType: 'application/json'
+				}
+			})
+		});
+
+		if (res.status === 429 && attempt < retries) {
+			const delay = 2000 * Math.pow(2, attempt);
+			await new Promise(r => setTimeout(r, delay));
+			continue;
+		}
+
+		if (!res.ok) {
+			const err = await res.text();
+			throw new Error(`Gemini ${res.status}: ${err.slice(0, 300)}`);
+		}
+
+		return res.json();
+	}
+}
+
+// ── OpenRouter API ──
 async function callOpenRouter(apiKey, model, messages, retries = 2, siteUrl = 'https://roo-baby.pages.dev') {
 	for (let attempt = 0; attempt <= retries; attempt++) {
 		const res = await fetch(`${OPENROUTER_BASE}/chat/completions`, {
@@ -169,15 +209,26 @@ function parseJSON(text) {
 	return null;
 }
 
+function extractGeminiText(data) {
+	const parts = data?.candidates?.[0]?.content?.parts;
+	if (!parts) return '';
+	return parts.map(p => p.text || '').join('');
+}
+
 export async function onRequest(context) {
 	const { request, env } = context;
-	const apiKey = env.OPENROUTER_API_KEY;
+	const geminiKey = env.GEMINI_API_KEY;
+	const openrouterKey = env.OPENROUTER_API_KEY;
+	const geminiSingle = env.GEMINI_MODEL_SINGLE || 'gemma-4-26b-a4b-it';
+	const geminiBoth = env.GEMINI_MODEL_BOTH || 'gemma-4-31b-it';
 	const modelSingle = env.MODEL_SINGLE || 'google/gemma-4-26b-a4b-it:free';
 	const modelBoth = env.MODEL_BOTH || 'google/gemma-4-31b-it:free';
 	const modelFallback = env.MODEL_FALLBACK || 'google/gemma-4-31b-it:free';
 	const siteUrl = env.SITE_URL || 'https://roo-baby.pages.dev';
 
-	if (!apiKey) return jsonRes({ error: 'OPENROUTER_API_KEY not set in Cloudflare Pages env vars.' }, 500);
+	if (!geminiKey && !openrouterKey) {
+		return jsonRes({ error: 'Either GEMINI_API_KEY or OPENROUTER_API_KEY must be set.' }, 500);
+	}
 	if (request.method !== 'POST') return jsonRes({ error: 'Use POST.' }, 405);
 
 	try {
@@ -196,7 +247,6 @@ export async function onRequest(context) {
 			return jsonRes({ error: 'No spectrogram or image provided. Please record audio first.' }, 400);
 		}
 
-		// Build prompt text with audio features injected
 		let promptText = PROMPTS[mode];
 		if (audioFeatures) {
 			const featureStr = `- Duration: ${audioFeatures.duration ?? '?'}s
@@ -211,71 +261,99 @@ export async function onRequest(context) {
 			promptText = promptText.replace('{{AUDIO_FEATURES}}', '(Audio measurements unavailable — rely on visual spectrogram analysis)');
 		}
 
-		const contentParts = [];
-
-		// Prepend atlas reference image for audio/both modes
+		// Build image payloads
+		const images = [];
 		if ((mode === 'audio' || mode === 'both') && spectrogramBlob?.size) {
-			const atlasB64 = await getAtlasBase64(siteUrl);
-			if (atlasB64) {
-				contentParts.push({
-					type: 'image_url',
-					image_url: { url: `data:image/webp;base64,${atlasB64}` }
-				});
+			const atlas = await getAtlasBase64(siteUrl);
+			if (atlas) {
+				images.push({ b64: atlas.b64, mime: atlas.mime });
 			}
 		}
 
 		if (spectrogramBlob?.size > 0) {
 			const specB64 = await blobToBase64(spectrogramBlob);
-			contentParts.push({
-				type: 'image_url',
-				image_url: { url: `data:image/png;base64,${specB64}` }
-			});
+			images.push({ b64: specB64, mime: spectrogramBlob.type || 'image/png' });
 		}
 
 		if (imageBlob?.size > 0) {
 			const imgB64 = await blobToBase64(imageBlob);
-			const mimeType = imageBlob.type || 'image/jpeg';
-			contentParts.push({
-				type: 'image_url',
-				image_url: { url: `data:${mimeType};base64,${imgB64}` }
-			});
+			images.push({ b64: imgB64, mime: imageBlob.type || 'image/jpeg' });
 		}
 
-		contentParts.push({ type: 'text', text: promptText });
-
-		const model = mode === 'both' ? modelBoth : modelSingle;
-		const messages = [{ role: 'user', content: contentParts }];
-
-		let data;
+		// ── Try Gemini first (if key available), then fall back to OpenRouter ──
 		let lastError;
-		const tried = new Set();
+		let result = null;
+		let usedProvider = null;
+		let usedModel = null;
 
-		for (const m of [model, modelFallback].filter(Boolean)) {
-			if (tried.has(m)) continue;
-			tried.add(m);
+		// Provider 1: Google Gemini (direct API)
+		if (geminiKey) {
 			try {
-				data = await callOpenRouter(apiKey, m, messages, 2, siteUrl);
-				break;
+				const geminiModel = mode === 'both' ? geminiBoth : geminiSingle;
+				const parts = [];
+
+				for (const img of images) {
+					parts.push({ inlineData: { mimeType: img.mime, data: img.b64 } });
+				}
+				parts.push({ text: promptText });
+
+				const data = await callGemini(geminiKey, geminiModel, parts);
+				const rawText = extractGeminiText(data);
+				const parsed = parseJSON(rawText);
+				if (parsed && parsed.category) {
+					result = parsed;
+					usedProvider = 'gemini';
+					usedModel = geminiModel;
+				} else {
+					throw new Error(`Gemini returned invalid JSON: ${(rawText || '').slice(0, 200)}`);
+				}
 			} catch (err) {
 				lastError = err;
 			}
 		}
-		if (!data) throw lastError;
 
-		const rawText = data?.choices?.[0]?.message?.content || '';
-		const result = parseJSON(rawText);
+		// Provider 2: OpenRouter (if Gemini failed or no key)
+		if (!result && openrouterKey) {
+			const openrouterModels = [mode === 'both' ? modelBoth : modelSingle];
+			if (modelFallback && modelFallback !== openrouterModels[0]) {
+				openrouterModels.push(modelFallback);
+			}
 
-		if (!result || !result.category) {
-			return jsonRes({
-				error: 'Model did not return valid JSON',
-				raw: rawText.slice(0, 500),
-				model: data?.model || model
-			}, 502);
+			for (const m of openrouterModels) {
+				try {
+					const msgContent = [];
+					for (const img of images) {
+						msgContent.push({
+							type: 'image_url',
+							image_url: { url: `data:${img.mime};base64,${img.b64}` }
+						});
+					}
+					msgContent.push({ type: 'text', text: promptText });
+
+					const messages = [{ role: 'user', content: msgContent }];
+					const data = await callOpenRouter(openrouterKey, m, messages, 2, siteUrl);
+					const rawText = data?.choices?.[0]?.message?.content || '';
+					const parsed = parseJSON(rawText);
+					if (parsed && parsed.category) {
+						result = parsed;
+						usedProvider = 'openrouter';
+						usedModel = m;
+						break;
+					}
+					throw new Error(`OpenRouter model ${m} returned invalid JSON`);
+				} catch (err) {
+					lastError = err;
+				}
+			}
+		}
+
+		if (!result) {
+			throw lastError || new Error('No API keys configured');
 		}
 
 		result._meta = {
-			model: data?.model || model,
-			model_requested: model,
+			provider: usedProvider,
+			model: usedModel,
 			timestamp: new Date().toISOString(),
 			mode,
 			atlas_used: !!atlasBase64Cache
