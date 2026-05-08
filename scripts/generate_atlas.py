@@ -137,15 +137,16 @@ def spectrogram_to_image(mel_db):
 
 def parse_donateacry_labels(data_dir):
     samples = []
-    for fname in os.listdir(data_dir):
-        if not fname.endswith(('.wav', '.caf', '.3gp', '.ogg', '.m4a')):
-            continue
-        parts = fname.replace('.wav', '').replace('.caf', '').replace('.3gp', '').split('-')
-        if len(parts) >= 5:
-            label = parts[-1].split('.')[0].lower()
-            category = CATEGORY_MAP.get(label)
-            if category:
-                samples.append((os.path.join(data_dir, fname), category))
+    for root, dirs, files in os.walk(data_dir):
+        for fname in files:
+            if not fname.endswith(('.wav', '.caf', '.3gp', '.ogg', '.m4a')):
+                continue
+            parts = fname.replace('.wav', '').replace('.caf', '').replace('.3gp', '').split('-')
+            if len(parts) >= 5:
+                label = parts[-1].split('.')[0].lower()
+                category = CATEGORY_MAP.get(label)
+                if category:
+                    samples.append((os.path.join(root, fname), category))
     return samples
 
 

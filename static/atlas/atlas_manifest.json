@@ -2,7 +2,7 @@
   "categories": {
     "HUNGER": {
       "description": "Rhythmic \"neh\" pattern, 400-600Hz, gradual buildup",
-      "color": "rgb(255,123,92)",
+      "color": "#FF7B5C",
       "exemplars": [
         "hunger_01.webp",
         "hunger_02.webp",
@@ -13,7 +13,7 @@
     },
     "PAIN": {
       "description": "Sudden sharp spikes, 600-800Hz, silence gaps",
-      "color": "rgb(255,77,109)",
+      "color": "#FF4D6D",
       "exemplars": [
         "pain_01.webp",
         "pain_02.webp",
@@ -24,7 +24,7 @@
     },
     "TIRED": {
       "description": "Whiny nasal, 300-450Hz, irregular fading",
-      "color": "rgb(123,140,222)",
+      "color": "#7B8CDE",
       "exemplars": [
         "tired_01.webp",
         "tired_02.webp",
@@ -35,7 +35,7 @@
     },
     "DISCOMFORT": {
       "description": "Sustained mid-range, 400-500Hz, grunting",
-      "color": "rgb(255,179,71)",
+      "color": "#FFB347",
       "exemplars": [
         "discomfort_01.webp",
         "discomfort_02.webp",
@@ -46,7 +46,7 @@
     },
     "BURPING": {
       "description": "Short isolated bursts, descending pitch",
-      "color": "rgb(82,217,193)",
+      "color": "#52D9C1",
       "exemplars": [
         "burping_01.webp",
         "burping_02.webp",
@@ -56,6 +56,5 @@
       ]
     }
   },
-  "total_samples": 25,
-  "placeholder": true
+  "total_samples": 1391
 }
