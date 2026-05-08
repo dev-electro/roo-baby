@@ -1,18 +1,28 @@
 # ROO — Work Pending
 
-## Task: Generate Spectrogram Reference Atlas
+## Status: Synthethic Atlas Complete, Real-Data Atlas Pending
 
-**Goal:** Run `scripts/generate_atlas.py` to produce labeled mel spectrogram reference images from baby cry datasets for few-shot visual prompting of Gemma 4 VLM.
+The synthetic placeholder atlas is now generated and deployed. The remaining task is to replace it with a real-data atlas for higher accuracy.
+
+---
+
+## Completed: Synthetic Atlas (current)
+
+- **Script:** `scripts/generate_atlas_node.mjs` — zero-dep Node.js atlas generator (uses sharp for WebP output)
+- **Output:** `static/atlas/` — 25 WebP exemplars + composite `atlas_master.webp` (404 KB) + `atlas_manifest.json`
+- **Format:** WebP (30-50% smaller than PNG, VLM-compatible, no distortion)
+- **Status:** Generated and deployed to `roo-baby.pages.dev/atlas/atlas_master.webp`
+
+Run with:
+```bash
+node scripts/generate_atlas_node.mjs
+```
 
 ---
 
-### Why This Matters
+## Pending: Real-Data Atlas (higher accuracy)
 
-The ROO app converts baby cry audio → mel spectrogram PNG, then sends it to Gemma 4 (via OpenRouter free endpoints) alongside a reference atlas of labeled examples. The VLM visually matches the user's spectrogram against known patterns (hunger, pain, tired, discomfort, burping). This few-shot visual approach targets 90%+ accuracy without any model fine-tuning.
-
-The atlas images are **shipped as static assets** and fetched by the Pages Function at runtime to prepend as the first image in every prompt.
-
----
+**Goal:** Replace synthetic placeholders with real spectrograms from baby cry datasets. This requires Python + librosa.
 
 ### Setup (one-time, ~450 MB download)
 
@@ -21,7 +31,7 @@ The atlas images are **shipped as static assets** and fetched by the Pages Funct
 git clone https://github.com/dev-electro/roo-baby.git
 cd roo-baby
 
-# 2. Install deps
+# 2. Install deps (requires Python + pip)
 pip install librosa Pillow numpy soundfile
 
 # 3. Download 3 datasets into data/
@@ -68,7 +78,7 @@ If no datasets are found, it auto-generates synthetic placeholders (for developm
 
 ---
 
-### Expected Output (`static/atlas/`, ~0.5-1 MB total)
+### Expected Output (`static/atlas/`, ~1.5 MB total)
 
 ```
 static/atlas/
@@ -78,16 +88,15 @@ static/atlas/
 ├── discomfort_01.webp ... discomfort_05.webp
 ├── burping_01.webp ... burping_05.webp
 ├── atlas_master.webp   (composite card with labels + reading guide)
-├── atlas_audio.webp    (audio-only composite card)
 └── atlas_manifest.json (metadata JSON)
 ```
 
-The script:
+The real-data script:
 1. Scans all datasets in `data/`
 2. Computes mel spectrograms for every WAV file
 3. Scores each by clarity + pattern strength
 4. Picks top 5 per category (best exemplars)
-5. Renders with magma colormap (same as client-side spectrogram generator)
+5. Renders with magma colormap (must match client-side spectrogram generator)
 6. Creates composite `atlas_master.webp` with labeled spectrograms + reading guide
 7. Outputs everything to `static/atlas/`
 
@@ -102,18 +111,17 @@ The script:
 ### How the Atlas is Used in Production
 
 1. User records baby cry in browser
-2. Client generates mel spectrogram PNG (same colormap, same 512x256 size)
-3. Cloudflare Pages Function fetches `atlas_master.webp` from `https://roo-baby.pages.dev/atlas/atlas_master.webp`
-4. Function sends to OpenRouter: `[atlas_master.webp, user_spectrogram.png, user_face.jpg]` + prompt text
-5. VLM compares user's spectrogram against labeled references and outputs structured JSON
-
-The prompt instructs: *"The first image is a REFERENCE ATLAS showing labeled example spectrograms for each cry category. The second image is the USER'S spectrogram to analyze. Compare the user's spectrogram pattern against the reference atlas and the signatures…"*
+2. Client generates mel spectrogram (WebP, 512x256, magma colormap, Hz/time axis labels)
+3. Client extracts audio features (dominant freq, RMS, ZCR, silence/onset ratios)
+4. Cloudflare Pages Function fetches `atlas_master.webp` from `https://roo-baby.pages.dev/atlas/atlas_master.webp`
+5. Function sends to OpenRouter: `[atlas_master.webp, user_spectrogram.webp, face.jpg?]` + prompt text with `{{AUDIO_FEATURES}}` injected
+6. VLM compares user's spectrogram against labeled references + audio measurements, outputs structured JSON
 
 ---
 
 ### Alternative: Browser-Based Placeholder Generator
 
-If you can't run the Python script, open `static/atlas-generator.html` in any browser. It generates synthetic spectrograms and lets you download all files individually. These placeholders work for development but have lower accuracy than real data.
+If you can't run Node or Python, open `static/atlas-generator.html` in any browser. It generates synthetic spectrograms and lets you download all files individually. These placeholders work for development but have lower accuracy than real data.
 
 ---
 
@@ -122,19 +130,21 @@ If you can't run the Python script, open `static/atlas-generator.html` in any br
 ```
 Browser (SvelteKit/CF Pages)
   │
-  ├─ Record audio → Web Audio API → mel spectrogram PNG (512x256, magma colormap)
+  ├─ Record audio → Web Audio API → mel spectrogram WebP (512x256, magma colormap, axis labels)
+  ├─ Extract numeric audio features (dominant freq, peak freqs, RMS, ZCR, silence/onset ratios)
   ├─ Capture face photo (front/back camera)
   ├─ POST /api/analyze
-  │   form: { spectrogram.png, face.jpg, mode }
+  │   form: { spectrogram.webp, face.jpg, mode, audio_features }
   │
   ▼
 Cloudflare Pages Function (functions/api/analyze.js)
   │
   ├─ Fetch atlas_master.webp from static site
+  ├─ Parse audio_features JSON, inject into prompt text via {{AUDIO_FEATURES}}
   ├─ Build OpenRouter chat completion:
   │   model: MODEL_SINGLE (26B A4B) or MODEL_BOTH (31B)
-  │   images: [atlas_master.webp, spectrogram.png, face.jpg?]
-  │   prompt: analysis prompt with spectrogram reading guide
+  │   images: [atlas_master.webp, spectrogram.webp, face.jpg?]
+  │   prompt: analysis prompt with audio measurements + spectrogram reading guide
   │   response_format: json_object (enforced)
   │
   ├─ On 429 rate-limit → retry with MODEL_FALLBACK
@@ -150,3 +160,11 @@ Result: { category, confidence, severity, reasoning, parent_action, response_sou
 - `MODEL_BOTH` — default: `google/gemma-4-31b-it:free`
 - `MODEL_FALLBACK` — default: `google/gemma-4-31b-it:free`
 - `SITE_URL` — default: `https://roo-baby.pages.dev`
+
+---
+
+## Bug Fixes Applied (not yet deployed)
+
+- `analyze.js` line ~243: was sending raw `PROMPTS[mode]` instead of `promptText` with `{{AUDIO_FEATURES}}` injected — **fixed**
+- Atlas fetch URL updated from `.webp` → `.png` → back to `.webp` (now generating WebP directly)
+- `generate_atlas_node.mjs` now outputs WebP via sharp (was PNG-only)

@@ -4,55 +4,55 @@
       "description": "Rhythmic \"neh\" pattern, 400-600Hz, gradual buildup",
       "color": "rgb(255,123,92)",
       "exemplars": [
-        "hunger_01.png",
-        "hunger_02.png",
-        "hunger_03.png",
-        "hunger_04.png",
-        "hunger_05.png"
+        "hunger_01.webp",
+        "hunger_02.webp",
+        "hunger_03.webp",
+        "hunger_04.webp",
+        "hunger_05.webp"
       ]
     },
     "PAIN": {
       "description": "Sudden sharp spikes, 600-800Hz, silence gaps",
       "color": "rgb(255,77,109)",
       "exemplars": [
-        "pain_01.png",
-        "pain_02.png",
-        "pain_03.png",
-        "pain_04.png",
-        "pain_05.png"
+        "pain_01.webp",
+        "pain_02.webp",
+        "pain_03.webp",
+        "pain_04.webp",
+        "pain_05.webp"
       ]
     },
     "TIRED": {
       "description": "Whiny nasal, 300-450Hz, irregular fading",
       "color": "rgb(123,140,222)",
       "exemplars": [
-        "tired_01.png",
-        "tired_02.png",
-        "tired_03.png",
-        "tired_04.png",
-        "tired_05.png"
+        "tired_01.webp",
+        "tired_02.webp",
+        "tired_03.webp",
+        "tired_04.webp",
+        "tired_05.webp"
       ]
     },
     "DISCOMFORT": {
       "description": "Sustained mid-range, 400-500Hz, grunting",
       "color": "rgb(255,179,71)",
       "exemplars": [
-        "discomfort_01.png",
-        "discomfort_02.png",
-        "discomfort_03.png",
-        "discomfort_04.png",
-        "discomfort_05.png"
+        "discomfort_01.webp",
+        "discomfort_02.webp",
+        "discomfort_03.webp",
+        "discomfort_04.webp",
+        "discomfort_05.webp"
       ]
     },
     "BURPING": {
       "description": "Short isolated bursts, descending pitch",
       "color": "rgb(82,217,193)",
       "exemplars": [
-        "burping_01.png",
-        "burping_02.png",
-        "burping_03.png",
-        "burping_04.png",
-        "burping_05.png"
+        "burping_01.webp",
+        "burping_02.webp",
+        "burping_03.webp",
+        "burping_04.webp",
+        "burping_05.webp"
       ]
     }
   },

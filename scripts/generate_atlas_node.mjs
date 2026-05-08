@@ -1,12 +1,13 @@
 #!/usr/bin/env node
 // Generates synthetic spectrogram reference atlas for development
 // Usage: node scripts/generate_atlas_node.mjs
-// Outputs: static/atlas/ directory with PNG files
+// Outputs: static/atlas/ directory with WebP files
 
 import { writeFileSync, mkdirSync, existsSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import zlib from 'zlib';
+import sharp from 'sharp';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const OUT_DIR = join(__dirname, '..', 'static', 'atlas');
@@ -316,14 +317,16 @@ for (const [cat, info] of Object.entries(CATEGORIES)) {
 		const mel = syntheticMel(cat, cat.charCodeAt(0) * 100 + i * 7 + 42);
 		allSpectrograms[cat].push(mel);
 
-		const filename = `${cat.toLowerCase()}_${String(i + 1).padStart(2, '0')}.png`;
-		manifest.categories[cat].exemplars.push(filename);
+		const pngFilename = `${cat.toLowerCase()}_${String(i + 1).padStart(2, '0')}.png`;
+		const webpFilename = `${cat.toLowerCase()}_${String(i + 1).padStart(2, '0')}.webp`;
+		manifest.categories[cat].exemplars.push(webpFilename);
 		manifest.total_samples++;
 
 		const pixels = renderMelToPixels(mel, SPECTROGRAM_W, SPECTROGRAM_H);
-		const png = encodePNG(pixels, SPECTROGRAM_W, SPECTROGRAM_H);
-		writeFileSync(join(OUT_DIR, filename), png);
-		console.log(`  Written: ${filename} (${png.length} bytes)`);
+		const pngBuf = encodePNG(pixels, SPECTROGRAM_W, SPECTROGRAM_H);
+		const webpBuf = await sharp(pngBuf).webp({ quality: 92 }).toBuffer();
+		writeFileSync(join(OUT_DIR, webpFilename), webpBuf);
+		console.log(`  Written: ${webpFilename} (${(webpBuf.length / 1024).toFixed(1)} KB)`);
 	}
 }
 
@@ -331,15 +334,12 @@ for (const [cat, info] of Object.entries(CATEGORIES)) {
 console.log('Creating atlas master card...');
 const card = renderAtlasCard(allSpectrograms);
 const atlasPng = encodePNG(card.pixels, card.width, card.height);
-const atlasFilename = 'atlas_master.png';
-writeFileSync(join(OUT_DIR, atlasFilename), atlasPng);
-console.log(`  Written: ${atlasFilename} (${(atlasPng.length / 1024).toFixed(1)} KB)`);
+const atlasWebp = await sharp(atlasPng).webp({ quality: 95 }).toBuffer();
+writeFileSync(join(OUT_DIR, 'atlas_master.webp'), atlasWebp);
+console.log(`  Written: atlas_master.webp (${(atlasWebp.length / 1024).toFixed(1)} KB)`);
 
 // Write manifest
 writeFileSync(join(OUT_DIR, 'atlas_manifest.json'), JSON.stringify(manifest, null, 2));
 console.log('  Written: atlas_manifest.json');
 
-// Also write the webp reference file for backward compat (same PNG content)
-// Note: analyze.js fetches atlas_master.webp — we'll update it to .png
 console.log('\nDone! Files written to static/atlas/');
-console.log('NOTE: Update analyze.js to fetch atlas_master.png instead of atlas_master.webp');

@@ -109,7 +109,7 @@ async function getAtlasBase64(env) {
 	if (atlasBase64Cache) return atlasBase64Cache;
 	const siteUrl = env.SITE_URL || 'https://roo-baby.pages.dev';
 	try {
-		const res = await fetch(`${siteUrl}/atlas/atlas_master.png`, { signal: AbortSignal.timeout(5000) });
+		const res = await fetch(`${siteUrl}/atlas/atlas_master.webp`, { signal: AbortSignal.timeout(5000) });
 		if (res.ok) {
 			const buf = await res.arrayBuffer();
 			const bytes = new Uint8Array(buf);
