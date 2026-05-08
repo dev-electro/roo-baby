@@ -2,8 +2,9 @@
 	import { appState } from '$state/appState.svelte.js';
 	import { analyze } from '$utils/apiClient.js';
 	import { extractAudioFeatures } from '$utils/audioFeatures.js';
-	import { playResponseSound, stopAllSounds } from '$utils/soundGenerator.js';
-	import { speak } from '$utils/ttsEngine.js';
+	import { playResponseSound, ensureAudioResumed } from '$utils/soundGenerator.js';
+	import { speak, unlockSpeech } from '$utils/ttsEngine.js';
+	import { saveToHistory } from '$utils/historyStore.js';
 	import Icon from './Icon.svelte';
 	
 	const RESPONSE_MESSAGES = {
@@ -15,13 +16,25 @@
 		UNKNOWN: "Shh shh… it's okay little one. Everything is fine."
 	};
 	
+	let analyzing = false;
+
 	async function handleAnalyze() {
-		if (!appState.isReady || appState.isAnalyzing) return;
+		if (!appState.isReady || appState.isAnalyzing || analyzing) return;
+		analyzing = true;
 		
 		appState.isAnalyzing = true;
 		appState.clearError();
 		appState.result = null;
+		
+		// Unlock audio subsystems (requires user gesture on mobile)
+		unlockSpeech();
+		ensureAudioResumed();
+
+		// Stop any currently playing sounds from previous analysis
+		const { stopAllSounds } = await import('$utils/soundGenerator.js');
+		const { stopSpeaking } = await import('$utils/ttsEngine.js');
 		stopAllSounds();
+		stopSpeaking();
 		
 		try {
 			let audioFeatures = null;
@@ -42,6 +55,7 @@
 			});
 			
 			appState.result = data;
+			saveToHistory(data);
 			
 			if (data.response_sound) {
 				playResponseSound(data.response_sound);
@@ -54,6 +68,7 @@
 			appState.setError(err.message || 'Analysis failed. Please try again.');
 		} finally {
 			appState.isAnalyzing = false;
+			analyzing = false;
 		}
 	}
 </script>

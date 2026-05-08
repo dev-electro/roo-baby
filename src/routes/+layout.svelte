@@ -3,6 +3,19 @@
 	import { appState } from '$state/appState.svelte.js';
 	import Icon from '$components/Icon.svelte';
 	import SettingsPanel from '$components/SettingsPanel.svelte';
+
+	let { children } = $props();
+
+	let theme = $state(typeof localStorage !== 'undefined' ? localStorage.getItem('roo-theme') || 'dark' : 'dark');
+
+	function toggleTheme() {
+		theme = theme === 'dark' ? 'light' : 'dark';
+		localStorage.setItem('roo-theme', theme);
+	}
+
+	$effect(() => {
+		document.documentElement.setAttribute('data-theme', theme);
+	});
 </script>
 
 <div class="app-shell">
@@ -24,6 +37,15 @@
 		aria-label="About ROO"
 	>
 		<Icon name="info-circle" size={18} />
+	</button>
+
+	<button
+		class="theme-toggle"
+		onclick={toggleTheme}
+		type="button"
+		aria-label="Toggle theme"
+	>
+		<Icon name={theme === 'dark' ? 'moon' : 'bolt'} size={16} />
 	</button>
 
 	<SettingsPanel />
@@ -127,6 +149,31 @@
 		background: var(--surface-hover);
 		color: var(--text);
 		transform: rotate(15deg) scale(1.05);
+	}
+
+	.theme-toggle {
+		position: fixed;
+		bottom: 24px;
+		right: 80px;
+		width: 44px;
+		height: 44px;
+		border-radius: 50%;
+		background: var(--surface);
+		backdrop-filter: blur(16px);
+		border: 1px solid var(--border);
+		color: var(--text-muted);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		z-index: 50;
+		transition: all var(--transition-fast);
+		box-shadow: var(--shadow-sm);
+	}
+
+	.theme-toggle:hover {
+		background: var(--surface-hover);
+		color: var(--text);
+		transform: scale(1.08);
 	}
 
 	@media (max-width: 380px) {

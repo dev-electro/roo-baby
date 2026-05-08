@@ -3,11 +3,13 @@
 	import { convertToWav, isSupportedAudioFormat } from '$utils/audioEncoder.js';
 	import { generateSpectrogram } from '$utils/spectrogramGenerator.js';
 	import Icon from './Icon.svelte';
+	import { onDestroy } from 'svelte';
 	
 	let mediaRecorder = null;
 	let audioChunks = [];
 	let recordingTimer = null;
 	let elapsed = 0;
+	let currentStream = null;
 	let showFallback = false;
 	let fileInput;
 	
@@ -16,6 +18,7 @@
 	async function startRecording() {
 		try {
 			const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+			currentStream = stream;
 			audioChunks = [];
 			mediaRecorder = new MediaRecorder(stream);
 			
@@ -54,6 +57,7 @@
 				}
 				
 				stream.getTracks().forEach(t => t.stop());
+				currentStream = null;
 			};
 			
 			mediaRecorder.start();
@@ -115,6 +119,17 @@
 	}
 	
 	$: recordingProgress = elapsed / MAX_DURATION;
+
+	onDestroy(() => {
+		clearInterval(recordingTimer);
+		if (mediaRecorder?.state === 'recording') {
+			mediaRecorder.stop();
+		}
+		if (currentStream) {
+			currentStream.getTracks().forEach(t => t.stop());
+			currentStream = null;
+		}
+	});
 </script>
 
 <div class="recorder">

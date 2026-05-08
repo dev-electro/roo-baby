@@ -20,13 +20,13 @@
 		UNKNOWN: 'Unknown'
 	};
 	
-	const CATEGORY_EMOJIS = {
-		HUNGER: '🍼',
-		PAIN: '🩹',
-		TIRED: '😴',
-		DISCOMFORT: '🌡️',
-		BURPING: '💫',
-		UNKNOWN: '❓'
+	const CATEGORY_COLORS = {
+		HUNGER: 'var(--amber)',
+		PAIN: 'var(--danger)',
+		TIRED: 'var(--lavender)',
+		DISCOMFORT: 'var(--warn)',
+		BURPING: 'var(--mint)',
+		UNKNOWN: 'var(--text-muted)'
 	};
 	
 	const SEVERITY_CONFIG = {
@@ -55,7 +55,13 @@
 	<div class="result-card animate-slide-up">
 		<div class="result-header">
 			<div class="category-row">
-				<div class="emoji-icon">{CATEGORY_EMOJIS[appState.result.category] || '❓'}</div>
+				<div class="category-icon-wrap" style="--icon-color: {CATEGORY_COLORS[appState.result.category] || 'var(--text-muted)'}">
+					<Icon
+						name={CATEGORY_ICONS[appState.result.category] || 'info-circle'}
+						size={28}
+						color="currentColor"
+					/>
+				</div>
 				<div class="category-info">
 					<h2 class="category-name gradient-text">
 						{CATEGORY_LABELS[appState.result.category] || appState.result.category}
@@ -125,16 +131,15 @@
 		gap: 14px;
 	}
 
-	.emoji-icon {
-		font-size: 2.2rem;
-		line-height: 1;
+	.category-icon-wrap {
 		width: 52px;
 		height: 52px;
+		border-radius: var(--radius-md);
+		background: rgba(255,255,255,0.04);
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		background: rgba(255,255,255,0.04);
-		border-radius: var(--radius-md);
+		color: var(--icon-color);
 		flex-shrink: 0;
 	}
 
@@ -277,6 +282,6 @@
 
 	@media (max-width: 380px) {
 		.category-name { font-size: 1.4rem; }
-		.emoji-icon { width: 44px; height: 44px; font-size: 1.8rem; }
+		.category-icon-wrap { width: 44px; height: 44px; }
 	}
 </style>

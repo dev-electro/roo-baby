@@ -10,6 +10,7 @@
 	let audioRecorder = null;
 	let audioTimer = null;
 	let audioElapsed = 0;
+	let currentAudioStream = null;
 	let showAudioFallback = false;
 	let audioFileInput;
 	
@@ -22,12 +23,14 @@
 	let facingMode = 'user';
 	let starting = false;
 	let previewUrl = '';
+	let cameraRequested = false;
 	
 	const MAX_AUDIO = 10;
 	
 	async function startAudio() {
 		try {
 			const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+			currentAudioStream = stream;
 			audioChunks = [];
 			audioRecorder = new MediaRecorder(stream);
 			
@@ -50,6 +53,7 @@
 					}
 				}
 				stream.getTracks().forEach(t => t.stop());
+				currentAudioStream = null;
 				
 				if (appState.audioBlob) {
 					appState.isGeneratingSpectrogram = true;
@@ -186,7 +190,7 @@
 		previewUrl = '';
 		showImageFallback = false;
 		cameraActive = false;
-		startCamera();
+		cameraRequested = false;
 	}
 	
 	function stopCamera() {
@@ -202,13 +206,20 @@
 	}
 
 	onMount(() => {
-		if (!imageCaptured && !appState.imageBlob) startCamera();
+		// Camera requires explicit user tap — see requestCamera()
+		if (appState.audioBlob && !appState.spectrogramBlob) {
+			generateSpectrogramFromBlob(appState.audioBlob);
+		}
 	});
 
 	onDestroy(() => {
 		stopCamera();
 		if (audioRecorder?.state === 'recording') stopAudio();
 		clearInterval(audioTimer);
+		if (currentAudioStream) {
+			currentAudioStream.getTracks().forEach(t => t.stop());
+			currentAudioStream = null;
+		}
 		if (previewUrl) URL.revokeObjectURL(previewUrl);
 	});
 </script>
@@ -318,10 +329,27 @@
 					<span>Upload photo</span>
 					<input type="file" accept="image/jpeg,image/png" onchange={handleImageUpload} class="hidden-input" />
 				</label>
-				<button class="try-camera-btn" onclick={() => { showImageFallback = false; startCamera(); }}>
+				<button class="try-camera-btn" onclick={() => { showImageFallback = false; requestCamera(); }}>
 					<Icon name="camera" size={14} />
 					Try camera instead
 				</button>
+			</div>
+		{:else if !cameraRequested}
+			<div class="camera-prompt">
+				<div class="prompt-icon">
+					<Icon name="camera" size={24} color="var(--primary)" />
+				</div>
+				<p class="prompt-text">Enable camera for face analysis</p>
+				<p class="prompt-sub">Helps ROO cross-reference facial expressions</p>
+				<button class="enable-btn" onclick={requestCamera} type="button">
+					<Icon name="camera" size={16} color="#fff" />
+					Enable Camera
+				</button>
+				<label class="upload-link">
+					<input type="file" accept="image/jpeg,image/png" onchange={handleImageUpload} class="hidden-input" />
+					<Icon name="upload" size={12} />
+					Upload instead
+				</label>
 			</div>
 		{:else}
 			<div class="camera-container">
@@ -726,6 +754,55 @@
 	.upload-action {
 		position: relative;
 	}
+
+	/* ── Camera prompt ── */
+	.camera-prompt {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 6px;
+		padding: 12px 8px;
+	}
+
+	.prompt-icon {
+		width: 52px;
+		height: 52px;
+		border-radius: 50%;
+		background: var(--primary-soft);
+		border: 1px solid rgba(255,120,90,0.15);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		margin-bottom: 4px;
+	}
+
+	.prompt-text {
+		font-size: 0.8rem;
+		font-weight: 700;
+		color: var(--text);
+	}
+
+	.prompt-sub {
+		font-size: 0.7rem;
+		color: var(--text-muted);
+		margin-bottom: 6px;
+		text-align: center;
+	}
+
+	.enable-btn {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		padding: 10px 22px;
+		border-radius: var(--radius-full);
+		font-size: 0.82rem;
+		font-weight: 700;
+		background: linear-gradient(135deg, var(--primary), var(--secondary));
+		color: #fff;
+		box-shadow: 0 3px 14px rgba(255,120,90,0.25);
+		transition: all var(--transition-fast);
+	}
+	.enable-btn:hover { transform: translateY(-1px); box-shadow: 0 5px 20px rgba(255,120,90,0.35); }
 
 	/* ── Fallback ── */
 	.fallback-wrap {

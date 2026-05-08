@@ -13,6 +13,7 @@
 	import ResultCard from '$components/ResultCard.svelte';
 	import ResponsePlayer from '$components/ResponsePlayer.svelte';
 	import ErrorToast from '$components/ErrorToast.svelte';
+	import HistoryCard from '$components/HistoryCard.svelte';
 	import Icon from '$components/Icon.svelte';
 	
 	function handleReset() {
@@ -53,6 +54,7 @@
 	<LoadingState />
 	<ResultCard />
 	<ResponsePlayer />
+	<HistoryCard />
 	
 	{#if appState.result}
 		<button class="reset-btn animate-fade-in" onclick={handleReset} type="button">
