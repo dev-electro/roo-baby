@@ -20,11 +20,20 @@
 		UNKNOWN: 'Unknown'
 	};
 	
-	const SEVERITY_COLORS = {
-		LOW: 'var(--mint)',
-		MEDIUM: 'var(--warn)',
-		HIGH: 'var(--coral)',
-		CRITICAL: 'var(--danger)'
+	const CATEGORY_EMOJIS = {
+		HUNGER: '🍼',
+		PAIN: '🩹',
+		TIRED: '😴',
+		DISCOMFORT: '🌡️',
+		BURPING: '💫',
+		UNKNOWN: '❓'
+	};
+	
+	const SEVERITY_CONFIG = {
+		LOW: { color: 'var(--mint)', bg: 'rgba(110,231,183,0.1)', label: 'Low' },
+		MEDIUM: { color: 'var(--warn)', bg: 'rgba(255,209,102,0.1)', label: 'Medium' },
+		HIGH: { color: 'var(--coral)', bg: 'rgba(255,140,107,0.1)', label: 'High' },
+		CRITICAL: { color: 'var(--danger)', bg: 'rgba(255,107,138,0.12)', label: 'Critical' }
 	};
 	
 	let confidenceWidth = $state(0);
@@ -34,7 +43,7 @@
 			requestAnimationFrame(() => {
 				setTimeout(() => {
 					confidenceWidth = appState.result?.confidence || 0;
-				}, 100);
+				}, 150);
 			});
 		} else {
 			confidenceWidth = 0;
@@ -46,23 +55,15 @@
 	<div class="result-card animate-slide-up">
 		<div class="result-header">
 			<div class="category-row">
-				<div class="category-main">
-					<div class="category-icon">
-						<Icon
-							name={CATEGORY_ICONS[appState.result.category] || 'info-circle'}
-							size={32}
-							color={SEVERITY_COLORS[appState.result.severity] || 'var(--text-muted)'}
-						/>
-					</div>
+				<div class="emoji-icon">{CATEGORY_EMOJIS[appState.result.category] || '❓'}</div>
+				<div class="category-info">
 					<h2 class="category-name gradient-text">
 						{CATEGORY_LABELS[appState.result.category] || appState.result.category}
 					</h2>
+					<p class="category-sub">Your baby may be {CATEGORY_LABELS[appState.result.category]?.toLowerCase() || 'upset'}</p>
 				</div>
-				<div
-					class="severity-badge"
-					style="--severity-color: {SEVERITY_COLORS[appState.result.severity] || 'var(--text-muted)'}"
-				>
-					{appState.result.severity}
+				<div class="severity-badge" style="--sev-color: {(SEVERITY_CONFIG[appState.result.severity] || SEVERITY_CONFIG.MEDIUM).color}; --sev-bg: {(SEVERITY_CONFIG[appState.result.severity] || SEVERITY_CONFIG.MEDIUM).bg}">
+					{(SEVERITY_CONFIG[appState.result.severity] || SEVERITY_CONFIG.MEDIUM).label}
 				</div>
 			</div>
 			
@@ -72,10 +73,7 @@
 					<span class="confidence-value">{appState.result.confidence}%</span>
 				</div>
 				<div class="confidence-track">
-					<div
-						class="confidence-fill"
-						style="width: {confidenceWidth}%"
-					></div>
+					<div class="confidence-fill" style="width: {confidenceWidth}%"></div>
 				</div>
 			</div>
 		</div>
@@ -83,13 +81,14 @@
 		<div class="result-body">
 			{#if appState.result.reasoning}
 				<div class="reasoning-box">
-					"{appState.result.reasoning}"
+					<div class="reasoning-label">Why</div>
+					<p class="reasoning-text">"{appState.result.reasoning}"</p>
 				</div>
 			{/if}
 			
 			{#if appState.result.parent_action}
 				<div class="action-box">
-					<div class="action-label">What to do now</div>
+					<div class="action-label">What to do</div>
 					<div class="action-text">{appState.result.parent_action}</div>
 				</div>
 			{/if}
@@ -108,84 +107,95 @@
 	.result-card {
 		background: var(--surface);
 		border: 1px solid var(--border);
-		border-radius: var(--radius-xl);
+		border-radius: var(--radius-2xl);
 		overflow: hidden;
-		backdrop-filter: blur(16px);
-		box-shadow: var(--shadow-md);
+		backdrop-filter: blur(20px);
+		box-shadow: var(--shadow-lg);
 	}
 
 	.result-header {
-		padding: 24px 24px 20px;
-		background: linear-gradient(135deg, rgba(255,123,92,0.06), rgba(255,179,71,0.03));
+		padding: 24px 20px 20px;
+		background: linear-gradient(160deg, rgba(255,140,107,0.06) 0%, rgba(255,184,108,0.03) 100%);
 		border-bottom: 1px solid var(--border);
 	}
 
 	.category-row {
 		display: flex;
 		align-items: center;
-		justify-content: space-between;
-		gap: 12px;
+		gap: 14px;
 	}
 
-	.category-main {
-		display: flex;
-		align-items: center;
-		gap: 12px;
-	}
-
-	.category-icon {
+	.emoji-icon {
+		font-size: 2.2rem;
+		line-height: 1;
 		width: 52px;
 		height: 52px;
-		border-radius: var(--radius-md);
-		background: rgba(255,255,255,0.04);
 		display: flex;
 		align-items: center;
 		justify-content: center;
+		background: rgba(255,255,255,0.04);
+		border-radius: var(--radius-md);
+		flex-shrink: 0;
+	}
+
+	.category-info {
+		flex: 1;
+		min-width: 0;
 	}
 
 	.category-name {
 		font-family: 'Fraunces', serif;
-		font-size: 1.8rem;
+		font-size: 1.7rem;
 		font-weight: 700;
-		line-height: 1.1;
+		line-height: 1.15;
+	}
+
+	.category-sub {
+		font-size: 0.78rem;
+		color: var(--text-muted);
+		margin-top: 2px;
 	}
 
 	.severity-badge {
-		padding: 6px 14px;
+		padding: 5px 12px;
 		border-radius: var(--radius-full);
-		font-size: 0.7rem;
+		font-size: 0.65rem;
 		font-weight: 800;
-		letter-spacing: 0.1em;
+		letter-spacing: 0.08em;
 		text-transform: uppercase;
-		color: var(--severity-color);
-		background: rgba(255,255,255,0.04);
-		border: 1px solid rgba(255,255,255,0.08);
+		color: var(--sev-color);
+		background: var(--sev-bg);
+		border: 1px solid currentColor;
+		flex-shrink: 0;
+		align-self: flex-start;
 	}
 
 	.confidence-wrap {
-		margin-top: 18px;
+		margin-top: 16px;
 	}
 
 	.confidence-label {
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
-		font-size: 0.75rem;
+		font-size: 0.72rem;
 		font-weight: 700;
 		color: var(--text-muted);
 		margin-bottom: 8px;
+		letter-spacing: 0.06em;
 		text-transform: uppercase;
-		letter-spacing: 0.08em;
 	}
 
 	.confidence-value {
 		color: var(--text);
-		font-size: 1rem;
+		font-size: 0.9rem;
 		font-family: 'Fraunces', serif;
+		letter-spacing: 0;
+		text-transform: none;
 	}
 
 	.confidence-track {
-		height: 6px;
+		height: 5px;
 		background: rgba(255,255,255,0.06);
 		border-radius: var(--radius-full);
 		overflow: hidden;
@@ -196,14 +206,14 @@
 		border-radius: var(--radius-full);
 		background: linear-gradient(90deg, var(--coral), var(--amber));
 		transition: width 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-		box-shadow: 0 0 12px rgba(255,123,92,0.4);
+		box-shadow: 0 0 12px rgba(255,140,107,0.35);
 	}
 
 	.result-body {
-		padding: 20px 24px;
+		padding: 18px 20px 20px;
 		display: flex;
 		flex-direction: column;
-		gap: 14px;
+		gap: 12px;
 	}
 
 	.reasoning-box {
@@ -211,33 +221,45 @@
 		border: 1px solid var(--border);
 		border-radius: var(--radius-md);
 		padding: 14px 16px;
-		font-size: 0.85rem;
+	}
+
+	.reasoning-label {
+		font-size: 0.65rem;
+		font-weight: 800;
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
+		color: var(--text-faint);
+		margin-bottom: 6px;
+	}
+
+	.reasoning-text {
+		font-size: 0.88rem;
 		color: var(--text-muted);
-		line-height: 1.65;
+		line-height: 1.6;
 		font-style: italic;
 	}
 
 	.action-box {
-		background: linear-gradient(135deg, rgba(82,217,193,0.08), rgba(82,217,193,0.03));
-		border: 1px solid rgba(82,217,193,0.15);
+		background: linear-gradient(135deg, rgba(110,231,183,0.08), rgba(110,231,183,0.03));
+		border: 1px solid rgba(110,231,183,0.15);
 		border-radius: var(--radius-md);
 		padding: 14px 16px;
 	}
 
 	.action-label {
-		font-size: 0.68rem;
+		font-size: 0.65rem;
 		font-weight: 800;
 		letter-spacing: 0.12em;
 		text-transform: uppercase;
 		color: var(--mint);
-		margin-bottom: 6px;
+		margin-bottom: 5px;
 	}
 
 	.action-text {
-		font-size: 0.92rem;
+		font-size: 0.95rem;
 		font-weight: 700;
 		color: var(--text);
-		line-height: 1.5;
+		line-height: 1.45;
 	}
 
 	.precry-alert {
@@ -254,12 +276,7 @@
 	}
 
 	@media (max-width: 380px) {
-		.category-name {
-			font-size: 1.5rem;
-		}
-		.category-icon {
-			width: 44px;
-			height: 44px;
-		}
+		.category-name { font-size: 1.4rem; }
+		.emoji-icon { width: 44px; height: 44px; font-size: 1.8rem; }
 	}
 </style>

@@ -2,9 +2,9 @@
 	import { appState } from '$state/appState.svelte.js';
 	
 	const texts = [
-		'ROO is listening…',
-		'Reading spectrogram…',
-		'Consulting Gemma 4…',
+		'Listening to your baby…',
+		'Reading the spectrogram…',
+		'Consulting ROO AI…',
 		'Almost there…'
 	];
 	
@@ -17,7 +17,7 @@
 			interval = setInterval(() => {
 				textIndex = (textIndex + 1) % texts.length;
 				currentText = texts[textIndex];
-			}, 1800);
+			}, 2000);
 			return () => {
 				clearInterval(interval);
 			};
@@ -30,10 +30,8 @@
 
 {#if appState.isAnalyzing}
 	<div class="loading animate-slide-up">
-		<div class="dots">
-			{#each Array(3) as _, i}
-				<div class="dot" style="animation-delay: {i * 0.15}s"></div>
-			{/each}
+		<div class="pulse-ring">
+			<span class="pulse-emoji">🦘</span>
 		</div>
 		<p class="text">{currentText}</p>
 	</div>
@@ -45,28 +43,32 @@
 		flex-direction: column;
 		align-items: center;
 		gap: 16px;
-		padding: 36px;
+		padding: 32px;
 		background: var(--surface);
 		border: 1px solid var(--border);
-		border-radius: var(--radius-lg);
-		backdrop-filter: blur(12px);
+		border-radius: var(--radius-2xl);
+		backdrop-filter: blur(16px);
 	}
 
-	.dots {
-		display: flex;
-		gap: 8px;
-	}
-
-	.dot {
-		width: 10px;
-		height: 10px;
+	.pulse-ring {
+		width: 64px;
+		height: 64px;
 		border-radius: 50%;
-		background: linear-gradient(135deg, var(--coral), var(--amber));
-		animation: bounce-dot 0.9s ease-in-out infinite;
+		background: linear-gradient(135deg, rgba(255,140,107,0.15), rgba(255,184,108,0.1));
+		border: 2px solid rgba(255,140,107,0.2);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		animation: gentle-pulse 2s ease-in-out infinite;
+	}
+
+	.pulse-emoji {
+		font-size: 1.8rem;
+		line-height: 1;
 	}
 
 	.text {
-		font-size: 0.9rem;
+		font-size: 0.88rem;
 		color: var(--text-muted);
 		font-weight: 600;
 		min-height: 1.4em;

@@ -6,26 +6,24 @@
 </script>
 
 <div class="app-shell">
-	<!-- Animated background orbs -->
 	<div class="bg-canvas" aria-hidden="true">
 		<div class="orb orb-1"></div>
 		<div class="orb orb-2"></div>
 		<div class="orb orb-3"></div>
+		<div class="orb orb-4"></div>
 	</div>
 
-	<!-- Main content -->
 	<main class="content">
-		<slot />
+		{@render children()}
 	</main>
 
-	<!-- Info trigger -->
 	<button
 		class="settings-trigger"
 		onclick={() => appState.showSettings = true}
 		type="button"
 		aria-label="About ROO"
 	>
-		<Icon name="info-circle" size={20} />
+		<Icon name="info-circle" size={18} />
 	</button>
 
 	<SettingsPanel />
@@ -49,46 +47,57 @@
 	.orb {
 		position: absolute;
 		border-radius: 50%;
-		filter: blur(80px);
-		opacity: 0.15;
-		animation: drift 14s ease-in-out infinite alternate;
+		filter: blur(100px);
 	}
 
 	.orb-1 {
-		width: 500px;
-		height: 500px;
+		width: 480px;
+		height: 480px;
 		background: var(--coral);
-		top: -180px;
-		left: -120px;
-		animation-delay: 0s;
+		opacity: 0.1;
+		top: -200px;
+		left: -160px;
+		animation: drift 18s ease-in-out infinite;
 	}
 
 	.orb-2 {
-		width: 420px;
-		height: 420px;
+		width: 400px;
+		height: 400px;
 		background: var(--amber);
+		opacity: 0.08;
 		bottom: -120px;
 		right: -100px;
-		animation-delay: -5s;
+		animation: drift 22s ease-in-out infinite reverse;
 	}
 
 	.orb-3 {
-		width: 350px;
-		height: 350px;
+		width: 320px;
+		height: 320px;
 		background: var(--mint);
-		top: 50%;
-		left: 60%;
-		transform: translate(-50%, -50%);
-		animation-delay: -10s;
-		opacity: 0.08;
+		opacity: 0.06;
+		top: 45%;
+		left: 55%;
+		animation: drift 20s ease-in-out infinite;
+		animation-delay: -6s;
+	}
+
+	.orb-4 {
+		width: 260px;
+		height: 260px;
+		background: var(--lavender);
+		opacity: 0.05;
+		top: 20%;
+		right: 10%;
+		animation: drift 25s ease-in-out infinite;
+		animation-delay: -12s;
 	}
 
 	.content {
 		position: relative;
 		z-index: 1;
-		max-width: 520px;
+		max-width: 480px;
 		margin: 0 auto;
-		padding: 20px 20px 48px;
+		padding: 24px 20px 100px;
 		display: flex;
 		flex-direction: column;
 		gap: 20px;
@@ -97,12 +106,13 @@
 
 	.settings-trigger {
 		position: fixed;
-		bottom: 20px;
-		right: 20px;
-		width: 48px;
-		height: 48px;
+		bottom: 24px;
+		right: 24px;
+		width: 44px;
+		height: 44px;
 		border-radius: 50%;
 		background: var(--surface);
+		backdrop-filter: blur(16px);
 		border: 1px solid var(--border);
 		color: var(--text-muted);
 		display: flex;
@@ -110,18 +120,18 @@
 		justify-content: center;
 		z-index: 50;
 		transition: all var(--transition-fast);
-		box-shadow: var(--shadow-md);
+		box-shadow: var(--shadow-sm);
 	}
 
 	.settings-trigger:hover {
 		background: var(--surface-hover);
 		color: var(--text);
-		transform: rotate(30deg);
+		transform: rotate(15deg) scale(1.05);
 	}
 
 	@media (max-width: 380px) {
 		.content {
-			padding: 16px 16px 40px;
+			padding: 16px 16px 90px;
 			gap: 16px;
 		}
 	}

@@ -30,57 +30,53 @@
 			</div>
 
 			<div class="panel-body">
-<div class="section">
-				<h4>Backend URL</h4>
-				<p class="desc">Leave empty to use Cloudflare Pages + OpenRouter (default). Set a custom URL to override.</p>
-				<input
-					type="url"
-					placeholder="https://your-space.hf.space (leave empty for default)"
-					bind:value={inputUrl}
-					class="url-input"
-				/>
-				<button class="save-btn" onclick={save} type="button">
-					{#if saved}
-						<Icon name="check" size={16} />
-						Saved
-					{:else}
-						Save
-					{/if}
-				</button>
-			</div>
+				<div class="section">
+					<h4>Backend URL</h4>
+					<p class="desc">Leave empty for Cloudflare Pages + Gemini/OpenRouter (default).</p>
+					<input
+						type="url"
+						placeholder="https://your-space.hf.space (leave empty for default)"
+						bind:value={inputUrl}
+						class="url-input"
+					/>
+					<button class="save-btn" onclick={save} type="button">
+						{#if saved}
+							<Icon name="check" size={16} />
+							Saved
+						{:else}
+							Save
+						{/if}
+					</button>
+				</div>
 
-			<div class="divider"></div>
+				<div class="divider"></div>
 
-			<div class="section">
-				<h4>About ROO</h4>
-				<div class="details">
-					<div class="detail-row">
-						<span class="detail-label">Version</span>
-						<span class="detail-value">2.0.0</span>
-					</div>
-					<div class="detail-row">
-						<span class="detail-label">Model (Audio/Image)</span>
-						<span class="detail-value">Gemma 4 26B A4B</span>
-					</div>
-					<div class="detail-row">
-						<span class="detail-label">Model (Both)</span>
-						<span class="detail-value">Gemma 4 31B</span>
-					</div>
-					<div class="detail-row">
-						<span class="detail-label">Runtime</span>
-						<span class="detail-value">CF Pages → OpenRouter</span>
-					</div>
-					<div class="detail-row">
-						<span class="detail-label">Audio</span>
-						<span class="detail-value">Mel Spectrogram + VLM</span>
+				<div class="section">
+					<h4>About ROO</h4>
+					<div class="details">
+						<div class="detail-row">
+							<span class="detail-label">Version</span>
+							<span class="detail-value">2.1</span>
+						</div>
+						<div class="detail-row">
+							<span class="detail-label">Primary</span>
+							<span class="detail-value">Gemini API (Gemma 4)</span>
+						</div>
+						<div class="detail-row">
+							<span class="detail-label">Fallback</span>
+							<span class="detail-value">OpenRouter (free)</span>
+						</div>
+						<div class="detail-row">
+							<span class="detail-label">Analysis</span>
+							<span class="detail-value">Mel Spectrogram + VLM</span>
+						</div>
 					</div>
 				</div>
-			</div>
 
-			<div class="tip">
-				<Icon name="info-circle" size={16} color="var(--mint)" />
-				<p>Audio is converted to a mel spectrogram image and analyzed visually by Gemma 4. Face photos are analyzed directly. Both mode uses the 31B model for cross-modal reasoning.</p>
-			</div>
+				<div class="tip">
+					<Icon name="info-circle" size={16} color="var(--mint)" />
+					<p>Audio is converted to a mel spectrogram and analyzed visually by Gemma 4. Face photos are analyzed directly. Both mode cross-references audio + visual for higher accuracy.</p>
+				</div>
 			</div>
 		</div>
 	</div>
@@ -107,11 +103,11 @@
 	}
 	.panel-header {
 		display: flex; align-items: center; justify-content: space-between;
-		padding: 20px 24px;
+		padding: 18px 22px;
 		border-bottom: 1px solid var(--border);
 		position: sticky; top: 0; background: var(--bg-elevated); z-index: 1;
 	}
-	.panel-header h3 { font-size: 1.1rem; font-weight: 800; color: var(--text); }
+	.panel-header h3 { font-size: 1.05rem; font-weight: 800; color: var(--text); }
 	.close-btn {
 		width: 36px; height: 36px; border-radius: 50%;
 		display: flex; align-items: center; justify-content: center;
@@ -119,14 +115,14 @@
 		transition: all var(--transition-fast);
 	}
 	.close-btn:hover { background: var(--surface-hover); color: var(--text); }
-	.panel-body { padding: 20px 24px 24px; display: flex; flex-direction: column; gap: 20px; }
+	.panel-body { padding: 18px 22px 22px; display: flex; flex-direction: column; gap: 18px; }
 	.section { display: flex; flex-direction: column; gap: 10px; }
-	.section h4 { font-size: 0.8rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; }
+	.section h4 { font-size: 0.72rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em; }
 	.desc { font-size: 0.78rem; color: var(--text-faint); line-height: 1.5; }
 	.url-input {
 		padding: 12px 14px; border-radius: var(--radius-md);
 		background: var(--surface); border: 1px solid var(--border);
-		color: var(--text); font-size: 0.9rem; width: 100%;
+		color: var(--text); font-size: 0.85rem; width: 100%;
 		transition: all var(--transition-fast);
 	}
 	.url-input:focus { outline: none; border-color: var(--border-glow); }
@@ -134,22 +130,22 @@
 	.save-btn {
 		display: flex; align-items: center; gap: 6px;
 		padding: 10px 18px; border-radius: var(--radius-md);
-		font-size: 0.85rem; font-weight: 700; color: #fff;
+		font-size: 0.82rem; font-weight: 700; color: #fff;
 		background: linear-gradient(135deg, var(--coral), var(--amber));
 		align-self: flex-end;
 		transition: all var(--transition-fast);
 	}
-	.save-btn:hover { box-shadow: 0 4px 16px rgba(255,123,92,0.3); }
+	.save-btn:hover { box-shadow: 0 4px 16px rgba(255,140,107,0.3); }
 	.divider { height: 1px; background: var(--border); }
 	.details { display: flex; flex-direction: column; gap: 8px; }
-	.detail-row { display: flex; justify-content: space-between; align-items: center; font-size: 0.82rem; }
+	.detail-row { display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; }
 	.detail-label { color: var(--text-muted); font-weight: 600; }
 	.detail-value { color: var(--text); font-weight: 700; }
 	.tip {
 		display: flex; align-items: flex-start; gap: 10px;
-		padding: 12px; background: rgba(82,217,193,0.06);
-		border: 1px solid rgba(82,217,193,0.12);
+		padding: 12px; background: rgba(110,231,183,0.05);
+		border: 1px solid rgba(110,231,183,0.1);
 		border-radius: var(--radius-md);
 	}
-	.tip p { font-size: 0.78rem; color: var(--text-muted); line-height: 1.5; }
+	.tip p { font-size: 0.75rem; color: var(--text-muted); line-height: 1.55; }
 </style>

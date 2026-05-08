@@ -3,9 +3,9 @@
 	import Icon from './Icon.svelte';
 	
 	const modes = [
-		{ id: 'audio', label: 'Audio', icon: 'mic' },
-		{ id: 'image', label: 'Image', icon: 'camera' },
-		{ id: 'both', label: 'Best', icon: 'bolt' }
+		{ id: 'audio', label: 'Audio', icon: 'mic', desc: 'Cry only' },
+		{ id: 'image', label: 'Photo', icon: 'camera', desc: 'Face only' },
+		{ id: 'both', label: 'Best', icon: 'bolt', desc: 'Both' }
 	];
 	
 	function selectMode(mode) {
@@ -22,8 +22,11 @@
 			onclick={() => selectMode(mode.id)}
 			type="button"
 		>
-			<Icon name={mode.icon} size={18} color={appState.currentMode === mode.id ? '#fff' : 'rgba(242,237,232,0.5)'} />
-			<span class="tab-label">{mode.label}</span>
+			<Icon name={mode.icon} size={18} color={appState.currentMode === mode.id ? '#fff' : 'var(--text-muted)'} />
+			<div class="tab-text">
+				<span class="tab-label">{mode.label}</span>
+				<span class="tab-desc">{mode.desc}</span>
+			</div>
 		</button>
 	{/each}
 </div>
@@ -32,24 +35,24 @@
 	.tabs {
 		display: grid;
 		grid-template-columns: repeat(3, 1fr);
-		gap: 6px;
-		padding: 5px;
+		gap: 8px;
+		padding: 6px;
 		background: var(--surface);
 		border: 1px solid var(--border);
 		border-radius: var(--radius-lg);
-		backdrop-filter: blur(12px);
+		backdrop-filter: blur(20px);
 	}
 
 	.tab {
 		display: flex;
-		flex-direction: column;
 		align-items: center;
-		gap: 5px;
-		padding: 12px 4px;
+		justify-content: center;
+		gap: 8px;
+		padding: 12px 8px;
 		border-radius: var(--radius-md);
-		font-size: 0.78rem;
+		font-size: 0.82rem;
 		font-weight: 700;
-		letter-spacing: 0.04em;
+		letter-spacing: 0.02em;
 		color: var(--text-muted);
 		background: transparent;
 		transition: all var(--transition-base);
@@ -61,7 +64,7 @@
 		content: '';
 		position: absolute;
 		inset: 0;
-		background: linear-gradient(135deg, rgba(255,123,92,0.15), rgba(255,179,71,0.1));
+		background: linear-gradient(135deg, rgba(255,140,107,0.12), rgba(255,184,108,0.08));
 		border-radius: inherit;
 		opacity: 0;
 		transition: opacity var(--transition-base);
@@ -73,7 +76,7 @@
 	}
 
 	.tab.active {
-		color: var(--text);
+		color: #fff;
 	}
 
 	.tab.active::before {
@@ -85,13 +88,21 @@
 		position: absolute;
 		inset: 0;
 		border-radius: inherit;
-		border: 1px solid var(--border-glow);
-		box-shadow: 0 4px 20px rgba(255,123,92,0.12);
+		border: 1px solid rgba(255,140,107,0.25);
+		box-shadow: 0 4px 20px rgba(255,140,107,0.15);
 	}
 
-	.tab-label {
-		position: relative;
-		z-index: 1;
+	.tab-text {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+	}
+
+	.tab-desc {
+		font-size: 0.6rem;
+		font-weight: 500;
+		opacity: 0.6;
+		letter-spacing: 0.04em;
 	}
 
 	:global(.tab svg) {

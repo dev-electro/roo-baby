@@ -24,20 +24,19 @@
 
 <svelte:head>
 	<title>ROO — Baby Cry Analyzer</title>
-	<meta name="description" content="World's first multimodal baby cry analyzer powered by Gemma 4" />
+	<meta name="description" content="AI-powered baby cry analyzer. Understand why your baby is crying in seconds." />
 </svelte:head>
 
 <div class="page">
 	<Header />
 	<ModeTabs />
 	
-	<!-- Capture Card -->
 	<div class="capture-card glass">
 		{#if appState.isConvertingAudio || appState.isGeneratingSpectrogram}
 			<div class="processing-state">
 				<div class="processing-spinner"></div>
 				<p class="processing-text">
-					{appState.isConvertingAudio ? 'Converting audio…' : 'Generating spectrogram…'}
+					{appState.isConvertingAudio ? 'Optimizing audio…' : 'Creating spectrogram…'}
 				</p>
 			</div>
 		{:else if appState.currentMode === 'audio'}
@@ -58,12 +57,12 @@
 	{#if appState.result}
 		<button class="reset-btn animate-fade-in" onclick={handleReset} type="button">
 			<Icon name="refresh" size={14} />
-			<span>Analyze Another</span>
+			<span>Analyze Another Cry</span>
 		</button>
 	{/if}
 	
 	<footer class="footer">
-		<p>Powered by Gemma 4 · Spectrogram + Vision · DEV × Gemma 4</p>
+		<p>Powered by Gemma 4 · Multimodal AI</p>
 	</footer>
 </div>
 
@@ -71,17 +70,15 @@
 	.page {
 		display: flex;
 		flex-direction: column;
-		gap: 20px;
-		padding-bottom: 24px;
+		gap: 16px;
 	}
 
 	.capture-card {
-		min-height: 280px;
+		min-height: 200px;
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		border-radius: var(--radius-xl);
-		transition: border-color 0.3s ease;
+		border-radius: var(--radius-2xl);
 	}
 
 	.reset-btn {
@@ -89,9 +86,9 @@
 		display: flex;
 		align-items: center;
 		gap: 8px;
-		padding: 10px 22px;
+		padding: 12px 24px;
 		border-radius: var(--radius-full);
-		font-size: 0.85rem;
+		font-size: 0.88rem;
 		font-weight: 700;
 		color: var(--text-muted);
 		background: var(--surface);
@@ -102,31 +99,33 @@
 	.reset-btn:hover {
 		background: var(--surface-hover);
 		color: var(--text);
+		border-color: var(--border-glow);
 	}
 
 	.footer {
 		text-align: center;
-		padding-top: 8px;
+		padding-top: 16px;
 	}
 
 	.footer p {
-		font-size: 0.7rem;
+		font-size: 0.68rem;
 		color: var(--text-faint);
 		font-weight: 600;
-		letter-spacing: 0.08em;
+		letter-spacing: 0.1em;
+		text-transform: uppercase;
 	}
 
 	.processing-state {
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		gap: 12px;
-		padding: 32px;
+		gap: 14px;
+		padding: 40px;
 	}
 
 	.processing-spinner {
-		width: 36px;
-		height: 36px;
+		width: 32px;
+		height: 32px;
 		border: 3px solid var(--border);
 		border-top-color: var(--coral);
 		border-radius: 50%;
@@ -137,11 +136,5 @@
 		font-size: 0.85rem;
 		color: var(--text-muted);
 		font-weight: 600;
-	}
-
-	@media (max-width: 380px) {
-		.page {
-			gap: 16px;
-		}
 	}
 </style>

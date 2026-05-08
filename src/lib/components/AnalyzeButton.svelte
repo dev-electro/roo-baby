@@ -8,8 +8,8 @@
 	
 	const RESPONSE_MESSAGES = {
 		HUNGER: "Shh little one… food is on the way. You're safe.",
-		PAIN: "It's okay baby… mama is right here. You're not alone.",
-		TIRED: "Sleep now little one… the world can wait. Rest now.",
+		PAIN: "It's okay baby… I'm right here. You're not alone.",
+		TIRED: "Sleep now little one… the world can wait.",
 		DISCOMFORT: "Shh shh… let's make you comfortable. Better soon.",
 		BURPING: "Let it out… you'll feel much better. Good baby.",
 		UNKNOWN: "Shh shh… it's okay little one. Everything is fine."
@@ -68,15 +68,16 @@
 >
 	{#if appState.isAnalyzing}
 		<span class="btn-shimmer"></span>
+		<span class="btn-text">Analyzing…</span>
 	{:else if appState.isConvertingAudio || appState.isGeneratingSpectrogram}
 		<span class="btn-content">
-			<Icon name="loader" size={18} color="currentColor" />
-			<span>{appState.isConvertingAudio ? 'Converting audio…' : 'Analyzing spectrogram…'}</span>
+			<div class="mini-spinner"></div>
+			<span>{appState.isConvertingAudio ? 'Optimizing…' : 'Preparing…'}</span>
 		</span>
 	{:else}
 		<span class="btn-content">
 			<Icon name="arrow-right" size={18} color="currentColor" />
-			<span>Analyze with ROO</span>
+			<span>Analyze Cry</span>
 		</span>
 	{/if}
 </button>
@@ -84,12 +85,12 @@
 <style>
 	.analyze-btn {
 		width: 100%;
-		padding: 18px 24px;
-		border-radius: var(--radius-lg);
-		font-size: 1rem;
+		padding: 20px 28px;
+		border-radius: var(--radius-xl);
+		font-size: 1.05rem;
 		font-weight: 800;
-		letter-spacing: 0.04em;
-		color: rgba(255,255,255,0.5);
+		letter-spacing: 0.03em;
+		color: rgba(255,255,255,0.4);
 		background: var(--surface);
 		border: 1px solid var(--border);
 		position: relative;
@@ -98,23 +99,25 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
+		min-height: 60px;
 	}
 
 	.analyze-btn.ready {
 		background: linear-gradient(135deg, var(--coral), var(--amber));
 		color: #fff;
 		border: none;
-		box-shadow: 0 8px 32px rgba(255,123,92,0.35);
+		box-shadow: 0 6px 24px rgba(255,140,107,0.3), inset 0 1px 0 rgba(255,255,255,0.15);
 		cursor: pointer;
 	}
 
 	.analyze-btn.ready:hover:not(:disabled) {
 		transform: translateY(-2px);
-		box-shadow: 0 14px 40px rgba(255,123,92,0.45);
+		box-shadow: 0 10px 36px rgba(255,140,107,0.4), inset 0 1px 0 rgba(255,255,255,0.15);
 	}
 
 	.analyze-btn.ready:active:not(:disabled) {
 		transform: translateY(0);
+		box-shadow: 0 4px 16px rgba(255,140,107,0.25);
 	}
 
 	.analyze-btn:disabled {
@@ -137,13 +140,27 @@
 		z-index: 1;
 	}
 
+	.mini-spinner {
+		width: 16px;
+		height: 16px;
+		border: 2px solid var(--border);
+		border-top-color: var(--coral);
+		border-radius: 50%;
+		animation: spin-slow 0.8s linear infinite;
+	}
+
+	.btn-text {
+		position: relative;
+		z-index: 1;
+	}
+
 	.btn-shimmer {
 		position: absolute;
 		inset: 0;
 		background: linear-gradient(
 			90deg,
 			transparent,
-			rgba(255,255,255,0.15),
+			rgba(255,255,255,0.12),
 			transparent
 		);
 		background-size: 200% 100%;

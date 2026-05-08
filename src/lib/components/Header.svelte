@@ -3,80 +3,90 @@
 </script>
 
 <header class="header">
-	<div class="logo-wrap">
-		<Icon name="bottle" size={36} color="url(#coral-gradient)" />
-		<h1 class="logo">
-			<span class="gradient-text">ROO</span>
-		</h1>
+	<div class="logo-row">
+		<div class="logo-icon">
+			<span class="logo-emoji">🦘</span>
+		</div>
+		<h1 class="logo">ROO</h1>
 	</div>
-	<p class="tagline">Babies speak. Now we listen.</p>
+	<p class="tagline">Understand your baby's cry</p>
 	<div class="badge">
 		<span class="badge-dot"></span>
-		<span>Gemma 4 E4B · Multimodal AI</span>
+		<span>AI · Multimodal Analysis</span>
 	</div>
 </header>
 
 <style>
 	.header {
 		text-align: center;
-		padding: 20px 0 8px;
+		padding: 16px 0 4px;
 		display: flex;
 		flex-direction: column;
+		align-items: center;
+		gap: 8px;
+	}
+
+	.logo-row {
+		display: flex;
 		align-items: center;
 		gap: 10px;
 	}
 
-	.logo-wrap {
+	.logo-icon {
+		width: 44px;
+		height: 44px;
+		border-radius: var(--radius-md);
+		background: linear-gradient(135deg, rgba(255,140,107,0.15), rgba(255,184,108,0.1));
+		border: 1px solid rgba(255,140,107,0.2);
 		display: flex;
 		align-items: center;
-		gap: 10px;
+		justify-content: center;
+	}
+
+	.logo-emoji {
+		font-size: 1.5rem;
+		line-height: 1;
 	}
 
 	.logo {
 		font-family: 'Fraunces', serif;
-		font-size: 2.8rem;
+		font-size: 2.6rem;
 		font-weight: 700;
 		line-height: 1;
-		filter: drop-shadow(0 0 24px rgba(255,123,92,0.35));
-		margin: 0;
+		background: linear-gradient(135deg, var(--coral), var(--amber));
+		-webkit-background-clip: text;
+		-webkit-text-fill-color: transparent;
+		background-clip: text;
+		filter: drop-shadow(0 0 20px rgba(255,140,107,0.3));
 	}
 
 	.tagline {
-		font-size: 0.85rem;
-		letter-spacing: 0.14em;
-		text-transform: uppercase;
+		font-size: 0.88rem;
 		color: var(--text-muted);
 		font-weight: 600;
-		margin: 0;
+		letter-spacing: 0.02em;
 	}
 
 	.badge {
 		display: inline-flex;
 		align-items: center;
-		gap: 8px;
-		background: rgba(82,217,193,0.08);
-		border: 1px solid rgba(82,217,193,0.18);
+		gap: 7px;
+		background: rgba(110,231,183,0.06);
+		border: 1px solid rgba(110,231,183,0.15);
 		color: var(--mint);
-		font-size: 0.72rem;
+		font-size: 0.65rem;
 		font-weight: 700;
-		letter-spacing: 0.08em;
+		letter-spacing: 0.1em;
 		text-transform: uppercase;
-		padding: 5px 12px;
+		padding: 4px 12px;
 		border-radius: var(--radius-full);
-		margin-top: 2px;
 	}
 
 	.badge-dot {
-		width: 7px;
-		height: 7px;
+		width: 6px;
+		height: 6px;
 		background: var(--mint);
 		border-radius: 50%;
-		animation: pulse-glow 2s ease-in-out infinite;
-	}
-
-	@media (max-width: 380px) {
-		.logo {
-			font-size: 2.4rem;
-		}
+		animation: gentle-pulse 2.5s ease-in-out infinite;
 	}
 </style>
