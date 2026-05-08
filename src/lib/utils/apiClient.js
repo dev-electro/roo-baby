@@ -1,5 +1,5 @@
 /**
- * API client — sends spectrogram + photo to Cloudflare Pages Function
+ * API client — sends spectrogram + photo + audio features to Cloudflare Pages Function
  * which proxies to OpenRouter (Gemma 4 via free endpoints)
  */
 
@@ -19,7 +19,7 @@ export function getApiUrl() {
 	return customApiUrl;
 }
 
-export async function analyze({ mode, audio, image, spectrogram }) {
+export async function analyze({ mode, audio, image, spectrogram, audioFeatures }) {
 	const formData = new FormData();
 
 	if (mode !== 'image' && spectrogram) {
@@ -28,6 +28,10 @@ export async function analyze({ mode, audio, image, spectrogram }) {
 
 	if (mode !== 'audio' && image) {
 		formData.append('image', image, 'baby.jpg');
+	}
+
+	if (audioFeatures) {
+		formData.append('audio_features', JSON.stringify(audioFeatures));
 	}
 
 	formData.append('mode', mode);

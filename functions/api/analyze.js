@@ -8,8 +8,12 @@ const OPENROUTER_BASE = 'https://openrouter.ai/api/v1';
 const PROMPTS = {
 	audio: `You are ROO, the world's best baby cry analyst. Analyze this spectrogram of a baby's cry.
 
+AUDIO MEASUREMENTS (from signal processing):
+{{AUDIO_FEATURES}}
+
 SPECTROGRAM READING GUIDE:
-- X-axis: time (seconds), Y-axis: frequency (Hz), Color brightness: intensity
+- X-axis: time (seconds, labeled), Y-axis: frequency (Hz, labeled on left)
+- Color brightness = intensity (dark=silent, bright=loud)
 - HUNGER: rhythmic vertical bands at 400-600Hz, gradual intensity buildup
 - PAIN: sudden bright spikes at 600-800Hz with dark silence gaps between cries
 - TIRED: dim low-frequency smears at 300-450Hz, fading in and out
@@ -18,8 +22,12 @@ SPECTROGRAM READING GUIDE:
 
 The first image is a REFERENCE ATLAS showing labeled example spectrograms for each cry category. The second image is the USER'S spectrogram to analyze.
 
-Compare the user's spectrogram pattern against the reference atlas and the signatures above. Respond with ONLY valid JSON:
-{"category":"HUNGER","confidence":85,"severity":"MEDIUM","reasoning":"Rhythmic vertical bands around 450Hz with gradual buildup, consistent with hunger pattern","parent_action":"Feed the baby now","response_sound":"heartbeat","pre_cry":false,"pre_cry_message":null}
+STEP 1: Read the audio measurements above. Note the dominant frequency, peak frequencies, and rhythm pattern.
+STEP 2: Compare the user's spectrogram pattern against the reference atlas.
+STEP 3: Match the dominant frequency and rhythm to the most likely category.
+
+Respond with ONLY valid JSON:
+{"category":"HUNGER","confidence":85,"severity":"MEDIUM","reasoning":"Dominant frequency 450Hz with rhythmic onset pattern (75% in first half), consistent with hunger","parent_action":"Feed the baby now","response_sound":"heartbeat","pre_cry":false,"pre_cry_message":null}
 severity: LOW|MEDIUM|HIGH|CRITICAL  sound: heartbeat|whitenoise|lullaby|shush`,
 
 	image: `You are ROO, the world's best baby cry analyst. Analyze this baby's face and body language.
@@ -37,10 +45,14 @@ severity: LOW|MEDIUM|HIGH|CRITICAL  sound: heartbeat|whitenoise|lullaby|shush`,
 
 	both: `You are ROO, the world's best baby cry analyst. CROSS-REFERENCE both the spectrogram AND the baby's face for the highest accuracy diagnosis.
 
+AUDIO MEASUREMENTS (from signal processing):
+{{AUDIO_FEATURES}}
+
 The first image is a REFERENCE ATLAS showing labeled example spectrograms for each cry category. The second image is the USER'S spectrogram. The third image is the baby's face.
 
 SPECTROGRAM READING GUIDE:
-- X-axis: time, Y-axis: frequency, Color brightness: intensity
+- X-axis: time (labeled), Y-axis: frequency in Hz (labeled)
+- Color brightness = intensity
 - HUNGER: rhythmic bands 400-600Hz, gradual buildup
 - PAIN: bright spikes 600-800Hz, silence gaps
 - TIRED: dim smears 300-450Hz, fading
@@ -54,9 +66,13 @@ FACIAL CUES:
 - DISCOMFORT: arched back, legs up, fidgeting
 - BURPING: squirming, brief arching
 
-STEP 1: Read the reference atlas. STEP 2: Compare user's spectrogram against reference patterns. STEP 3: Analyze the facial expression. STEP 4: Do spectrogram and face signals AGREE? Higher confidence when both agree.
+STEP 1: Read the audio measurements — note dominant frequency, peak frequencies, rhythm.
+STEP 2: Compare spectrogram against reference atlas patterns.
+STEP 3: Analyze facial expression and body language.
+STEP 4: Do audio measurements + spectrogram + face ALL AGREE? Higher confidence when all signals converge.
+
 Respond with ONLY valid JSON:
-{"category":"HUNGER","confidence":91,"severity":"HIGH","reasoning":"Spectrogram matches hunger reference pattern (rhythmic 450Hz bands) AND face shows rooting reflex — both signals agree strongly","parent_action":"Feed immediately","response_sound":"heartbeat","pre_cry":false,"pre_cry_message":null}
+{"category":"HUNGER","confidence":91,"severity":"HIGH","reasoning":"Dominant 450Hz + rhythmic onset 75% + rooting reflex — all three signals converge on hunger","parent_action":"Feed immediately","response_sound":"heartbeat","pre_cry":false,"pre_cry_message":null}
 severity: LOW|MEDIUM|HIGH|CRITICAL  sound: heartbeat|whitenoise|lullaby|shush`
 };
 
@@ -168,9 +184,30 @@ export async function onRequest(context) {
 		const mode = form.get('mode') || 'audio';
 		const spectrogramBlob = form.get('spectrogram');
 		const imageBlob = form.get('image');
+		const audioFeaturesStr = form.get('audio_features');
+
+		let audioFeatures = null;
+		if (audioFeaturesStr) {
+			try { audioFeatures = JSON.parse(audioFeaturesStr); } catch {}
+		}
 
 		if (!spectrogramBlob?.size && !imageBlob?.size) {
 			return jsonRes({ error: 'No spectrogram or image provided. Please record audio first.' }, 400);
+		}
+
+		// Build prompt text with audio features injected
+		let promptText = PROMPTS[mode];
+		if (audioFeatures) {
+			const featureStr = `- Duration: ${audioFeatures.duration ?? '?'}s
+- Dominant frequency: ${audioFeatures.dominantFreqHz ?? '?'} Hz
+- Peak frequencies: ${(audioFeatures.peakFreqHz ?? []).join(', ')} Hz
+- Energy (RMS): ${audioFeatures.rmsEnergy ?? '?'}
+- Zero-crossing rate: ${audioFeatures.zeroCrossRate ?? '?'}/s
+- Silence ratio: ${(audioFeatures.silenceRatio ?? 0) * 100}%
+- Onset ratio: ${(audioFeatures.onsetRatio ?? 0) * 100}% energy in first half`;
+			promptText = promptText.replace('{{AUDIO_FEATURES}}', featureStr);
+		} else {
+			promptText = promptText.replace('{{AUDIO_FEATURES}}', '(Audio measurements unavailable — rely on visual spectrogram analysis)');
 		}
 
 		const contentParts = [];

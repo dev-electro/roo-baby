@@ -1,6 +1,7 @@
 <script>
 	import { appState } from '$state/appState.svelte.js';
 	import { analyze } from '$utils/apiClient.js';
+	import { extractAudioFeatures } from '$utils/audioFeatures.js';
 	import { playResponseSound, stopAllSounds } from '$utils/soundGenerator.js';
 	import { speak } from '$utils/ttsEngine.js';
 	import Icon from './Icon.svelte';
@@ -15,7 +16,7 @@
 	};
 	
 	async function handleAnalyze() {
-		if (!appState.isReady) return;
+		if (!appState.isReady || appState.isAnalyzing) return;
 		
 		appState.isAnalyzing = true;
 		appState.clearError();
@@ -23,21 +24,29 @@
 		stopAllSounds();
 		
 		try {
-		const data = await analyze({
-			mode: appState.currentMode,
-			audio: appState.audioBlob,
-			image: appState.imageBlob,
-			spectrogram: appState.spectrogramBlob
-		});
+			let audioFeatures = null;
+			if (appState.audioBlob) {
+				try {
+					audioFeatures = await extractAudioFeatures(appState.audioBlob);
+				} catch {
+					audioFeatures = null;
+				}
+			}
+			
+			const data = await analyze({
+				mode: appState.currentMode,
+				audio: appState.audioBlob,
+				image: appState.imageBlob,
+				spectrogram: appState.spectrogramBlob,
+				audioFeatures
+			});
 			
 			appState.result = data;
 			
-			// Play response
 			if (data.response_sound) {
 				playResponseSound(data.response_sound);
 			}
 			
-			// TTS after 1.5s
 			const msg = RESPONSE_MESSAGES[data.category] || RESPONSE_MESSAGES.UNKNOWN;
 			setTimeout(() => speak(msg), 1500);
 			
@@ -52,6 +61,7 @@
 <button
 	class="analyze-btn"
 	class:ready={appState.isReady}
+	class:generating={appState.isConvertingAudio || appState.isGeneratingSpectrogram}
 	disabled={!appState.isReady || appState.isAnalyzing || appState.isConvertingAudio || appState.isGeneratingSpectrogram}
 	onclick={handleAnalyze}
 	type="button"
@@ -64,10 +74,10 @@
 			<span>{appState.isConvertingAudio ? 'Converting audio…' : 'Analyzing spectrogram…'}</span>
 		</span>
 	{:else}
-	<span class="btn-content">
-		<Icon name="arrow-right" size={18} color="currentColor" />
-		<span>Analyze with ROO</span>
-	</span>
+		<span class="btn-content">
+			<Icon name="arrow-right" size={18} color="currentColor" />
+			<span>Analyze with ROO</span>
+		</span>
 	{/if}
 </button>
 
@@ -110,6 +120,13 @@
 	.analyze-btn:disabled {
 		opacity: 0.5;
 		cursor: not-allowed;
+	}
+
+	.analyze-btn.generating {
+		background: var(--surface);
+		color: var(--text-muted);
+		border: 1px solid var(--border-glow);
+		cursor: wait;
 	}
 
 	.btn-content {

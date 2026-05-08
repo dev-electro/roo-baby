@@ -6,6 +6,10 @@
 
 const SPECTROGRAM_WIDTH = 512;
 const SPECTROGRAM_HEIGHT = 256;
+const LABEL_MARGIN_LEFT = 36;
+const LABEL_MARGIN_BOTTOM = 18;
+const SPECTROGRAM_PLOT_W = SPECTROGRAM_WIDTH - LABEL_MARGIN_LEFT;
+const SPECTROGRAM_PLOT_H = SPECTROGRAM_HEIGHT - LABEL_MARGIN_BOTTOM;
 const MEL_BANDS = 128;
 const SAMPLE_RATE = 16000;
 const FFT_SIZE = 2048;
@@ -143,6 +147,38 @@ function magmaColor(t) {
 	return `rgb(${r},${g},${b})`;
 }
 
+function drawLabels(ctx, w, h, plotW, plotH, offsetX, offsetY, duration) {
+	const freqLabels = [200, 400, 600, 800];
+	const freqYPositions = freqLabels.map(f => offsetY + plotH - (f / 8000) * plotH);
+
+	ctx.fillStyle = '#999';
+	ctx.font = '10px monospace';
+	ctx.textAlign = 'right';
+	ctx.textBaseline = 'middle';
+	for (let i = 0; i < freqLabels.length; i++) {
+		if (freqYPositions[i] >= offsetY && freqYPositions[i] <= offsetY + plotH) {
+			ctx.fillText(`${freqLabels[i]}`, offsetX - 4, freqYPositions[i]);
+			ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+			ctx.lineWidth = 1;
+			ctx.beginPath();
+			ctx.moveTo(offsetX, freqYPositions[i]);
+			ctx.lineTo(offsetX + plotW, freqYPositions[i]);
+			ctx.stroke();
+		}
+	}
+
+	ctx.textAlign = 'center';
+	ctx.textBaseline = 'top';
+	ctx.fillStyle = '#999';
+	ctx.fillText('Hz', offsetX - 4, offsetY);
+	if (duration > 0) {
+		for (let t = 0; t <= duration; t += Math.ceil(duration / 5) || 1) {
+			const x = offsetX + (t / duration) * plotW;
+			ctx.fillText(`${t}s`, x, offsetY + plotH + 3);
+		}
+	}
+}
+
 function renderSpectrogramCanvas(magnitudes, numFrames) {
 	const canvas = document.createElement('canvas');
 	canvas.width = SPECTROGRAM_WIDTH;
@@ -152,11 +188,11 @@ function renderSpectrogramCanvas(magnitudes, numFrames) {
 	const vMin = -8;
 	const vMax = 0;
 
-	ctx.fillStyle = '#000';
+	ctx.fillStyle = '#0a0a14';
 	ctx.fillRect(0, 0, SPECTROGRAM_WIDTH, SPECTROGRAM_HEIGHT);
 
-	const xScale = SPECTROGRAM_WIDTH / numFrames;
-	const yScale = SPECTROGRAM_HEIGHT / MEL_BANDS;
+	const xScale = SPECTROGRAM_PLOT_W / numFrames;
+	const yScale = SPECTROGRAM_PLOT_H / MEL_BANDS;
 
 	for (let frame = 0; frame < numFrames; frame++) {
 		for (let bin = 0; bin < MEL_BANDS; bin++) {
@@ -164,13 +200,16 @@ function renderSpectrogramCanvas(magnitudes, numFrames) {
 			const normalized = Math.max(0, Math.min(1, (val - vMin) / (vMax - vMin)));
 			ctx.fillStyle = magmaColor(normalized);
 			ctx.fillRect(
-				Math.floor(frame * xScale),
-				SPECTROGRAM_HEIGHT - Math.floor((bin + 1) * yScale),
+				LABEL_MARGIN_LEFT + Math.floor(frame * xScale),
+				SPECTROGRAM_PLOT_H - Math.floor((bin + 1) * yScale),
 				Math.ceil(xScale) + 1,
 				Math.ceil(yScale) + 1
 			);
 		}
 	}
+
+	const duration = (numFrames * HOP_SIZE) / SAMPLE_RATE;
+	drawLabels(ctx, SPECTROGRAM_WIDTH, SPECTROGRAM_HEIGHT, SPECTROGRAM_PLOT_W, SPECTROGRAM_PLOT_H, LABEL_MARGIN_LEFT, 0, duration);
 
 	return new Promise((resolve) => {
 		canvas.toBlob((blob) => resolve(blob), 'image/png');
@@ -184,11 +223,11 @@ function renderSpectrogramOffscreen(magnitudes, numFrames) {
 	const vMin = -8;
 	const vMax = 0;
 
-	ctx.fillStyle = '#000';
+	ctx.fillStyle = '#0a0a14';
 	ctx.fillRect(0, 0, SPECTROGRAM_WIDTH, SPECTROGRAM_HEIGHT);
 
-	const xScale = SPECTROGRAM_WIDTH / numFrames;
-	const yScale = SPECTROGRAM_HEIGHT / MEL_BANDS;
+	const xScale = SPECTROGRAM_PLOT_W / numFrames;
+	const yScale = SPECTROGRAM_PLOT_H / MEL_BANDS;
 
 	for (let frame = 0; frame < numFrames; frame++) {
 		for (let bin = 0; bin < MEL_BANDS; bin++) {
@@ -196,13 +235,16 @@ function renderSpectrogramOffscreen(magnitudes, numFrames) {
 			const normalized = Math.max(0, Math.min(1, (val - vMin) / (vMax - vMin)));
 			ctx.fillStyle = magmaColor(normalized);
 			ctx.fillRect(
-				Math.floor(frame * xScale),
-				SPECTROGRAM_HEIGHT - Math.floor((bin + 1) * yScale),
+				LABEL_MARGIN_LEFT + Math.floor(frame * xScale),
+				SPECTROGRAM_PLOT_H - Math.floor((bin + 1) * yScale),
 				Math.ceil(xScale) + 1,
 				Math.ceil(yScale) + 1
 			);
 		}
 	}
+
+	const duration = (numFrames * HOP_SIZE) / SAMPLE_RATE;
+	drawLabels(ctx, SPECTROGRAM_WIDTH, SPECTROGRAM_HEIGHT, SPECTROGRAM_PLOT_W, SPECTROGRAM_PLOT_H, LABEL_MARGIN_LEFT, 0, duration);
 
 	return canvas.convertToBlob({ type: 'image/png' });
 }
