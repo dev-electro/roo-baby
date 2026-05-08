@@ -9,9 +9,8 @@
 	];
 	
 	function selectMode(mode) {
-		if (appState.currentMode === mode) return;
-		appState.reset();
 		appState.currentMode = mode;
+		appState.reset();
 	}
 </script>
 

@@ -22,13 +22,9 @@ export function createAppState() {
 		return !!audioBlob && !!imageBlob && !!spectrogramBlob;
 	});
 	
-	const hasSpectrogram = $derived(() => {
-		return !!spectrogramBlob;
-	});
+	const hasSpectrogram = $derived(() => !!spectrogramBlob);
 	
-	const hasAnyInput = $derived(() => {
-		return !!audioBlob || !!imageBlob;
-	});
+	const hasAnyInput = $derived(() => !!audioBlob || !!imageBlob);
 	
 	function reset() {
 		audioBlob = null;
@@ -57,7 +53,7 @@ export function createAppState() {
 	return {
 		get currentMode() { return currentMode; },
 		set currentMode(v) { currentMode = v; },
-get audioBlob() { return audioBlob; },
+		get audioBlob() { return audioBlob; },
 		set audioBlob(v) { audioBlob = v; },
 		get imageBlob() { return imageBlob; },
 		set imageBlob(v) { imageBlob = v; },

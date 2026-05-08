@@ -33,22 +33,20 @@
 	<ModeTabs />
 	
 	<div class="capture-card glass">
-		{#key appState.currentMode}
-			{#if appState.isConvertingAudio || appState.isGeneratingSpectrogram}
-				<div class="processing-state">
-					<div class="processing-spinner"></div>
-					<p class="processing-text">
-						{appState.isConvertingAudio ? 'Optimizing audio…' : 'Creating spectrogram…'}
-					</p>
-				</div>
-			{:else if appState.currentMode === 'audio'}
-				<AudioRecorder />
-			{:else if appState.currentMode === 'image'}
-				<CameraCapture />
-			{:else}
-				<BothModePanel />
-			{/if}
-		{/key}
+		{#if appState.isConvertingAudio || appState.isGeneratingSpectrogram}
+			<div class="processing-state">
+				<div class="processing-spinner"></div>
+				<p class="processing-text">
+					{appState.isConvertingAudio ? 'Optimizing audio…' : 'Creating spectrogram…'}
+				</p>
+			</div>
+		{:else if appState.currentMode === 'audio'}
+			<AudioRecorder />
+		{:else if appState.currentMode === 'image'}
+			<CameraCapture />
+		{:else}
+			<BothModePanel />
+		{/if}
 	</div>
 	
 	<ErrorToast />
