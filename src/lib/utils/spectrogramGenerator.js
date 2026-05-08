@@ -1,6 +1,7 @@
 /**
  * Generate mel spectrogram PNG from audio Blob using Web Audio API + Canvas.
  * Used to convert baby cry audio into a visual representation that VLMs can analyze.
+ * Falls back to regular Canvas if OffscreenCanvas is unavailable.
  */
 
 const SPECTROGRAM_WIDTH = 512;
@@ -10,9 +11,6 @@ const SAMPLE_RATE = 16000;
 const FFT_SIZE = 2048;
 const HOP_SIZE = 512;
 
-/**
- * Decode audio blob to Float32Array at 16kHz mono
- */
 async function decodeAudio(blob) {
 	const arrayBuffer = await blob.arrayBuffer();
 	const audioCtx = new AudioContext();
@@ -40,11 +38,8 @@ async function decodeAudio(blob) {
 	}
 }
 
-/**
- * Compute STFT magnitude spectrogram
- */
 function computeSpectrogram(samples) {
-	const numFrames = Math.floor((samples.length - FFT_SIZE) / HOP_SIZE) + 1;
+	const numFrames = Math.max(1, Math.floor((samples.length - FFT_SIZE) / HOP_SIZE) + 1);
 	const window = hannWindow(FFT_SIZE);
 	const magnitudes = new Float32Array(numFrames * MEL_BANDS);
 
@@ -72,8 +67,7 @@ function hannWindow(size) {
 
 function realFFT(input) {
 	const N = input.length;
-	const real = new Float32Array(N / 2 + 1);
-	const imag = new Float32Array(N / 2 + 1);
+	const magnitudes = new Float32Array(N / 2 + 1);
 	for (let k = 0; k <= N / 2; k++) {
 		let re = 0, im = 0;
 		for (let n = 0; n < N; n++) {
@@ -81,12 +75,7 @@ function realFFT(input) {
 			re += input[n] * Math.cos(angle);
 			im -= input[n] * Math.sin(angle);
 		}
-		real[k] = re;
-		imag[k] = im;
-	}
-	const magnitudes = new Float32Array(N / 2 + 1);
-	for (let k = 0; k <= N / 2; k++) {
-		magnitudes[k] = Math.sqrt(real[k] * real[k] + imag[k] * imag[k]);
+		magnitudes[k] = Math.sqrt(re * re + im * im);
 	}
 	return magnitudes;
 }
@@ -125,39 +114,6 @@ function applyMelFilterbank(spectrum) {
 function hzToMel(hz) { return 2595 * Math.log10(1 + hz / 700); }
 function melToHz(mel) { return 700 * (Math.pow(10, mel / 2595) - 1); }
 
-/**
- * Render spectrogram to a PNG Blob using OffscreenCanvas
- */
-function renderSpectrogramPNG(magnitudes, numFrames) {
-	const canvas = new OffscreenCanvas(SPECTROGRAM_WIDTH, SPECTROGRAM_HEIGHT);
-	const ctx = canvas.getContext('2d');
-
-	const vMin = -8;
-	const vMax = 0;
-
-	ctx.fillStyle = '#000';
-	ctx.fillRect(0, 0, SPECTROGRAM_WIDTH, SPECTROGRAM_HEIGHT);
-
-	const xScale = SPECTROGRAM_WIDTH / numFrames;
-	const yScale = SPECTROGRAM_HEIGHT / MEL_BANDS;
-
-	for (let frame = 0; frame < numFrames; frame++) {
-		for (let bin = 0; bin < MEL_BANDS; bin++) {
-			const val = magnitudes[frame * MEL_BANDS + bin];
-			const normalized = Math.max(0, Math.min(1, (val - vMin) / (vMax - vMin)));
-			ctx.fillStyle = magmaColor(normalized);
-			ctx.fillRect(
-				Math.floor(frame * xScale),
-				SPECTROGRAM_HEIGHT - Math.floor((bin + 1) * yScale),
-				Math.ceil(xScale) + 1,
-				Math.ceil(yScale) + 1
-			);
-		}
-	}
-
-	return canvas.convertToBlob({ type: 'image/png' });
-}
-
 function magmaColor(t) {
 	const stops = [
 		[0.0, 0.001, 0.001, 0.014],
@@ -187,27 +143,94 @@ function magmaColor(t) {
 	return `rgb(${r},${g},${b})`;
 }
 
+function renderSpectrogramCanvas(magnitudes, numFrames) {
+	const canvas = document.createElement('canvas');
+	canvas.width = SPECTROGRAM_WIDTH;
+	canvas.height = SPECTROGRAM_HEIGHT;
+	const ctx = canvas.getContext('2d');
+
+	const vMin = -8;
+	const vMax = 0;
+
+	ctx.fillStyle = '#000';
+	ctx.fillRect(0, 0, SPECTROGRAM_WIDTH, SPECTROGRAM_HEIGHT);
+
+	const xScale = SPECTROGRAM_WIDTH / numFrames;
+	const yScale = SPECTROGRAM_HEIGHT / MEL_BANDS;
+
+	for (let frame = 0; frame < numFrames; frame++) {
+		for (let bin = 0; bin < MEL_BANDS; bin++) {
+			const val = magnitudes[frame * MEL_BANDS + bin];
+			const normalized = Math.max(0, Math.min(1, (val - vMin) / (vMax - vMin)));
+			ctx.fillStyle = magmaColor(normalized);
+			ctx.fillRect(
+				Math.floor(frame * xScale),
+				SPECTROGRAM_HEIGHT - Math.floor((bin + 1) * yScale),
+				Math.ceil(xScale) + 1,
+				Math.ceil(yScale) + 1
+			);
+		}
+	}
+
+	return new Promise((resolve) => {
+		canvas.toBlob((blob) => resolve(blob), 'image/png');
+	});
+}
+
+function renderSpectrogramOffscreen(magnitudes, numFrames) {
+	const canvas = new OffscreenCanvas(SPECTROGRAM_WIDTH, SPECTROGRAM_HEIGHT);
+	const ctx = canvas.getContext('2d');
+
+	const vMin = -8;
+	const vMax = 0;
+
+	ctx.fillStyle = '#000';
+	ctx.fillRect(0, 0, SPECTROGRAM_WIDTH, SPECTROGRAM_HEIGHT);
+
+	const xScale = SPECTROGRAM_WIDTH / numFrames;
+	const yScale = SPECTROGRAM_HEIGHT / MEL_BANDS;
+
+	for (let frame = 0; frame < numFrames; frame++) {
+		for (let bin = 0; bin < MEL_BANDS; bin++) {
+			const val = magnitudes[frame * MEL_BANDS + bin];
+			const normalized = Math.max(0, Math.min(1, (val - vMin) / (vMax - vMin)));
+			ctx.fillStyle = magmaColor(normalized);
+			ctx.fillRect(
+				Math.floor(frame * xScale),
+				SPECTROGRAM_HEIGHT - Math.floor((bin + 1) * yScale),
+				Math.ceil(xScale) + 1,
+				Math.ceil(yScale) + 1
+			);
+		}
+	}
+
+	return canvas.convertToBlob({ type: 'image/png' });
+}
+
 /**
  * Main entry: generate spectrogram PNG blob from audio blob
- * @param {Blob} audioBlob - Audio recording blob
- * @returns {Promise<Blob>} - Spectrogram PNG blob
+ * Falls back from OffscreenCanvas to regular Canvas for Safari compatibility
  */
 export async function generateSpectrogram(audioBlob) {
 	const samples = await decodeAudio(audioBlob);
 	const { magnitudes, numFrames } = computeSpectrogram(samples);
-	return renderSpectrogramPNG(magnitudes, numFrames);
+
+	try {
+		if (typeof OffscreenCanvas !== 'undefined') {
+			return await renderSpectrogramOffscreen(magnitudes, numFrames);
+		}
+	} catch {}
+
+	return await renderSpectrogramCanvas(magnitudes, numFrames);
 }
 
-/**
- * Generate spectrogram as base64 data URL
- * @param {Blob} audioBlob
- * @returns {Promise<string>} - data:image/png;base64,...
- */
 export async function generateSpectrogramDataURL(audioBlob) {
 	const pngBlob = await generateSpectrogram(audioBlob);
+	if (!pngBlob) return null;
 	return new Promise((resolve) => {
 		const reader = new FileReader();
 		reader.onload = () => resolve(reader.result);
+		reader.onerror = () => resolve(null);
 		reader.readAsDataURL(pngBlob);
 	});
 }

@@ -17,9 +17,9 @@ export function createAppState() {
 	let cameraStream = $state(null);
 	
 	const isReady = $derived(() => {
-		if (currentMode === 'audio') return !!audioBlob;
+		if (currentMode === 'audio') return !!audioBlob && !!spectrogramBlob;
 		if (currentMode === 'image') return !!imageBlob;
-		return !!audioBlob && !!imageBlob;
+		return !!audioBlob && !!imageBlob && !!spectrogramBlob;
 	});
 	
 	const hasSpectrogram = $derived(() => {

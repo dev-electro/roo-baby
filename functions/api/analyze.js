@@ -170,7 +170,7 @@ export async function onRequest(context) {
 		const imageBlob = form.get('image');
 
 		if (!spectrogramBlob?.size && !imageBlob?.size) {
-			return jsonRes({ error: 'No spectrogram or image provided.' }, 400);
+			return jsonRes({ error: 'No spectrogram or image provided. Please record audio first.' }, 400);
 		}
 
 		const contentParts = [];

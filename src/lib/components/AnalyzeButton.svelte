@@ -52,17 +52,23 @@
 <button
 	class="analyze-btn"
 	class:ready={appState.isReady}
-	disabled={!appState.isReady || appState.isAnalyzing}
+	disabled={!appState.isReady || appState.isAnalyzing || appState.isConvertingAudio || appState.isGeneratingSpectrogram}
 	onclick={handleAnalyze}
 	type="button"
 >
 	{#if appState.isAnalyzing}
 		<span class="btn-shimmer"></span>
-	{/if}
+	{:else if appState.isConvertingAudio || appState.isGeneratingSpectrogram}
+		<span class="btn-content">
+			<Icon name="loader" size={18} color="currentColor" />
+			<span>{appState.isConvertingAudio ? 'Converting audio…' : 'Analyzing spectrogram…'}</span>
+		</span>
+	{:else}
 	<span class="btn-content">
 		<Icon name="arrow-right" size={18} color="currentColor" />
 		<span>Analyze with ROO</span>
 	</span>
+	{/if}
 </button>
 
 <style>
