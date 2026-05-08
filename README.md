@@ -1,218 +1,115 @@
 # ROO — Baby Cry Analyzer
 
-**World's first multimodal baby cry analyzer + responder.**
-
-Powered by Gemma 4 E4B (audio + vision natively). Built for the DEV x Gemma 4 Challenge.
+**Multimodal baby cry analyzer + responder. Built for the DEV x Gemma 4 Challenge.**
 
 ---
 
-## Architecture (Unified Cloudflare Pages)
+## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                    Cloudflare Pages                         │
-│  ┌─────────────────────┐    ┌───────────────────────────┐  │
-│  │   Static Assets     │    │   Pages Function          │  │
-│  │   (SvelteKit SPA)   │    │   src/routes/api/analyze  │  │
-│  │                     │    │                           │  │
-│  │  • index.html       │───>│  Receives audio/image     │  │
-│  │  • JS/CSS bundles   │    │  Calls Gemini API         │  │
-│  │  • PWA manifest     │    │  Returns JSON analysis    │  │
-│  └─────────────────────┘    └───────────────────────────┘  │
-│                              │                              │
-│                              ▼                              │
-│                    ┌─────────────────┐                      │
-│                    │   Gemini API    │                      │
-│                    │  (Gemma 4 E4B)  │                      │
-│                    └─────────────────┘                      │
-└─────────────────────────────────────────────────────────────┘
+Browser (SvelteKit SPA)
+    │
+    │ POST /api/analyze  (multipart: audio + image)
+    ▼
+Cloudflare Pages Function (functions/api/analyze.js)
+    │
+    │ Gemini API HTTPS call
+    ▼
+Google Gemini API (gemma-4-26b-a4b-it or gemini-2.0-flash)
+    │
+    ▼ JSON result
+Browser (displays category, confidence, plays soothing sound)
 ```
 
-Everything deploys as **one project** on Cloudflare Pages. No separate Worker needed.
+**Single deployment on Cloudflare Pages.** The `functions/` directory is auto-detected and deployed as Pages Functions (runs on Workers runtime).
 
 ---
 
 ## Features
 
-- **Audio Analysis** — Record baby cries, get instant AI analysis
-- **Image Analysis** — Capture baby face, detect distress signals
-- **Best Mode (Both)** — Combined audio + vision for highest accuracy
-- **Soothing Response** — Auto-plays heartbeat, white noise, lullaby, or shush via Web Audio API
-- **TTS Comfort** — Gentle spoken words to calm baby
-- **PWA** — Install on mobile home screen, works offline
-- **WebM → WAV** — Silent client-side audio conversion for browser compatibility
-- **Zero CORS** — Frontend and backend are same-origin
+- **Audio + Image + Combined** analysis modes
+- **Client-side WebM→WAV** conversion via Web Audio API
+- **Web Audio soothing sounds** (heartbeat, white noise, lullaby, shush)
+- **TTS** with gentle voice selection
+- **PWA** — installable on mobile, offline cache
+- **Analysis history** — persisted in localStorage
+- **Zero CORS** — same-origin API
 
 ---
 
-## Prerequisites
+## Deploy to Cloudflare Pages
 
-- Node.js 18+
-- Gemini API key from [Google AI Studio](https://aistudio.google.com/app/apikey)
+### 1. Set environment variables in Pages dashboard
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `GEMINI_API_KEY` | ✅ | — | From aistudio.google.com/apikey |
+| `GEMINI_MODEL_NAME` | ❌ | `gemini-2.0-flash` | Model (audio needs gemini-2.0-flash) |
+
+### 2. Connect Git repo
+
+1. Cloudflare Dashboard → Workers & Pages → **Pages** tab → Create Project
+2. Connect GitHub → select `dev-electro/roo-baby`
+3. **Build command:** `npm run build`
+4. **Build output directory:** `build`
+5. Set environment variables (step 1)
+6. Deploy
+
+### 3. Verify
+
+```
+curl https://roo-baby.pages.dev/api/health
+```
+Should return `{"status":"ok","config":{"api_key_set":true,...}}`
 
 ---
 
 ## Local Development
 
 ```bash
-# 1. Install dependencies
 npm install
-
-# 2. Copy environment variables
-cp .env.example .env
-# Edit .env and add your GEMINI_API_KEY
-
-# 3. Start dev server
-npm run dev
+npm run dev          # SvelteKit SPA on :5173
+npx wrangler pages dev build -- npm run dev   # Full Pages + Functions
 ```
 
-Open `http://localhost:5173`
+---
+
+## Model Options
+
+| Model | Audio | Image | Notes |
+|-------|-------|-------|-------|
+| `gemini-2.0-flash` | ✅ | ✅ | Default — fast, cheap, reliable |
+| `gemma-4-26b-a4b-it` | ❌ | ✅ | Gemma 4 26B via API, image only |
+| `gemma-4-e4b-it` | ✅ | ✅ | True E4B — requires local GPU (Hugging Face) |
+
+Change via `GEMINI_MODEL_NAME` in Pages env vars. No code deploy needed.
+
+> Only E2B/E4B Gemma 4 variants support native audio. The 26B/31B on Gemini API are text+image only. Use `gemini-2.0-flash` for cloud-based audio analysis.
 
 ---
 
-## Deploy to Cloudflare Pages
+## API
 
-### Option A: Git Integration (Recommended)
+**POST /api/analyze** — Multipart form with `audio` (WAV/MP3/FLAC) and/or `image` (JPEG)
 
-1. Push this repo to GitHub
-2. In [Cloudflare Dashboard](https://dash.cloudflare.com) → Pages → Create Project
-3. Connect your GitHub repo
-4. **Build command:** `npm run build`
-5. **Build output:** `.svelte-kit/cloudflare`
-6. Add environment variables in Dashboard → Settings → Environment Variables:
-   - `GEMINI_API_KEY` = your key (encrypt it!)
-   - `GEMINI_MODEL_NAME` = `gemma-4-e4b-it` (optional)
-7. Deploy
-
-### Option B: Wrangler CLI
-
-```bash
-# Build
-npm run build
-
-# Deploy (requires Wrangler login)
-npx wrangler pages deploy .svelte-kit/cloudflare
-```
-
-Then set secrets in the dashboard:
-- `GEMINI_API_KEY` — required
-- `GEMINI_MODEL_NAME` — optional (defaults to `gemini-1.5-flash-latest`)
-
----
-
-## Environment Variables
-
-| Variable | Required | Default | Description |
-|---|---|---|---|
-| `GEMINI_API_KEY` | ✅ | — | Google Gemini API key |
-| `GEMINI_MODEL_NAME` | ❌ | `gemini-1.5-flash-latest` | Model to use for analysis |
-
----
-
-## Audio Format Compatibility
-
-| Browser | Records As | Handled By |
-|---------|-----------|------------|
-| Chrome/Android | WebM/Opus | **Auto-converts to WAV** via Web Audio API |
-| Safari/iOS | MP4/AAC | Accepted natively |
-| Firefox | WebM/Opus | **Auto-converts to WAV** |
-
-If conversion fails, a file upload fallback appears automatically.
-
----
-
-## API Response Format
-
+Response:
 ```json
 {
   "category": "HUNGER",
   "confidence": 89,
   "severity": "MEDIUM",
   "reasoning": "Rhythmic pattern with gradual buildup",
-  "parent_action": "Feed baby now. Try breastfeeding or bottle.",
+  "parent_action": "Feed baby now.",
   "response_sound": "heartbeat",
   "pre_cry": false,
-  "pre_cry_message": null
+  "_meta": { "mode": "both", "model": "gemma-4-26b-a4b-it", "timestamp": "..." }
 }
 ```
 
-Categories: `HUNGER`, `PAIN`, `TIRED`, `DISCOMFORT`, `BURPING`, `UNKNOWN`  
-Severity: `LOW`, `MEDIUM`, `HIGH`, `CRITICAL`  
-Sounds: `heartbeat`, `whitenoise`, `lullaby`, `shush`
+**GET /api/health** — Config status check
 
 ---
 
-## Project Structure
+## Gemma 4 E4B (Real-Time Audio)
 
-```
-roo-baby/
-├── src/
-│   ├── app.html                    # HTML shell with PWA meta tags
-│   ├── app.css                     # Global design tokens & animations
-│   ├── service-worker.js           # PWA cache strategy
-│   ├── routes/
-│   │   ├── +layout.svelte          # App shell (background orbs)
-│   │   ├── +page.svelte            # Main page with all components
-│   │   └── api/
-│   │       └── analyze/
-│   │           └── +server.js      # Backend API (Pages Function)
-│   └── lib/
-│       ├── state/
-│       │   └── appState.svelte.js  # Global reactive state (Svelte 5 runes)
-│       ├── utils/
-│       │   ├── audioEncoder.js     # WebM → WAV converter
-│       │   ├── apiClient.js        # Fetch wrapper to /api/analyze
-│       │   ├── ttsEngine.js        # Web Speech API wrapper
-│       │   └── soundGenerator.js   # Web Audio sound generation
-│       └── components/
-│           ├── Icon.svelte         # SVG icon library
-│           ├── Header.svelte
-│           ├── ModeTabs.svelte
-│           ├── AudioRecorder.svelte
-│           ├── CameraCapture.svelte
-│           ├── BothModePanel.svelte
-│           ├── AnalyzeButton.svelte
-│           ├── LoadingState.svelte
-│           ├── ResultCard.svelte
-│           ├── ResponsePlayer.svelte
-│           ├── SettingsPanel.svelte
-│           └── ErrorToast.svelte
-├── static/
-│   ├── manifest.json               # PWA manifest
-│   └── favicon.svg                 # App icon
-├── .env.example                    # Environment variable template
-├── package.json
-├── svelte.config.js                # Uses @sveltejs/adapter-cloudflare
-└── vite.config.js
-```
-
----
-
-## Tech Stack
-
-| Layer | Technology |
-|-------|-----------|
-| Framework | SvelteKit 2 + Svelte 5 Runes |
-| Adapter | `@sveltejs/adapter-cloudflare` |
-| Styling | Scoped CSS + CSS Custom Properties |
-| Icons | Custom SVG (no emoji) |
-| Audio | Web Audio API + MediaRecorder |
-| Backend | SvelteKit API Routes → Pages Functions |
-| AI Model | Gemini API (Gemma 4 E4B or fallback) |
-| Hosting | Cloudflare Pages |
-
----
-
-## Troubleshooting
-
-| Problem | Solution |
-|---------|----------|
-| "Gemini API error: 404" | Model name invalid. Set `GEMINI_MODEL_NAME` to `gemini-1.5-flash-latest` in Pages env vars. |
-| "Unsupported audio format" | Browser recorded WebM. Should auto-convert. If not, upload a WAV file. |
-| Camera not working | Use file upload fallback, or ensure HTTPS + camera permissions. |
-| No sound on iOS | Tap the page once first (iOS requires user interaction to unlock AudioContext). |
-| Build fails with Miniflare error | This only happens in limited environments. Deploy via Pages CI works fine. |
-
----
-
-*Built with love for tired parents everywhere.*
+For true native Gemma 4 E4B audio (Hugging Face, local GPU), use the Colab setup in `/colab/` (coming soon). Cloud version uses Gemini API.

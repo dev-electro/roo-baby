@@ -1,13 +1,5 @@
 /**
- * API client for the ROO backend (same-origin Pages Function)
- */
-
-/**
- * @param {Object} params
- * @param {string} params.mode - 'audio' | 'image' | 'both'
- * @param {Blob|null} params.audio
- * @param {Blob|null} params.image
- * @returns {Promise<Object>}
+ * API client — calls Cloudflare Pages Function at /api/analyze
  */
 export async function analyze({ mode, audio, image }) {
 	const formData = new FormData();
@@ -24,20 +16,19 @@ export async function analyze({ mode, audio, image }) {
 		body: formData
 	});
 	
-	let data;
-	try {
-		data = await response.json();
-	} catch {
-		throw new Error('Invalid response from server.');
-	}
+	const data = await response.json();
 	
-	if (!response.ok) {
-		throw new Error(data.error || `Server error: ${response.status}`);
-	}
-	
-	if (data.error) {
-		throw new Error(data.error);
+	if (!response.ok || data.error) {
+		throw new Error(data.error || `Server error ${response.status}`);
 	}
 	
 	return data;
+}
+
+/**
+ * Check if backend is reachable
+ */
+export async function checkHealth() {
+	const res = await fetch('/api/health');
+	return res.json();
 }
