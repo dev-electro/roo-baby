@@ -4,7 +4,11 @@ import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
 export default {
 	preprocess: vitePreprocess(),
 	kit: {
-		adapter: adapter({ fallback: 'index.html' }),
+		adapter: adapter({
+			pages: '.svelte-kit/cloudflare',
+			assets: '.svelte-kit/cloudflare',
+			fallback: 'index.html'
+		}),
 		alias: {
 			$components: 'src/lib/components',
 			$utils: 'src/lib/utils',
