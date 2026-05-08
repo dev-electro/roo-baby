@@ -105,9 +105,8 @@ async function blobToBase64(blob) {
 
 let atlasBase64Cache = null;
 
-async function getAtlasBase64(env) {
+async function getAtlasBase64(siteUrl) {
 	if (atlasBase64Cache) return atlasBase64Cache;
-	const siteUrl = env.SITE_URL || 'https://roo-baby.pages.dev';
 	try {
 		const res = await fetch(`${siteUrl}/atlas/atlas_master.webp`, { signal: AbortSignal.timeout(5000) });
 		if (res.ok) {
@@ -124,14 +123,14 @@ async function getAtlasBase64(env) {
 	return null;
 }
 
-async function callOpenRouter(apiKey, model, messages, retries = 1) {
+async function callOpenRouter(apiKey, model, messages, retries = 1, siteUrl = 'https://roo-baby.pages.dev') {
 	for (let attempt = 0; attempt <= retries; attempt++) {
 		const res = await fetch(`${OPENROUTER_BASE}/chat/completions`, {
 			method: 'POST',
 			headers: {
 				'Authorization': `Bearer ${apiKey}`,
 				'Content-Type': 'application/json',
-				'HTTP-Referer': env.SITE_URL || 'https://roo-baby.pages.dev',
+				'HTTP-Referer': siteUrl,
 				'X-Title': 'ROO Baby Cry Analyzer'
 			},
 			body: JSON.stringify({
@@ -175,6 +174,7 @@ export async function onRequest(context) {
 	const modelSingle = env.MODEL_SINGLE || 'google/gemma-4-26b-a4b-it:free';
 	const modelBoth = env.MODEL_BOTH || 'google/gemma-4-31b-it:free';
 	const modelFallback = env.MODEL_FALLBACK || 'google/gemma-4-31b-it:free';
+	const siteUrl = env.SITE_URL || 'https://roo-baby.pages.dev';
 
 	if (!apiKey) return jsonRes({ error: 'OPENROUTER_API_KEY not set in Cloudflare Pages env vars.' }, 500);
 	if (request.method !== 'POST') return jsonRes({ error: 'Use POST.' }, 405);
@@ -214,7 +214,7 @@ export async function onRequest(context) {
 
 		// Prepend atlas reference image for audio/both modes
 		if ((mode === 'audio' || mode === 'both') && spectrogramBlob?.size) {
-			const atlasB64 = await getAtlasBase64(env);
+			const atlasB64 = await getAtlasBase64(siteUrl);
 			if (atlasB64) {
 				contentParts.push({
 					type: 'image_url',
@@ -247,10 +247,10 @@ export async function onRequest(context) {
 
 		let data;
 		try {
-			data = await callOpenRouter(apiKey, model, messages);
+			data = await callOpenRouter(apiKey, model, messages, 1, siteUrl);
 		} catch (err) {
 			if (modelFallback && model !== modelFallback) {
-				data = await callOpenRouter(apiKey, modelFallback, messages);
+				data = await callOpenRouter(apiKey, modelFallback, messages, 1, siteUrl);
 			} else {
 				throw err;
 			}
