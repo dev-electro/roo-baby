@@ -15,6 +15,7 @@
 	import ResponsePlayer from '$components/ResponsePlayer.svelte';
 	import ErrorToast from '$components/ErrorToast.svelte';
 	import HistoryCard from '$components/HistoryCard.svelte';
+	import Icon from '$components/Icon.svelte';
 
 	function handleReset() {
 		stopAllSounds();
@@ -55,7 +56,8 @@
 
 	{#if appState.result}
 		<button class="reset-btn animate-scale" onclick={handleReset}>
-			🔄 Analyze Another Cry
+			<Icon name="refresh" size={14} color="currentColor" />
+			Analyze Another Cry
 		</button>
 	{/if}
 

@@ -7,11 +7,11 @@
 {#if appState.showSettings}
 <div class="ov animate-fade" onclick={()=>appState.showSettings=false} role="button" tabindex="0">
 	<div class="pn animate-slide" onclick={e=>e.stopPropagation()} role="presentation">
-		<div class="pn-h"><h3>Settings</h3><button class="pn-x" onclick={()=>appState.showSettings=false}>✕</button></div>
+		<div class="pn-h"><h3>Settings</h3><button class="pn-x" onclick={()=>appState.showSettings=false}><Icon name="close" size={14} color="currentColor" /></button></div>
 		<div class="pn-b">
 			<div class="sec"><h4>Backend URL</h4><p>Leave empty for Cloudflare Pages default.</p>
 				<input type="url" placeholder="Custom URL (optional)" bind:value={url}/>
-				<button class="save" onclick={save}>{ok?'✅ Saved':'Save'}</button>
+				<button class="save" onclick={save}>{ok?'<Icon name="check" size={18} color="var(--teal)" /> Saved':'Save'}</button>
 			</div>
 			<div class="hr"></div>
 			<div class="sec"><h4>About</h4>

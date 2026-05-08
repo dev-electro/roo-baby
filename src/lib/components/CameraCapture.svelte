@@ -42,29 +42,29 @@
 	{#if appState.imageBlob && preview}
 		<div class="c-preview animate-scale">
 			<div class="c-preview-img"><img src={preview} alt="Captured" /></div>
-			<div class="c-preview-label">✅ Image captured</div>
+			<div class="c-preview-label"><Icon name="check" size={18} color="var(--teal)" /> Image captured</div>
 			<div class="c-row">
-				<button class="c-btn" onclick={retake}>🔄 Retake</button>
-				<label class="c-btn c-upload">📁 Upload different<input type="file" accept="image/jpeg,image/png" onchange={upload} class="c-hidden" /></label>
+				<button class="c-btn" onclick={retake}><Icon name="refresh" size={14} color="currentColor" /> Retake</button>
+				<label class="c-btn c-upload"><Icon name="upload" size={14} color="currentColor" /> Upload different<input type="file" accept="image/jpeg,image/png" onchange={upload} class="c-hidden" /></label>
 			</div>
 		</div>
 	{:else if fallback}
 		<div class="c-fallback">
 			<label class="c-fb-label">
-				<div class="c-fb-icon">📁</div>
+				<div class="c-fb-icon"><Icon name="upload" size={14} color="currentColor" /></div>
 				<div class="c-fb-text">Upload a baby photo</div>
 				<div class="c-fb-sub">JPG or PNG, well‑lit</div>
 				<input type="file" accept="image/jpeg,image/png" onchange={upload} class="c-hidden" />
 			</label>
-			<button class="c-btn" onclick={() => { fallback = false; req(); }}>📸 Try camera instead</button>
+			<button class="c-btn" onclick={() => { fallback = false; req(); }}><Icon name="camera" size={18} color="currentColor" /> Try camera instead</button>
 		</div>
 	{:else if !asked}
 		<div class="c-ask">
-			<div class="c-ask-icon">📸</div>
+			<div class="c-ask-icon"><Icon name="camera" size={18} color="currentColor" /></div>
 			<div class="c-ask-text">Enable camera to capture baby's face</div>
 			<div class="c-ask-sub">Helps ROO analyse expressions</div>
-			<button class="c-big" onclick={req}>📸 Enable Camera</button>
-			<label class="c-link">📁 Or upload photo<input type="file" accept="image/jpeg,image/png" onchange={upload} class="c-hidden" /></label>
+			<button class="c-big" onclick={req}><Icon name="camera" size={18} color="currentColor" /> Enable Camera</button>
+			<label class="c-link"><Icon name="upload" size={14} color="currentColor" /> Or upload photo<input type="file" accept="image/jpeg,image/png" onchange={upload} class="c-hidden" /></label>
 		</div>
 	{:else}
 		<div class="c-view">
@@ -72,10 +72,10 @@
 			<div class="c-guide">
 				<svg viewBox="0 0 120 140" class="c-oval"><ellipse cx="60" cy="70" rx="45" ry="58" fill="none" stroke="var(--pink)" stroke-width="2" stroke-dasharray="5 5" opacity=".35"/></svg>
 			</div>
-			<button class="c-flip" onclick={flip}>🔄</button>
-			<button class="c-snap" onclick={capture}>📸</button>
+			<button class="c-flip" onclick={flip}><Icon name="flip-camera" size={14} color="#fff" /></button>
+			<button class="c-snap" onclick={capture}><Icon name="camera" size={18} color="currentColor" /></button>
 		</div>
-		<label class="c-link">📁 Upload photo<input type="file" accept="image/jpeg,image/png" onchange={upload} class="c-hidden" /></label>
+		<label class="c-link"><Icon name="upload" size={14} color="currentColor" /> Upload photo<input type="file" accept="image/jpeg,image/png" onchange={upload} class="c-hidden" /></label>
 	{/if}
 	<canvas bind:this={canvasEl} style="display:none"></canvas>
 </div>

@@ -1,6 +1,7 @@
 <script>
 	import '../app.css';
 	import { appState } from '$state/appState.svelte.js';
+	import Icon from '$components/Icon.svelte';
 	import SettingsPanel from '$components/SettingsPanel.svelte';
 
 	let { children } = $props();
@@ -20,12 +21,14 @@
 <div class="shell">
 	<div class="topbar">
 		<div class="topbar-inner">
-			<span class="topbar-logo">🦘 ROO</span>
+			<span class="topbar-logo"><Icon name="kangaroo" size={18} color="var(--pink)" /> ROO</span>
 			<div class="topbar-end">
 				<button class="tb-btn" onclick={toggleTheme} aria-label="Toggle theme">
-					{theme === 'dark' ? '☀️' : '🌙'}
+					<Icon name={theme === 'dark' ? 'sun' : 'moon'} size={18} color="currentColor" />
 				</button>
-				<button class="tb-btn" onclick={() => appState.showSettings = true} aria-label="Info">ℹ️</button>
+				<button class="tb-btn" onclick={() => appState.showSettings = true} aria-label="Info">
+					<Icon name="info-circle" size={18} color="currentColor" />
+				</button>
 			</div>
 		</div>
 	</div>

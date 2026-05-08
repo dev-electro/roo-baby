@@ -2,16 +2,16 @@
 	import { appState } from '$state/appState.svelte.js';
 	import { stopAllSounds } from '$utils/soundGenerator.js';
 	import { stopSpeaking } from '$utils/ttsEngine.js';
-	const MSGS={HUNGER:"Shh… food is coming. You're safe.",PAIN:"It's okay baby… I'm here.",TIRED:"Sleep now… the world can wait.",DISCOMFORT:"Let's get comfy… better soon.",BURPING:"Let it out… good baby.",UNKNOWN:"Shh… everything is okay."};
+	const MSGS={HUNGER:"Shh… food is coming. You're safe.",PAIN:"It's okay baby… I'm here.",TIRED:"Sleep now… the world can wait.",DISCOMFORT:"Let's get comfy… better soon.",BURPING:"Let it out… good baby.",UNKNOWN:"Shh… everything is okay.",INVALID:"This appears to be an adult face. ROO is for babies only."};
 	$: msg=appState.result?MSGS[appState.result.category]||MSGS.UNKNOWN:'';
 	function stop(){stopAllSounds();stopSpeaking()}
 </script>
 {#if appState.result}
 <div class="p animate-slide">
-	<div class="p-head">🦘 ROO is soothing</div>
+	<div class="p-head"><Icon name="kangaroo" size={24} color="var(--pink)" /> ROO is soothing</div>
 	<div class="p-bars">{#each Array(7) as _,i}<div class="p-bar" style="animation-delay:{i*.1}s"></div>{/each}</div>
 	<p class="p-msg">"{msg}"</p>
-	<button class="p-stop" onclick={stop}>⏹️ Stop</button>
+	<button class="p-stop" onclick={stop}><Icon name="stop" size={16} color="currentColor" /> Stop</button>
 </div>
 {/if}
 <style>

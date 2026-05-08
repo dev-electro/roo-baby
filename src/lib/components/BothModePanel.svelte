@@ -59,14 +59,20 @@
 
 <div class="both">
 	<div class="panel audio-panel">
-		<div class="p-label">🎤 Audio</div>
+		<div class="p-label"><Icon name="mic" size={18} color="currentColor" /> Audio</div>
 		{#if appState.isConvertingAudio || appState.isGeneratingSpectrogram}
 			<div class="spin-wrap"><div class="spin"></div><span>Processing…</span></div>
 		{:else if appState.audioBlob && !aRecOn}
-			<div class="done animate-scale">✅<div class="done-t">Recorded</div><button class="btn-xs" onclick={aReset}>🔄</button></div>
+			<div class="done animate-scale"><Icon name="check" size={18} color="var(--teal)" /><div class="done-t">Recorded</div><button class="btn-xs" onclick={aReset}><Icon name="refresh" size={14} color="currentColor" /></button></div>
 		{:else}
 			<div class="a-wrap">
-				<button class="a-btn" class:rec={aRecOn} onclick={aTog}>{aRecOn?'⏹️':'🎤'}</button>
+				<button class="a-btn" class:rec={aRecOn} onclick={aTog}>
+				{#if aRecOn}
+					<Icon name="stop" size={18} color="#fff" />
+				{:else}
+					<Icon name="mic" size={18} color="#fff" />
+				{/if}
+			</button>
 				{#if aRecOn}
 					<div class="a-timer">0:{aElapsed.toString().padStart(2,'0')}</div>
 					<div class="a-prog"><div class="a-prog-fill" style="width:{(aElapsed/MAX)*100}%"></div></div>
@@ -78,34 +84,34 @@
 	</div>
 	<div class="divider"></div>
 	<div class="panel img-panel">
-		<div class="p-label">📸 Face</div>
+		<div class="p-label"><Icon name="camera" size={18} color="currentColor" /> Face</div>
 		{#if imgOk && appState.imageBlob}
 			<div class="done animate-scale">
-				{#if preview}<div class="thumb"><img src={preview} alt=""/></div>{:else}<div class="thumb-place">✅</div>{/if}
+				{#if preview}<div class="thumb"><img src={preview} alt=""/></div>{:else}<div class="thumb-place"><Icon name="check" size={18} color="var(--teal)" /></div>{/if}
 				<div class="done-t">Captured</div>
 				<div class="act-row">
-					<button class="btn-xs" onclick={cRetake}>🔄</button>
-					<label class="btn-xs up">📁<input type="file" accept="image/*" onchange={cUpload} class="c-hidden"/></label>
+					<button class="btn-xs" onclick={cRetake}><Icon name="refresh" size={14} color="currentColor" /></button>
+					<label class="btn-xs up"><Icon name="upload" size={14} color="currentColor" /><input type="file" accept="image/*" onchange={cUpload} class="c-hidden"/></label>
 				</div>
 			</div>
 		{:else if imgFall}
 			<div class="fall">
-				<label class="fall-label">📁 Upload photo<input type="file" accept="image/*" onchange={cUpload} class="c-hidden"/></label>
-				<button class="btn-xs" onclick={()=>{imgFall=false;cReq()}}>📸 Try camera</button>
+				<label class="fall-label"><Icon name="upload" size={14} color="currentColor" /> Upload photo<input type="file" accept="image/*" onchange={cUpload} class="c-hidden"/></label>
+				<button class="btn-xs" onclick={()=>{imgFall=false;cReq()}}><Icon name="camera" size={18} color="currentColor" /> Try camera</button>
 			</div>
 		{:else if !camAsk}
 			<div class="c-ask">
-				<div class="c-ask-icon">📸</div>
+				<div class="c-ask-icon"><Icon name="camera" size={18} color="currentColor" /></div>
 				<button class="btn-big" onclick={cReq}>Enable Camera</button>
-				<label class="lk">📁 Upload<input type="file" accept="image/*" onchange={cUpload} class="c-hidden"/></label>
+				<label class="lk"><Icon name="upload" size={14} color="currentColor" /> Upload<input type="file" accept="image/*" onchange={cUpload} class="c-hidden"/></label>
 			</div>
 		{:else}
 			<div class="c-view">
 				<video bind:this={vEl} autoplay playsinline muted class="c-video" class:mirror={facing==='user'}></video>
-				<button class="c-flip" onclick={cFlip}>🔄</button>
-				<button class="c-snap" onclick={cCapture}>📸</button>
+				<button class="c-flip" onclick={cFlip}><Icon name="flip-camera" size={14} color="#fff" /></button>
+				<button class="c-snap" onclick={cCapture}><Icon name="camera" size={18} color="currentColor" /></button>
 			</div>
-			<label class="lk">📁 Upload<input type="file" accept="image/*" onchange={cUpload} class="c-hidden"/></label>
+			<label class="lk"><Icon name="upload" size={14} color="currentColor" /> Upload<input type="file" accept="image/*" onchange={cUpload} class="c-hidden"/></label>
 		{/if}
 	</div>
 </div>

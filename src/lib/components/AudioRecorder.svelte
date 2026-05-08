@@ -64,10 +64,10 @@
 <div class="r">
 	{#if appState.audioBlob && !appState.isRecording}
 		<div class="r-done animate-scale">
-			<div class="r-check">✅</div>
+			<div class="r-check"><Icon name="check" size={18} color="var(--teal)" /></div>
 			<div class="r-done-t">Cry recorded</div>
 			<div class="r-done-s">{appState.isGeneratingSpectrogram ? 'Creating spectrogram…' : 'Ready'}</div>
-			<button class="r-redo" onclick={reset}>🔄 Re‑record</button>
+			<button class="r-redo" onclick={reset}><Icon name="refresh" size={14} color="currentColor" /> Re‑record</button>
 		</div>
 	{:else}
 		<div class="r-wrap">
@@ -79,7 +79,11 @@
 				</div>
 			{/if}
 			<button class="r-btn" class:rec={appState.isRecording} onclick={toggle}>
-				{appState.isRecording ? '⏹️' : '🎤'}
+				{#if appState.isRecording}
+					<Icon name="stop" size={22} color="#fff" />
+				{:else}
+					<Icon name="mic" size={22} color="#fff" />
+				{/if}
 			</button>
 			{#if appState.isRecording}
 				<div class="r-timer">0:{elapsed.toString().padStart(2,'0')}</div>

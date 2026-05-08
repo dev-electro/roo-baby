@@ -1,7 +1,8 @@
 <script>
 	import { getGroupedHistory, clearHistory } from '$utils/historyStore.js';
+	import Icon from './Icon.svelte';
 	let groups=$state(getGroupedHistory());
-	const EM={HUNGER:'🍼',PAIN:'🩹',TIRED:'😴',DISCOMFORT:'🌡️',BURPING:'💫',UNKNOWN:'❓'};
+	const IC={HUNGER:'bottle',PAIN:'bandage',TIRED:'moon',DISCOMFORT:'thermometer',BURPING:'wind',UNKNOWN:'info-circle',INVALID:'warning'};
 	function refresh(){groups=getGroupedHistory()}
 	function clear(){clearHistory();refresh()}
 	$effect(()=>{const id=setInterval(refresh,3000);return()=>clearInterval(id)});
@@ -13,7 +14,7 @@
 		<div class="hc-group">
 			<div class="hc-date">{date===new Date().toLocaleDateString()?'Today':date}</div>
 			{#each entries.slice(0,8) as e}
-				<div class="hc-entry"><span class="hc-emoji">{EM[e.category]||'❓'}</span><span class="hc-cat">{e.category}</span><span class="hc-conf">{e.confidence}%</span><span class="hc-time">{new Date(e.timestamp).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</span></div>
+				<div class="hc-entry"><Icon name={IC[e.category]||'info-circle'} size={16} color="var(--text-soft)" /><span class="hc-cat">{e.category}</span><span class="hc-conf">{e.confidence}%</span><span class="hc-time">{new Date(e.timestamp).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</span></div>
 			{/each}
 		</div>
 	{/each}

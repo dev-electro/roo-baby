@@ -5,7 +5,7 @@
 	$effect(()=>{if(appState.isAnalyzing){id=setInterval(()=>{i=(i+1)%words.length;w=words[i]},2000);return()=>clearInterval(id)}else{w=words[0];i=0}});
 </script>
 {#if appState.isAnalyzing}
-<div class="l animate-slide"><div class="l-pulse">🦘</div><p class="l-text">{w}</p></div>
+<div class="l animate-slide"><div class="l-pulse"><Icon name="kangaroo" size={24} color="var(--pink)" /></div><p class="l-text">{w}</p></div>
 {/if}
 <style>
 	.l{display:flex;flex-direction:column;align-items:center;gap:12px;padding:28px;background:var(--card-bg);border:1px solid var(--card-border);border-radius:var(--radius-xl)}
