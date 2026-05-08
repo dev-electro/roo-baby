@@ -9,10 +9,11 @@ app_file: app.py
 pinned: true
 ---
 
-# ROO — Baby Cry Analyzer
+## ROO — Baby Cry Analyzer
 
-**Gemma 4 E4B on CPU (4-bit quantization).** Free, always-on, no GPU required.
+**Gemma 4 E4B with ZeroGPU.** Free GPU inference via Gradio + REST API via FastAPI.
 
-**First load:** ~3 min (model downloads + compiles). **Subsequent:** ~30s per analysis.
+**REST API:** `/health` `/analyze/audio` `/analyze/image` `/analyze/both`
+**Gradio UI:** Use the tabs below to test directly.
 
-Built for the [DEV x Gemma 4 Challenge](https://dev.to/challenges/gemma4).
+Built for [DEV x Gemma 4 Challenge](https://dev.to/challenges/gemma4).
