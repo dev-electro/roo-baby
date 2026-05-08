@@ -15,7 +15,7 @@
 	};
 	
 	async function handleAnalyze() {
-		if (!appState.isReady()) return;
+		if (!appState.isReady) return;
 		
 		appState.isAnalyzing = true;
 		appState.clearError();
@@ -50,8 +50,8 @@
 
 <button
 	class="analyze-btn"
-	class:ready={appState.isReady()}
-	disabled={!appState.isReady() || appState.isAnalyzing}
+	class:ready={appState.isReady}
+	disabled={!appState.isReady || appState.isAnalyzing}
 	onclick={handleAnalyze}
 	type="button"
 >
