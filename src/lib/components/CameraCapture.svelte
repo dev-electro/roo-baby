@@ -2,28 +2,25 @@
 	import { appState } from '$state/appState.svelte.js';
 	import Icon from './Icon.svelte';
 	
-	let videoElement;
+let videoElement;
 	let canvasElement;
 	let previewUrl = '';
 	let showFallback = false;
 	let fileInput;
 	let hasPermission = false;
 	let cameraActive = false;
+	let facingMode = 'user';
 	
 	$: if (videoElement && appState.currentMode === 'image') {
 		startCamera();
 	}
 	
 	async function startCamera() {
-		if (cameraActive || appState.cameraStream) return;
+		if (cameraActive) return;
+		stopCamera();
 		try {
 			const stream = await navigator.mediaDevices.getUserMedia({
-				video: {
-					facingMode: 'user',
-					width: { ideal: 640 },
-					height: { ideal: 480 },
-					frameRate: { ideal: 30, max: 30 }
-				}
+				video: { facingMode, width: { ideal: 640 }, height: { ideal: 480 }, frameRate: { ideal: 30, max: 30 } }
 			});
 			appState.cameraStream = stream;
 			cameraActive = true;
@@ -35,6 +32,13 @@
 		} catch (err) {
 			showFallback = true;
 			hasPermission = false;
+		}
+	}
+	
+	async function flipCamera() {
+		facingMode = facingMode === 'user' ? 'environment' : 'user';
+		if (cameraActive) {
+			await startCamera();
 		}
 	}
 	
@@ -130,6 +134,7 @@
 				playsinline
 				muted
 				class="camera-video"
+				class:mirror={facingMode === 'user'}
 			></video>
 			<div class="camera-overlay">
 				<div class="face-guide">
@@ -143,6 +148,9 @@
 				<div class="corner br"></div>
 				<div class="camera-hint">Position baby's face in frame</div>
 			</div>
+			<button class="flip-btn" onclick={flipCamera} type="button" aria-label="Switch camera">
+				<Icon name="flip-camera" size={18} color="#fff" />
+			</button>
 			<button class="capture-btn" onclick={captureImage} type="button">
 				<Icon name="camera" size={20} color="#fff" />
 				<span>Capture</span>
@@ -188,7 +196,31 @@
 		height: 100%;
 		object-fit: cover;
 		display: block;
+	}
+
+	.camera-video.mirror {
 		transform: scaleX(-1);
+	}
+
+	.flip-btn {
+		position: absolute;
+		top: 12px;
+		right: 12px;
+		width: 36px;
+		height: 36px;
+		border-radius: 50%;
+		background: rgba(0,0,0,0.45);
+		backdrop-filter: blur(8px);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		z-index: 3;
+		transition: all var(--transition-fast);
+	}
+
+	.flip-btn:hover {
+		background: rgba(0,0,0,0.65);
+		transform: scale(1.08);
 	}
 
 	.camera-overlay {

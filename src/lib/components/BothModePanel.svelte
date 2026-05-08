@@ -102,12 +102,17 @@
 		}
 	}
 	
+	let facingMode = 'user';
+	
 	async function startCamera() {
-		if (cameraActive || appState.cameraStream) return;
+		if (cameraActive || appState.cameraStream) {
+			if (cameraActive) return;
+		}
+		stopCamera();
 		try {
 			const stream = await navigator.mediaDevices.getUserMedia({
 				video: {
-					facingMode: 'user',
+					facingMode,
 					width: { ideal: 640 },
 					height: { ideal: 480 },
 					frameRate: { ideal: 30, max: 30 }
@@ -121,6 +126,13 @@
 			}
 		} catch {
 			showImageFallback = true;
+		}
+	}
+	
+	async function flipCamera() {
+		facingMode = facingMode === 'user' ? 'environment' : 'user';
+		if (cameraActive) {
+			await startCamera();
 		}
 	}
 	
@@ -263,7 +275,7 @@
 			</label>
 		{:else}
 			<div class="camera-container">
-				<video bind:this={videoElement} autoplay playsinline muted class="camera-video"></video>
+				<video bind:this={videoElement} autoplay playsinline muted class="camera-video" class:mirror={facingMode === 'user'}></video>
 				<div class="camera-guides">
 					<svg viewBox="0 0 100 130" class="face-outline">
 						<ellipse cx="50" cy="65" rx="38" ry="52" fill="none" stroke="rgba(255,179,71,0.3)" stroke-width="1.5" stroke-dasharray="3 3" />
@@ -273,6 +285,9 @@
 					<div class="cc tl"></div><div class="cc tr"></div>
 					<div class="cc bl"></div><div class="cc br"></div>
 				</div>
+				<button class="flip-btn" onclick={flipCamera} type="button" aria-label="Switch camera">
+					<Icon name="flip-camera" size={16} color="#fff" />
+				</button>
 				<button class="capture-btn" onclick={captureImage} type="button">
 					<Icon name="camera" size={18} color="#fff" />
 				</button>
@@ -480,7 +495,31 @@
 		width: 100%;
 		height: 100%;
 		object-fit: cover;
+	}
+
+	.camera-video.mirror {
 		transform: scaleX(-1);
+	}
+
+	.flip-btn {
+		position: absolute;
+		top: 8px;
+		right: 8px;
+		width: 32px;
+		height: 32px;
+		border-radius: 50%;
+		background: rgba(0,0,0,0.45);
+		backdrop-filter: blur(8px);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		z-index: 3;
+		transition: all var(--transition-fast);
+	}
+
+	.flip-btn:hover {
+		background: rgba(0,0,0,0.65);
+		transform: scale(1.08);
 	}
 
 	.camera-guides {
