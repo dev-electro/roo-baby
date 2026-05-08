@@ -1,0 +1,61 @@
+{
+  "categories": {
+    "HUNGER": {
+      "description": "Rhythmic \"neh\" pattern, 400-600Hz, gradual buildup",
+      "color": "rgb(255,123,92)",
+      "exemplars": [
+        "hunger_01.png",
+        "hunger_02.png",
+        "hunger_03.png",
+        "hunger_04.png",
+        "hunger_05.png"
+      ]
+    },
+    "PAIN": {
+      "description": "Sudden sharp spikes, 600-800Hz, silence gaps",
+      "color": "rgb(255,77,109)",
+      "exemplars": [
+        "pain_01.png",
+        "pain_02.png",
+        "pain_03.png",
+        "pain_04.png",
+        "pain_05.png"
+      ]
+    },
+    "TIRED": {
+      "description": "Whiny nasal, 300-450Hz, irregular fading",
+      "color": "rgb(123,140,222)",
+      "exemplars": [
+        "tired_01.png",
+        "tired_02.png",
+        "tired_03.png",
+        "tired_04.png",
+        "tired_05.png"
+      ]
+    },
+    "DISCOMFORT": {
+      "description": "Sustained mid-range, 400-500Hz, grunting",
+      "color": "rgb(255,179,71)",
+      "exemplars": [
+        "discomfort_01.png",
+        "discomfort_02.png",
+        "discomfort_03.png",
+        "discomfort_04.png",
+        "discomfort_05.png"
+      ]
+    },
+    "BURPING": {
+      "description": "Short isolated bursts, descending pitch",
+      "color": "rgb(82,217,193)",
+      "exemplars": [
+        "burping_01.png",
+        "burping_02.png",
+        "burping_03.png",
+        "burping_04.png",
+        "burping_05.png"
+      ]
+    }
+  },
+  "total_samples": 25,
+  "placeholder": true
+}
