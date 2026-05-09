@@ -4,7 +4,9 @@
 	import { capturePhoto as trackPhoto } from '$utils/analytics.js';
 	import Icon from './Icon.svelte';
 
-	let videoEl, canvasEl;
+	/** @type {HTMLVideoElement|undefined} */  let videoEl;
+	/** @type {HTMLCanvasElement|undefined} */ let canvasEl;
+
 	let preview  = $state('');
 	let fallback = $state(false);
 	let active   = $state(false);
@@ -21,12 +23,12 @@
 		busy = true; denied = false; stopStream();
 		try {
 			const s = await navigator.mediaDevices.getUserMedia({
-				video: { facingMode: facing, width: { ideal: 1280 }, height: { ideal: 960 } }
+				video: { facingMode: facing, width:{ ideal:1280 }, height:{ ideal:960 } }
 			});
 			appState.cameraStream = s;
 			active = true; busy = false;
 			if (videoEl) { videoEl.srcObject = s; try { await videoEl.play(); } catch {} }
-		} catch (err) {
+		} catch (/** @type {any} */ err) {
 			busy = false;
 			if (err?.name === 'NotAllowedError') denied = true;
 			else fallback = true;
@@ -43,7 +45,7 @@
 		const rid = appState.resetId;
 		canvasEl.width  = videoEl.videoWidth  || 1280;
 		canvasEl.height = videoEl.videoHeight || 960;
-		canvasEl.getContext('2d').drawImage(videoEl, 0, 0);
+		canvasEl.getContext('2d')?.drawImage(videoEl, 0, 0);
 		canvasEl.toBlob(b => {
 			if (b && appState.resetId === rid) {
 				if (preview) URL.revokeObjectURL(preview);
@@ -55,211 +57,337 @@
 		}, 'image/jpeg', .92);
 	}
 
-	function upload(e) {
-		const f = e.target.files[0];
+	function upload(/** @type {Event} */ e) {
+		const f = /** @type {HTMLInputElement} */(e.target).files?.[0];
 		if (f) {
 			if (preview) URL.revokeObjectURL(preview);
 			preview = URL.createObjectURL(f);
 			appState.imageBlob = f;
-			fallback = false; // Bug fix: reset fallback state
+			fallback = false; asked = true;
 			trackPhoto('upload');
 		}
 	}
 
 	function retake() {
 		if (preview) URL.revokeObjectURL(preview);
-		preview = '';
-		appState.imageBlob = null;
+		preview = ''; appState.imageBlob = null;
 		fallback = false; active = false; asked = false; denied = false;
 	}
 
 	function stopStream() {
-		if (appState.cameraStream) {
-			appState.cameraStream.getTracks().forEach(t => t.stop());
-			appState.cameraStream = null;
-		}
-		active = false;
+		appState.cameraStream?.getTracks().forEach(t => t.stop());
+		appState.cameraStream = null; active = false;
 	}
 
 	onDestroy(() => { stopStream(); if (preview) URL.revokeObjectURL(preview); });
 </script>
 
-<div class="c">
+<div class="cc">
 	{#if appState.imageBlob && preview}
-		<!-- Preview -->
-		<div class="c-preview animate-in">
-			<div class="c-preview-img"><img src={preview} alt="Captured" /></div>
-			<div class="c-preview-label">
-				<Icon name="check" size={16} color="var(--mint)" /> Face captured
-			</div>
-			<div class="c-row">
-				<button class="c-btn" onclick={retake}><Icon name="refresh" size={14} color="currentColor" /> Retake</button>
-				<label class="c-btn">
-					<Icon name="upload" size={14} color="currentColor" /> Upload
-					<input type="file" accept="image/jpeg,image/png" onchange={upload} class="c-hidden" />
-				</label>
+		<!-- ── PREVIEW — full-width captured image ── -->
+		<div class="cc-preview animate-in">
+			<img src={preview} alt="Captured baby face" class="cc-img" />
+			<div class="cc-preview-bar">
+				<div class="cc-captured-badge">
+					<Icon name="check" size={14} color="var(--success)" />
+					<span>Photo captured</span>
+				</div>
+				<div class="cc-preview-actions">
+					<button class="cc-action-btn" onclick={retake}>
+						<Icon name="refresh" size={16} color="currentColor" />
+						Retake
+					</button>
+					<label class="cc-action-btn cc-accent">
+						<Icon name="upload" size={16} color="currentColor" />
+						Replace
+						<input type="file" accept="image/jpeg,image/png,image/webp" onchange={upload} class="cc-file" />
+					</label>
+				</div>
 			</div>
 		</div>
 
 	{:else if denied}
-		<!-- Camera denied -->
-		<div class="c-denied animate-up">
-			<div class="c-denied-icon">📷</div>
-			<strong class="c-denied-title">Camera access blocked</strong>
-			<p class="c-denied-sub">Allow camera in browser settings, or upload a photo.</p>
-			<div class="c-row">
-				<button class="c-btn" onclick={() => { denied = false; req(); }}>
-					<Icon name="refresh" size={14} color="currentColor" /> Try again
+		<!-- ── PERMISSION DENIED ── -->
+		<div class="cc-state">
+			<div class="cc-state-icon err">
+				<Icon name="camera" size={26} color="var(--error)" />
+			</div>
+			<p class="cc-state-title">Camera access blocked</p>
+			<p class="cc-state-sub">Allow camera in browser settings, or upload a photo instead.</p>
+			<div class="cc-state-actions">
+				<button class="btn-secondary" onclick={() => { denied = false; req(); }}>
+					<Icon name="refresh" size={16} color="currentColor" /> Try again
 				</button>
-				<label class="c-btn c-btn-lav">
-					<Icon name="upload" size={14} color="currentColor" /> Upload photo
-					<input type="file" accept="image/jpeg,image/png" onchange={upload} class="c-hidden" />
+				<label class="btn-primary">
+					<Icon name="upload" size={16} color="currentColor" /> Upload photo
+					<input type="file" accept="image/jpeg,image/png,image/webp" onchange={upload} class="cc-file" />
 				</label>
 			</div>
 		</div>
 
 	{:else if fallback}
-		<!-- Upload fallback -->
-		<div class="c-fallback animate-up">
-			<label class="c-upload-zone">
-				<div class="c-upload-icon"><Icon name="upload" size={28} color="var(--lavender)" /></div>
-				<div class="c-upload-text">Upload a baby photo</div>
-				<div class="c-upload-sub">JPG or PNG, well-lit face</div>
-				<input type="file" accept="image/jpeg,image/png" onchange={upload} class="c-hidden" />
-			</label>
-			<button class="c-btn" onclick={() => { fallback = false; req(); }}>
-				<Icon name="camera" size={14} color="currentColor" /> Try camera
-			</button>
-		</div>
+		<!-- ── UPLOAD FALLBACK ── -->
+		<label class="cc-dropzone">
+			<div class="cc-drop-icon">
+				<Icon name="upload" size={30} color="var(--accent)" />
+			</div>
+			<p class="cc-drop-title">Upload a photo</p>
+			<p class="cc-drop-sub">Clear, well-lit photo of baby's face · JPG or PNG</p>
+			<span class="cc-drop-cta">Choose photo</span>
+			<input type="file" accept="image/jpeg,image/png,image/webp" onchange={upload} class="cc-file" />
+		</label>
+		<button class="btn-ghost" style="align-self:center" onclick={() => { fallback = false; req(); }}>
+			<Icon name="camera" size={15} color="currentColor" /> Try camera instead
+		</button>
 
 	{:else if !asked}
-		<!-- Ask state -->
-		<div class="c-ask animate-up">
-			<div class="c-ask-icon"><Icon name="camera" size={36} color="var(--lavender)" /></div>
-			<div class="c-ask-text">Capture baby's face</div>
-			<div class="c-ask-sub">Point camera at your baby for best results</div>
-			<button class="c-big" onclick={req}>
-				<Icon name="camera" size={18} color="#fff" /> Open Camera
+		<!-- ── IDLE / ASK STATE ── -->
+		<div class="cc-ask">
+			<div class="cc-ask-icon">
+				<Icon name="camera" size={32} color="var(--accent)" />
+			</div>
+			<p class="cc-ask-title">Capture Baby's Face</p>
+			<p class="cc-ask-sub">Point camera at baby for emotional cues — works best in good light</p>
+			<button class="cc-open-btn" onclick={req}>
+				<Icon name="camera" size={20} color="#fff" />
+				Open Camera
 			</button>
-			<label class="c-link">
-				<Icon name="upload" size={14} color="currentColor" /> Or upload photo
-				<input type="file" accept="image/jpeg,image/png" onchange={upload} class="c-hidden" />
+			<label class="btn-ghost" style="align-self:center; cursor:pointer">
+				<Icon name="upload" size={15} color="currentColor" /> Upload a photo instead
+				<input type="file" accept="image/jpeg,image/png,image/webp" onchange={upload} class="cc-file" />
 			</label>
 		</div>
 
 	{:else}
-		<!-- Live camera -->
-		<div class="c-view animate-fade">
+		<!-- ── LIVE VIEWFINDER ── -->
+		<div class="cc-viewfinder">
+			<!-- Video -->
 			{#if busy}
-				<div class="c-skeleton"></div>
+				<div class="cc-loading">
+					<div class="cc-spinner"></div>
+					<p>Starting camera…</p>
+				</div>
 			{/if}
-			<video bind:this={videoEl} autoplay playsinline muted class="c-video" class:mirror={facing === 'user'}></video>
-			<!-- Guide oval -->
-			<div class="c-guide" aria-hidden="true">
-				<svg viewBox="0 0 120 140" class="c-oval">
-					<ellipse cx="60" cy="70" rx="44" ry="56" fill="rgba(167,139,250,.06)" stroke="var(--lavender)" stroke-width="2" stroke-dasharray="6 4" />
+			<video
+				bind:this={videoEl}
+				autoplay playsinline muted
+				class="cc-video"
+				class:mirror={facing === 'user'}
+			></video>
+
+			<!-- Face guide oval -->
+			<div class="cc-guide" aria-hidden="true">
+				<svg viewBox="0 0 200 240" class="cc-oval">
+					<ellipse cx="100" cy="120" rx="74" ry="94"
+						fill="none"
+						stroke="rgba(255,255,255,.35)"
+						stroke-width="2"
+						stroke-dasharray="8 5" />
 				</svg>
+				<p class="cc-guide-label">Position face here</p>
 			</div>
-			<div class="c-overlay-top">
-				<button class="c-flip" onclick={flip} aria-label="Flip camera">
-					<Icon name="flip-camera" size={16} color="#fff" />
+
+			<!-- Top overlay: flip -->
+			<div class="cc-top-bar">
+				<button class="cc-flip-btn" onclick={flip} aria-label="Flip camera">
+					<Icon name="flip-camera" size={18} color="#fff" />
+				</button>
+				<label class="cc-flip-btn" title="Upload instead">
+					<Icon name="upload" size={18} color="#fff" />
+					<input type="file" accept="image/jpeg,image/png,image/webp" onchange={upload} class="cc-file" />
+				</label>
+			</div>
+
+			<!-- Bottom overlay: shutter -->
+			<div class="cc-bottom-bar">
+				<button class="cc-shutter" onclick={capture} aria-label="Take photo">
+					<div class="cc-shutter-inner"></div>
 				</button>
 			</div>
-			<div class="c-overlay-bottom">
-				<button class="c-snap" onclick={capture} aria-label="Take photo"></button>
-			</div>
 		</div>
-		<label class="c-link">
-			<Icon name="upload" size={14} color="currentColor" /> Upload instead
-			<input type="file" accept="image/jpeg,image/png" onchange={upload} class="c-hidden" />
-		</label>
 	{/if}
 
 	<canvas bind:this={canvasEl} style="display:none"></canvas>
 </div>
 
 <style>
-	.c { width:100%; display:flex; flex-direction:column; align-items:center; gap:10px; }
-
-	/* Camera view */
-	.c-view { position:relative; width:100%; aspect-ratio:3/4; max-height:68vh; border-radius:var(--r-lg); overflow:hidden; background:var(--border); }
-	.c-skeleton { position:absolute; inset:0; z-index:2; }
-	.c-skeleton::after { content:''; position:absolute; inset:0; background:linear-gradient(90deg,transparent,rgba(167,139,250,.08),transparent); background-size:200% 100%; animation:shimmer 1.4s ease-in-out infinite; }
-	.c-video { width:100%; height:100%; object-fit:cover; }
-	.c-video.mirror { transform:scaleX(-1); }
-	.c-guide { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; pointer-events:none; }
-	.c-oval  { width:65%; height:75%; }
-	.c-overlay-top    { position:absolute; top:10px; right:10px; z-index:3; }
-	.c-overlay-bottom { position:absolute; bottom:20px; left:0; right:0; display:flex; justify-content:center; z-index:3; }
-	.c-flip { width:40px; height:40px; border-radius:50%; background:rgba(0,0,0,.5); backdrop-filter:blur(8px); display:flex; align-items:center; justify-content:center; transition:background .15s; }
-	.c-flip:hover { background:rgba(0,0,0,.7); }
-	.c-snap {
-		width:64px; height:64px; border-radius:50%;
-		background:linear-gradient(145deg, var(--lavender), var(--indigo));
-		box-shadow:0 4px 24px var(--lav-glow);
-		border:3px solid rgba(255,255,255,.25);
-		transition:transform .12s;
+	.cc {
+		width: 100%;
+		display: flex; flex-direction: column; gap: 10px;
 	}
-	.c-snap:active { transform:scale(.9); }
 
-	/* Preview */
-	.c-preview { display:flex; flex-direction:column; align-items:center; gap:12px; width:100%; padding:8px; }
-	.c-preview-img { width:100%; max-width:260px; border-radius:var(--r-lg); overflow:hidden; border:2px solid var(--mint); box-shadow:0 0 24px var(--mint-glow); }
-	.c-preview-img img { width:100%; display:block; }
-	.c-preview-label { font-size:.85rem; font-weight:700; color:var(--mint); display:flex; align-items:center; gap:6px; }
-	.c-row { display:flex; gap:8px; flex-wrap:wrap; justify-content:center; }
-
-	/* Buttons */
-	.c-btn {
-		padding:9px 20px; border-radius:var(--r-pill);
-		font-size:.8rem; font-weight:700; color:var(--text-soft);
-		border:1px solid var(--border); background:var(--surface);
-		transition:all .15s; display:inline-flex; align-items:center; gap:5px;
-		position:relative; cursor:pointer;
+	/* ── PREVIEW ── */
+	.cc-preview { display: flex; flex-direction: column; width: 100%; }
+	.cc-img {
+		width: 100%;
+		max-height: 72vw; /* wide preview */
+		object-fit: cover;
+		border-radius: var(--r-xl) var(--r-xl) 0 0;
+		display: block;
 	}
-	.c-btn:hover { border-color:var(--lavender); color:var(--text); }
-	.c-btn-lav { border-color:var(--lavender); color:var(--lavender); background:var(--lav-soft); }
+	@media(min-width: 480px) { .cc-img { max-height: 340px; } }
 
-	/* Ask state */
-	.c-ask { display:flex; flex-direction:column; align-items:center; gap:8px; padding:28px 16px; text-align:center; }
-	.c-ask-icon { width:72px; height:72px; border-radius:var(--r-lg); background:var(--lav-soft); border:1px solid rgba(167,139,250,.2); display:flex; align-items:center; justify-content:center; margin-bottom:4px; }
-	.c-ask-text { font-size:1rem; font-weight:800; color:var(--text); }
-	.c-ask-sub  { font-size:.78rem; color:var(--text-soft); margin-bottom:6px; }
-	.c-big {
-		padding:14px 32px; border-radius:var(--r-pill);
-		font-size:.95rem; font-weight:800;
-		background:linear-gradient(135deg, var(--lavender), var(--indigo));
-		color:#fff; box-shadow:0 4px 20px var(--lav-glow);
-		transition:transform .15s, box-shadow .2s;
-		display:inline-flex; align-items:center; gap:8px;
+	.cc-preview-bar {
+		display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;
+		padding: 12px 16px;
+		background: var(--surface-2); border: 1px solid var(--border);
+		border-radius: 0 0 var(--r-xl) var(--r-xl);
+		border-top: none;
 	}
-	.c-big:hover  { transform:translateY(-1px); box-shadow:0 6px 28px var(--lav-glow); }
-	.c-big:active { transform:scale(.97); }
-	.c-link {
-		font-size:.78rem; color:var(--text-soft); font-weight:600;
-		cursor:pointer; padding:8px 14px; border-radius:var(--r-sm);
-		transition:all .15s; display:inline-flex; align-items:center; gap:5px; position:relative;
+	.cc-captured-badge {
+		display: flex; align-items: center; gap: 6px;
+		font-size: .78rem; font-weight: 800; color: var(--success);
 	}
-	.c-link:hover { color:var(--text); background:var(--surface); }
-
-	/* Upload zone */
-	.c-fallback { display:flex; flex-direction:column; align-items:center; gap:12px; width:100%; }
-	.c-upload-zone {
-		display:flex; flex-direction:column; align-items:center; gap:8px;
-		padding:36px 40px; border:2px dashed var(--border); border-radius:var(--r-lg);
-		background:var(--surface); cursor:pointer; position:relative;
-		transition:border-color .2s, background .2s; text-align:center; width:100%;
+	.cc-preview-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+	.cc-action-btn {
+		display: inline-flex; align-items: center; gap: 6px;
+		padding: 9px 18px; border-radius: var(--r-md); min-height: 44px;
+		font-size: .8rem; font-weight: 800; cursor: pointer;
+		background: var(--surface-3); color: var(--text-2);
+		border: 1px solid var(--border);
+		transition: all .12s; position: relative;
 	}
-	.c-upload-zone:hover { border-color:var(--lavender); background:var(--lav-soft); }
-	.c-upload-icon  { width:56px; height:56px; border-radius:var(--r-md); background:var(--lav-soft); display:flex; align-items:center; justify-content:center; }
-	.c-upload-text  { font-size:.95rem; font-weight:800; color:var(--text); }
-	.c-upload-sub   { font-size:.72rem; color:var(--text-soft); }
+	.cc-action-btn:hover { color: var(--text); border-color: var(--accent-border); }
+	.cc-action-btn.cc-accent { background: var(--accent-muted); color: var(--accent); border-color: var(--accent-border); }
 
-	/* Denied */
-	.c-denied { display:flex; flex-direction:column; align-items:center; gap:10px; padding:24px; background:var(--blush-soft); border:1px solid rgba(253,164,175,.2); border-radius:var(--r-lg); text-align:center; max-width:300px; }
-	.c-denied-icon  { font-size:2.2rem; }
-	.c-denied-title { font-size:.95rem; font-weight:800; color:var(--blush); }
-	.c-denied-sub   { font-size:.78rem; color:var(--text-soft); line-height:1.5; }
+	/* ── STATES ── */
+	.cc-state {
+		display: flex; flex-direction: column; align-items: center; gap: 14px;
+		padding: 32px 20px; text-align: center;
+	}
+	.cc-state-icon {
+		width: 64px; height: 64px; border-radius: var(--r-xl);
+		display: flex; align-items: center; justify-content: center;
+	}
+	.cc-state-icon.err { background: var(--error-bg); border: 1px solid var(--error-border); }
+	.cc-state-title { font-size: 1.05rem; font-weight: 800; color: var(--text); }
+	.cc-state-sub   { font-size: .82rem; color: var(--text-2); line-height: 1.6; max-width: 280px; }
+	.cc-state-actions { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
 
-	.c-hidden { position:absolute; inset:0; opacity:0; cursor:pointer; }
+	/* ── UPLOAD DROPZONE ── */
+	.cc-dropzone {
+		display: flex; flex-direction: column; align-items: center; gap: 10px;
+		padding: 40px 24px; cursor: pointer; position: relative;
+		border: 2px dashed var(--border);
+		border-radius: var(--r-xl);
+		background: var(--surface-2);
+		transition: border-color .15s, background .15s;
+		text-align: center;
+	}
+	.cc-dropzone:hover { border-color: var(--accent); background: var(--accent-muted); }
+	.cc-drop-icon {
+		width: 68px; height: 68px; border-radius: var(--r-xl);
+		background: var(--accent-muted); border: 1px solid var(--accent-border);
+		display: flex; align-items: center; justify-content: center;
+	}
+	.cc-drop-title { font-size: 1.05rem; font-weight: 800; color: var(--text); }
+	.cc-drop-sub   { font-size: .78rem; color: var(--text-2); line-height: 1.5; }
+	.cc-drop-cta {
+		padding: 10px 28px; border-radius: var(--r-pill);
+		font-size: .85rem; font-weight: 800;
+		background: var(--accent); color: #fff; margin-top: 6px;
+	}
+
+	/* ── ASK STATE ── */
+	.cc-ask {
+		display: flex; flex-direction: column; align-items: center; gap: 14px;
+		padding: 36px 20px; text-align: center;
+	}
+	.cc-ask-icon {
+		width: 80px; height: 80px; border-radius: var(--r-2xl);
+		background: var(--accent-muted); border: 1px solid var(--accent-border);
+		display: flex; align-items: center; justify-content: center;
+	}
+	.cc-ask-title { font-size: 1.2rem; font-weight: 800; color: var(--text); }
+	.cc-ask-sub   { font-size: .82rem; color: var(--text-2); line-height: 1.6; max-width: 280px; }
+	.cc-open-btn {
+		display: flex; align-items: center; gap: 10px;
+		padding: 16px 40px; border-radius: var(--r-xl); min-height: 56px;
+		font-size: 1.05rem; font-weight: 800;
+		background: var(--accent); color: #fff;
+		box-shadow: var(--shadow-glow);
+		transition: transform .12s, box-shadow .15s;
+	}
+	.cc-open-btn:hover  { transform: scale(1.03); }
+	.cc-open-btn:active { transform: scale(.97); }
+
+	/* ── VIEWFINDER ── */
+	.cc-viewfinder {
+		position: relative; width: 100%;
+		/* Tall 3:4 ratio for portrait face capture */
+		aspect-ratio: 3/4;
+		max-height: 78vw;
+		border-radius: var(--r-xl);
+		overflow: hidden;
+		background: #000;
+	}
+	@media(min-width: 480px) { .cc-viewfinder { max-height: 420px; } }
+
+	.cc-video {
+		width: 100%; height: 100%;
+		object-fit: cover; display: block;
+	}
+	.cc-video.mirror { transform: scaleX(-1); }
+
+	/* Loading overlay */
+	.cc-loading {
+		position: absolute; inset: 0; z-index: 4;
+		background: rgba(9,9,11,.8);
+		display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
+	}
+	.cc-loading p { font-size: .9rem; color: var(--text-2); font-weight: 700; }
+	.cc-spinner {
+		width: 36px; height: 36px;
+		border: 3px solid var(--border); border-top-color: var(--accent);
+		border-radius: 50%; animation: spin .7s linear infinite;
+	}
+
+	/* Face guide */
+	.cc-guide {
+		position: absolute; inset: 0; pointer-events: none;
+		display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+		padding-top: 12%;
+	}
+	.cc-oval { width: 62%; opacity: .7; }
+	.cc-guide-label {
+		font-size: .72rem; font-weight: 700; color: rgba(255,255,255,.55);
+		margin-top: 8px; letter-spacing: .04em;
+	}
+
+	/* Top bar */
+	.cc-top-bar {
+		position: absolute; top: 12px; right: 12px; z-index: 3;
+		display: flex; flex-direction: column; gap: 8px;
+	}
+	.cc-flip-btn {
+		width: 44px; height: 44px; border-radius: 50%;
+		background: rgba(0,0,0,.55); backdrop-filter: blur(10px);
+		display: flex; align-items: center; justify-content: center;
+		transition: background .12s; position: relative; cursor: pointer;
+	}
+	.cc-flip-btn:hover { background: rgba(0,0,0,.75); }
+
+	/* Bottom shutter bar */
+	.cc-bottom-bar {
+		position: absolute; bottom: 24px; left: 0; right: 0; z-index: 3;
+		display: flex; justify-content: center;
+	}
+	.cc-shutter {
+		width: 80px; height: 80px; border-radius: 50%;
+		background: rgba(255,255,255,.15); backdrop-filter: blur(8px);
+		border: 3px solid rgba(255,255,255,.7);
+		display: flex; align-items: center; justify-content: center;
+		transition: transform .12s;
+	}
+	.cc-shutter:hover  { transform: scale(1.06); }
+	.cc-shutter:active { transform: scale(.91); }
+	.cc-shutter-inner {
+		width: 58px; height: 58px; border-radius: 50%;
+		background: rgba(255,255,255,.9);
+	}
+
+	/* ── Shared ── */
+	.cc-file {
+		position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+	}
 </style>

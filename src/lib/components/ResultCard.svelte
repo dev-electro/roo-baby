@@ -2,204 +2,174 @@
 	import { appState } from '$state/appState.svelte.js';
 	import Icon from './Icon.svelte';
 
-	const IC = {
-		HUNGER:'bottle', PAIN:'bandage', TIRED:'moon', DISCOMFORT:'thermometer',
-		BURPING:'wind', UNKNOWN:'info-circle', INVALID:'warning'
-	};
-	const LB = {
-		HUNGER:'Hunger', PAIN:'Pain', TIRED:'Tired',
-		DISCOMFORT:'Discomfort', BURPING:'Burping', UNKNOWN:'Unknown', INVALID:'Not a Baby'
-	};
-	const CL = {
-		HUNGER:'var(--amber)', PAIN:'var(--blush)', TIRED:'var(--indigo)',
-		DISCOMFORT:'var(--amber)', BURPING:'var(--mint)', UNKNOWN:'var(--text-soft)', INVALID:'var(--blush)'
-	};
-	const CL_SOFT = {
-		HUNGER:'var(--amber-soft)', PAIN:'var(--blush-soft)', TIRED:'var(--indigo-soft)',
-		DISCOMFORT:'var(--amber-soft)', BURPING:'var(--mint-soft)', UNKNOWN:'var(--surface-2)', INVALID:'var(--blush-soft)'
-	};
-	const SV = {
-		NONE:     {c:'var(--text-soft)', bg:'var(--surface-2)'},
-		LOW:      {c:'var(--mint)',      bg:'var(--mint-soft)'},
-		MEDIUM:   {c:'var(--amber)',     bg:'var(--amber-soft)'},
-		HIGH:     {c:'var(--blush)',     bg:'var(--blush-soft)'},
-		CRITICAL: {c:'var(--red)',       bg:'var(--red-soft)'},
+	const CAT_META = {
+		HUNGER:     { label:'Hunger',      icon:'bottle',      color:'var(--cat-hunger)',     bg:'var(--cat-hunger-bg)',     advice:'Baby needs to be fed. Offer breast or bottle.' },
+		PAIN:       { label:'Pain / Discomfort', icon:'bandage', color:'var(--cat-pain)',    bg:'var(--cat-pain-bg)',        advice:'Check for discomfort — gas, rash, or teething. Consult a doctor if persistent.' },
+		TIRED:      { label:'Tired',        icon:'moon',        color:'var(--cat-tired)',      bg:'var(--cat-tired-bg)',      advice:'Baby needs sleep. Create a calm, dark environment.' },
+		DISCOMFORT: { label:'Discomfort',   icon:'thermometer', color:'var(--cat-discomfort)', bg:'var(--cat-discomfort-bg)', advice:'Check temperature, diaper, clothing, or position.' },
+		BURPING:    { label:'Needs Burping',icon:'wind',        color:'var(--cat-burping)',    bg:'var(--cat-burping-bg)',    advice:'Hold baby upright and gently pat their back.' },
+		UNKNOWN:    { label:'Unclear',      icon:'info',        color:'var(--cat-unknown)',    bg:'var(--cat-unknown-bg)',    advice:'Pattern unclear. Observe your baby and try again.' },
+		INVALID:    { label:'Not a Baby',   icon:'warning',     color:'var(--error)',          bg:'var(--error-bg)',          advice:'ROO is designed for babies only. Point the mic at your little one.' },
 	};
 
-	let w = $state(0);
-	$effect(() => {
-		if (appState.result) {
-			requestAnimationFrame(() => setTimeout(() => w = appState.result?.confidence || 0, 120));
-		} else {
-			w = 0;
-		}
-	});
+	const SEV_LABEL = { NONE:'Low urgency', LOW:'Low urgency', MEDIUM:'Moderate', HIGH:'Act soon', CRITICAL:'Urgent' };
+	const SEV_COLOR = { NONE:'var(--text-3)', LOW:'var(--success)', MEDIUM:'var(--warning)', HIGH:'var(--warning)', CRITICAL:'var(--error)' };
 
-	let resultEl;
+	let r  = $derived(/** @type {any} */(appState.result));
+	let m  = $derived(r ? (CAT_META[/** @type {string} */(r.category)] ?? CAT_META.UNKNOWN) : null);
+	let sv = $derived(r?.severity ?? 'NONE');
+
+	/** @type {HTMLElement|undefined} */
+	let cardEl;
 	$effect(() => {
-		if (appState.result && resultEl) {
-			setTimeout(() => resultEl.scrollIntoView({ behavior: 'smooth', block: 'start' }), 200);
-		}
+		if (r && cardEl) { setTimeout(() => cardEl?.scrollIntoView({ behavior:'smooth', block:'nearest' }), 80); }
 	});
 </script>
 
-{#if appState.result}
-	<div class="rc animate-up" bind:this={resultEl}>
+{#if r && m}
+<div class="rc animate-up" bind:this={cardEl} style="--cat-c:{m.color};--cat-bg:{m.bg}">
 
-		<!-- Adult alert -->
-		{#if appState.result.is_adult || appState.result.category === 'INVALID'}
-			<div class="rc-alert animate-in" style="animation-delay:.05s">
-				<div class="rc-alert-emoji">👶</div>
-				<div>
-					<strong class="rc-alert-title">That's an adult face!</strong>
-					<p class="rc-alert-sub">ROO is designed for babies aged 0–3. The results below may not be accurate — try it with your little one!</p>
-				</div>
-			</div>
-		{/if}
-
-		<!-- Top: category + severity -->
-		<div class="rc-top" style="--cc:{CL[appState.result.category]||'var(--text-soft)'}; --cs:{CL_SOFT[appState.result.category]||'var(--surface-2)'}">
-			<div class="rc-cat">
-				<div class="rc-icon">
-					<Icon name={IC[appState.result.category]||'info-circle'} size={28} color={CL[appState.result.category]||'var(--text-soft)'} />
-				</div>
-				<div>
-					<div class="rc-name gradient-text" style="background:linear-gradient(135deg,{CL[appState.result.category]||'var(--text)'},{CL[appState.result.category]||'var(--text)'}99); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;">
-						{LB[appState.result.category]||appState.result.category}
-					</div>
-					<div class="rc-sub">Your baby may be {LB[appState.result.category]?.toLowerCase()||'upset'}</div>
-				</div>
-			</div>
-			<div
-				class="rc-sev"
-				style="color:{(SV[appState.result.severity]||SV.MEDIUM).c}; background:{(SV[appState.result.severity]||SV.MEDIUM).bg}; box-shadow:0 0 12px {(SV[appState.result.severity]||SV.MEDIUM).c}40"
-			>
-				{appState.result.severity}
-			</div>
+	<!-- Category header -->
+	<div class="rc-head">
+		<div class="rc-icon">
+			<Icon name={m.icon} size={28} color={m.color} />
 		</div>
-
-		<!-- Confidence bar -->
-		<div class="rc-conf animate-up" style="animation-delay:.1s">
-			<div class="rc-conf-h">
-				<span>Confidence</span>
-				<span class="rc-conf-v">{appState.result.confidence}%</span>
-			</div>
-			<div class="rc-conf-track">
-				<div class="rc-conf-fill" style="width:{w}%">
-					<div class="rc-conf-glow"></div>
-				</div>
-			</div>
+		<div class="rc-head-text">
+			<p class="rc-label">ROO says your baby is…</p>
+			<h2 class="rc-cat">{m.label}</h2>
 		</div>
-
-		<!-- Reasoning -->
-		{#if appState.result.reasoning}
-			<div class="rc-box animate-up" style="animation-delay:.15s">
-				<div class="rc-box-l">Why</div>
-				<p class="rc-reason">"{appState.result.reasoning}"</p>
-			</div>
-		{/if}
-
-		<!-- Action -->
-		{#if appState.result.parent_action}
-			<div class="rc-action animate-up" style="animation-delay:.2s">
-				<div class="rc-action-l">
-					<Icon name="arrow-right" size={14} color="var(--mint)" />
-					What to do
-				</div>
-				<div class="rc-action-t">{appState.result.parent_action}</div>
-			</div>
-		{/if}
-
-		<!-- Adult message -->
-		{#if appState.result.adult_message}
-			<div class="rc-adult-msg">{appState.result.adult_message}</div>
-		{/if}
-
+		<div class="rc-sev" style="color:{SEV_COLOR[sv] ?? 'var(--text-3)'}">
+			{SEV_LABEL[sv] ?? 'Low urgency'}
+		</div>
 	</div>
+
+	<!-- Confidence bar -->
+	{#if r.confidence > 0}
+	<div class="rc-conf">
+		<div class="rc-conf-labels">
+			<span class="label">Confidence</span>
+			<span class="rc-conf-pct">{r.confidence}%</span>
+		</div>
+		<div class="rc-conf-track">
+			<div
+				class="rc-conf-fill"
+				style="width:{r.confidence}%; background:{r.confidence >= 75 ? 'var(--success)' : r.confidence >= 50 ? 'var(--warning)' : 'var(--error)'}"
+			></div>
+		</div>
+		{#if r.confidence < 60}
+			<p class="rc-conf-note">
+				<Icon name="info" size={12} color="currentColor" />
+				Low confidence — consider re-recording in a quieter environment
+			</p>
+		{/if}
+	</div>
+	{/if}
+
+	<!-- What ROO heard -->
+	{#if r.reasoning}
+	<div class="rc-section">
+		<p class="label">What ROO detected</p>
+		<p class="rc-body">{r.reasoning}</p>
+	</div>
+	{/if}
+
+	<!-- Parent action -->
+	<div class="rc-action">
+		<Icon name="sparkles" size={16} color={m.color} />
+		<p class="rc-action-text">{r.parent_action || m.advice}</p>
+	</div>
+
+	<!-- Adult face warning -->
+	{#if r.is_adult && r.adult_message}
+	<div class="rc-alert warn">
+		<Icon name="warning" size={15} color="var(--warning)" />
+		<p>{r.adult_message}</p>
+	</div>
+	{/if}
+
+	<!-- Pre-cry note -->
+	{#if r.pre_cry && r.pre_cry_message}
+	<div class="rc-alert info">
+		<Icon name="info" size={15} color="var(--info)" />
+		<p>{r.pre_cry_message}</p>
+	</div>
+	{/if}
+
+	<!-- Edge-case note -->
+	{#if r._isEdgeCase}
+	<div class="rc-alert warn">
+		<Icon name="info" size={15} color="var(--warning)" />
+		<p>This result is based on audio quality analysis, not AI inference. Please re-record for a full analysis.</p>
+	</div>
+	{/if}
+
+	<!-- Disclaimer -->
+	<p class="rc-disclaimer">
+		<Icon name="warning" size={11} color="currentColor" />
+		Not a medical device. Always trust your parental instincts and consult your pediatrician.
+	</p>
+</div>
 {/if}
 
 <style>
 	.rc {
-		background:var(--surface); border:1px solid var(--border);
-		border-radius:var(--r-xl); overflow:hidden;
-		box-shadow:var(--shadow-card);
+		background: var(--surface); border: 1px solid var(--border);
+		border-radius: var(--r-xl); overflow: hidden;
+		display: flex; flex-direction: column; gap: 0;
 	}
 
-	/* Alert */
-	.rc-alert {
-		display:flex; align-items:flex-start; gap:12px;
-		padding:14px 18px; background:var(--blush-soft);
-		border-bottom:2px solid rgba(253,164,175,.3);
+	/* Category header */
+	.rc-head {
+		display: flex; align-items: center; gap: 14px;
+		padding: 20px 20px 16px;
+		border-bottom: 1px solid var(--border);
+		background: var(--cat-bg);
 	}
-	.rc-alert-emoji { font-size:1.8rem; flex-shrink:0; line-height:1; margin-top:2px; }
-	.rc-alert-title { font-size:.85rem; color:var(--blush); display:block; margin-bottom:3px; font-weight:800; }
-	.rc-alert-sub   { font-size:.75rem; color:var(--text-soft); line-height:1.5; margin:0; }
-
-	/* Top row */
-	.rc-top {
-		padding:18px; display:flex; align-items:flex-start;
-		justify-content:space-between; gap:10px;
-		background:linear-gradient(135deg, var(--cs) 0%, transparent 80%);
-		border-bottom:1px solid var(--border);
+	.rc-icon {
+		width: 60px; height: 60px; border-radius: var(--r-lg); flex-shrink: 0;
+		background: var(--surface); border: 1px solid rgba(255,255,255,.08);
+		display: flex; align-items: center; justify-content: center;
 	}
-	.rc-cat   { display:flex; align-items:center; gap:12px; }
-	.rc-icon  {
-		width:56px; height:56px; border-radius:var(--r-md);
-		background:var(--cs); border:1px solid rgba(128,128,128,.12);
-		display:flex; align-items:center; justify-content:center; flex-shrink:0;
-		box-shadow:0 0 20px var(--cs);
-	}
-	.rc-name  { font-family:'Fraunces',serif; font-size:1.8rem; font-weight:700; line-height:1; }
-	.rc-sub   { font-size:.75rem; color:var(--text-soft); margin-top:3px; }
-	.rc-sev   {
-		padding:4px 12px; border-radius:var(--r-pill);
-		font-size:.6rem; font-weight:800; letter-spacing:.1em; text-transform:uppercase;
-		flex-shrink:0; border:1px solid currentColor;
-	}
+	[data-theme="light"] .rc-icon { border-color: rgba(0,0,0,.06); }
+	.rc-head-text { flex: 1; }
+	.rc-label { font-size: .65rem; font-weight: 700; color: var(--text-2); letter-spacing: .04em; }
+	.rc-cat   { font-family:'Instrument Serif',serif; font-size: 1.6rem; font-weight: 400; color: var(--cat-c); line-height: 1.1; margin-top: 3px; }
+	.rc-sev   { font-size: .62rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; flex-shrink: 0; text-align: right; }
 
 	/* Confidence */
-	.rc-conf { padding:14px 18px; }
-	.rc-conf-h {
-		display:flex; justify-content:space-between; align-items:center;
-		font-size:.68rem; font-weight:700; color:var(--text-dim);
-		text-transform:uppercase; letter-spacing:.06em; margin-bottom:8px;
-	}
-	.rc-conf-v { font-family:'Fraunces',serif; font-size:.9rem; color:var(--text); text-transform:none; letter-spacing:0; }
-	.rc-conf-track { height:10px; background:var(--border); border-radius:5px; overflow:hidden; position:relative; }
-	.rc-conf-fill {
-		height:100%; border-radius:5px;
-		background:linear-gradient(90deg, var(--lavender), var(--mint));
-		transition:width 1.1s cubic-bezier(.25,.46,.45,.94);
-		position:relative;
-	}
-	.rc-conf-glow {
-		position:absolute; right:0; top:50%; transform:translateY(-50%);
-		width:12px; height:12px; border-radius:50%;
-		background:var(--mint); box-shadow:0 0 10px var(--mint);
-	}
+	.rc-conf { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; flex-direction: column; gap: 6px; }
+	.rc-conf-labels { display: flex; justify-content: space-between; align-items: center; }
+	.rc-conf-pct { font-size: 1rem; font-weight: 800; color: var(--text); }
+	.rc-conf-track { height: 8px; background: var(--surface-2); border-radius: 4px; overflow: hidden; }
+	.rc-conf-fill  { height: 100%; border-radius: 4px; transition: width .6s cubic-bezier(.16,1,.3,1); }
+	.rc-conf-note  { display: flex; align-items: center; gap: 5px; font-size: .68rem; color: var(--text-2); }
 
-	/* Reasoning */
-	.rc-box    { padding:14px 18px; border-top:1px solid var(--border); }
-	.rc-box-l  { font-size:.6rem; font-weight:800; letter-spacing:.1em; text-transform:uppercase; color:var(--text-dim); margin-bottom:6px; }
-	.rc-reason { font-size:.88rem; color:var(--text-soft); line-height:1.6; font-style:italic; }
-	.rc-reason::before { content:'\201C'; font-size:1.4rem; color:var(--lavender); opacity:.5; vertical-align:-.25em; margin-right:2px; font-style:normal; }
+	/* Sections */
+	.rc-section { padding: 14px 20px; border-bottom: 1px solid var(--border); display: flex; flex-direction: column; gap: 6px; }
+	.rc-body    { font-size: .88rem; color: var(--text-2); line-height: 1.6; }
 
 	/* Action */
 	.rc-action {
-		padding:16px 18px;
-		background:linear-gradient(135deg, var(--mint-soft), transparent 80%);
-		border-top:1px solid rgba(110,231,183,.2);
+		display: flex; align-items: flex-start; gap: 10px;
+		padding: 16px 20px; border-bottom: 1px solid var(--border);
+		background: var(--cat-bg);
 	}
-	.rc-action-l {
-		display:flex; align-items:center; gap:5px;
-		font-size:.6rem; font-weight:800; letter-spacing:.1em; text-transform:uppercase;
-		color:var(--mint); margin-bottom:6px;
-	}
-	.rc-action-t { font-size:.92rem; font-weight:700; color:var(--text); line-height:1.5; }
+	.rc-action-text { font-size: .9rem; font-weight: 700; color: var(--text); line-height: 1.5; }
 
-	.rc-adult-msg {
-		padding:8px 18px; font-size:.7rem; color:var(--text-dim);
-		font-style:italic; background:rgba(253,164,175,.04);
-		border-top:1px solid var(--border);
+	/* Alerts */
+	.rc-alert {
+		display: flex; align-items: flex-start; gap: 10px;
+		padding: 12px 20px; border-bottom: 1px solid var(--border);
+		font-size: .8rem; line-height: 1.5;
+	}
+	.rc-alert.warn { background: var(--warning-bg); color: var(--warning); }
+	.rc-alert.info { background: var(--info-bg);    color: var(--info); }
+	.rc-alert p { flex: 1; }
+
+	/* Disclaimer */
+	.rc-disclaimer {
+		display: flex; align-items: center; gap: 5px;
+		padding: 10px 20px;
+		font-size: .62rem; color: var(--text-3); line-height: 1.5;
 	}
 </style>
