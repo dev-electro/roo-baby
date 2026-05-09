@@ -82,14 +82,19 @@ export const categories = [
 	}
 ];
 
-/** Synth sounds — always available (no R2 needed) */
+/** Synth sounds — always available (no R2 needed), match soundGenerator CREATORS */
 export const synths = [
-	{ id: 'whitenoise', name: 'White Noise',   desc: 'Gentle static — mimics the womb',      icon: 'wind',    color: 'var(--teal)' },
-	{ id: 'pinknoise',  name: 'Pink Noise',    desc: 'Deeper than white — more calming',      icon: 'search',  color: '#C4A882' },
-	{ id: 'brownnoise', name: 'Brown Noise',   desc: 'Deepest rumble — blocks distractions',   icon: 'bolt',    color: '#8B6914' },
-	{ id: 'rain',       name: 'Gentle Rain',   desc: 'Soft rainfall — peaceful backdrop',      icon: 'moon',    color: '#7EB8DA' },
-	{ id: 'ocean',      name: 'Ocean Waves',   desc: 'Rolling waves — deep relaxation',        icon: 'heart',   color: '#5B9BD5' },
-	{ id: 'heartbeat',  name: 'Heartbeat',     desc: 'Real heartbeat rhythm — womb comfort',   icon: 'bandage', color: 'var(--pink)' },
-	{ id: 'lullaby',    name: 'Lullaby',       desc: 'Soft melody — helps baby drift off',     icon: 'star',    color: 'var(--gold)' },
-	{ id: 'shush',      name: 'Shush',         desc: 'Rhythmic shushing — instantly soothes',  icon: 'arrow-right', color: 'var(--purple)' },
+	{ id: 'whitenoise', name: 'White Noise',  desc: 'Mimics the womb',              icon: 'wind',   color: 'var(--teal)' },
+	{ id: 'pinknoise',  name: 'Pink Noise',   desc: 'Warmer, more calming',          icon: 'wave',   color: 'var(--sky)' },
+	{ id: 'brownnoise', name: 'Brown Noise',  desc: 'Deep rumble',                   icon: 'wave',   color: 'var(--amber)' },
+	{ id: 'rain',       name: 'Gentle Rain',  desc: 'Soft rainfall',                 icon: 'drop',   color: 'var(--sky)' },
+	{ id: 'ocean',      name: 'Ocean Waves',  desc: 'Rolling wave cycles',           icon: 'wave',   color: 'var(--indigo)' },
+	{ id: 'heartbeat',  name: 'Heartbeat',    desc: 'Womb comfort rhythm',           icon: 'heart',  color: 'var(--rose)' },
+	{ id: 'lullaby',    name: 'Lullaby',      desc: 'Soft melody tone',              icon: 'music',  color: 'var(--amber)' },
+	{ id: 'shush',      name: 'Shush',        desc: 'Rhythmic shushing',             icon: 'volume', color: 'var(--accent)' },
+	{ id: 'womb',       name: 'Womb',         desc: 'Prenatal soundscape',           icon: 'baby',   color: 'var(--rose)' },
+	{ id: 'fan',        name: 'Fan',          desc: 'Box fan hum',                   icon: 'wind',   color: 'var(--text-3)' },
+	{ id: 'binaural',   name: 'Binaural',     desc: 'Delta waves (headphones)',      icon: 'wave',   color: 'var(--indigo)' },
+	{ id: 'thunder',    name: 'Thunder',      desc: 'Distant storm ambience',        icon: 'bolt',   color: 'var(--warning)' },
 ];
+
