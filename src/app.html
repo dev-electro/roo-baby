@@ -1,52 +1,69 @@
 <!DOCTYPE html>
 <html lang="en">
-	<head>
-		<meta charset="utf-8" />
-		<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-		<meta name="theme-color" content="#0E0D14" />
-		<meta name="background-color" content="#0E0D14" />
-		<meta name="apple-mobile-web-app-capable" content="yes" />
-		<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-		<meta name="description" content="ROO — World's first multimodal baby cry analyzer powered by Gemma 4." />
-		<link rel="icon" type="image/svg+xml" href="%sveltekit.assets%/favicon.svg" />
-		<link rel="manifest" href="%sveltekit.assets%/manifest.json" />
 
-		<!-- Font perf: preconnect first, then load with display=swap -->
-		<link rel="preconnect" href="https://fonts.googleapis.com" />
-		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-		<link
-			rel="preload"
-			as="style"
-			href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Fraunces:ital,opsz,wght@0,9..144,700;1,9..144,400&display=swap"
-		/>
-		<link
-			rel="stylesheet"
-			href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Fraunces:ital,opsz,wght@0,9..144,700;1,9..144,400&display=swap"
-			media="print"
-			onload="this.media='all'"
-		/>
-		<noscript>
-			<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Fraunces:ital,opsz,wght@0,9..144,700;1,9..144,400&display=swap" rel="stylesheet" />
-		</noscript>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0E0D14" />
+  <meta name="background-color" content="#0E0D14" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="description" content="ROO — World's first multimodal baby cry analyzer powered by Gemma 4." />
+  <link rel="icon" type="image/svg+xml" href="%sveltekit.assets%/favicon.svg" />
+  <link rel="manifest" href="%sveltekit.assets%/manifest.json" />
 
-		<!-- Critical inline CSS: prevent FOUC, set bg immediately -->
-		<style>
-			:root { --bg: #0E0D14; --text: #F0EDF8; }
-			[data-theme="light"] { --bg: #FDFCFF; --text: #1A1828; }
-			*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-			html { -webkit-font-smoothing: antialiased; }
-			body {
-				background: var(--bg);
-				color: var(--text);
-				font-family: 'Nunito', -apple-system, system-ui, sans-serif;
-				min-height: 100dvh;
-				overflow-x: hidden;
-			}
-		</style>
+  <!-- Font perf: preconnect first, then load with display=swap -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="preload" as="style"
+    href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Fraunces:ital,opsz,wght@0,9..144,700;1,9..144,400&display=swap" />
+  <link rel="stylesheet"
+    href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Fraunces:ital,opsz,wght@0,9..144,700;1,9..144,400&display=swap"
+    media="print" onload="this.media='all'" />
+  <noscript>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Fraunces:ital,opsz,wght@0,9..144,700;1,9..144,400&display=swap"
+      rel="stylesheet" />
+  </noscript>
 
-		%sveltekit.head%
-	</head>
-	<body data-sveltekit-preload-data="hover">
-		<div style="display: contents">%sveltekit.body%</div>
-	</body>
+  <!-- Critical inline CSS: prevent FOUC, set bg immediately -->
+  <style>
+    :root {
+      --bg: #0E0D14;
+      --text: #F0EDF8;
+    }
+
+    [data-theme="light"] {
+      --bg: #FDFCFF;
+      --text: #1A1828;
+    }
+
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Nunito', -apple-system, system-ui, sans-serif;
+      min-height: 100dvh;
+      overflow-x: hidden;
+    }
+  </style>
+
+  %sveltekit.head%
+</head>
+
+<body data-sveltekit-preload-data="hover">
+  <div style="display: contents">%sveltekit.body%</div>
+</body>
+
 </html>
