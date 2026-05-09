@@ -1,64 +1,87 @@
 <script>
+	import { appState } from '$state/appState.svelte.js';
 	import Icon from './Icon.svelte';
-	import { onMount } from 'svelte';
 
-	const tips = [
-		"Analyzing audio frequencies...",
-		"Checking for signs of hunger...",
-		"Looking for pain indicators...",
-		"Processing vocal patterns...",
-		"Evaluating baby's environment..."
+	let words = $state(0); // cycling index driven by effect below
+	const WORDS = [
+		'Decoding your baby\'s cry…',
+		'Analyzing Mel spectrogram patterns…',
+		'Cross-referencing with Gemma 4 VLM…',
+		'Identifying cry characteristics…',
+		'Almost ready…',
 	];
-	let tipIndex = $state(0);
+	let wordIdx = $state(0);
+	let id;
 
-	onMount(() => {
-		const iv = setInterval(() => {
-			tipIndex = (tipIndex + 1) % tips.length;
-		}, 2500);
-		return () => clearInterval(iv);
+	$effect(() => {
+		if (appState.isAnalyzing) {
+			wordIdx = 0;
+			id = setInterval(() => { wordIdx = (wordIdx + 1) % WORDS.length; }, 2200);
+			return () => clearInterval(id);
+		} else {
+			clearInterval(id); wordIdx = 0;
+		}
 	});
 </script>
 
-<div class="loader-wrap animate-in">
-	<div class="spinner-box">
-		<Icon name="loader" size={32} color="var(--primary)" style="animation: spin 1s linear infinite;" />
+{#if appState.isAnalyzing}
+<div class="l animate-up">
+	<div class="l-orb">
+		<div class="l-orb-inner">
+			<Icon name="kangaroo" size={28} color="var(--lavender)" />
+		</div>
+		<div class="l-ring l-ring-1"></div>
+		<div class="l-ring l-ring-2"></div>
 	</div>
-
-	<h3 class="head">Analyzing...</h3>
-	<div class="tip-wrap">
-		{#key tipIndex}
-			<p class="tip animate-up">{tips[tipIndex]}</p>
+	<div class="l-text-wrap">
+		{#key wordIdx}
+			<p class="l-text animate-fade">{WORDS[wordIdx]}</p>
 		{/key}
 	</div>
-	
-	<!-- Clean indeterminate bar -->
-	<div class="prog-bg">
-		<div class="prog-bar"></div>
-	</div>
+	<div class="l-bar"><div class="l-bar-fill"></div></div>
 </div>
+{/if}
 
 <style>
-	.loader-wrap {
-		display:flex; flex-direction:column; align-items:center; justify-content:center;
-		padding:48px 24px; min-height:240px; text-align:center;
+	.l {
+		display:flex; flex-direction:column; align-items:center; gap:16px;
+		padding:32px 24px; background:var(--surface); border:1px solid var(--border);
+		border-radius:var(--r-xl); box-shadow:var(--shadow-card);
 	}
 
-	.spinner-box { margin-bottom:20px; }
-
-	.head { font-size:1.2rem; font-weight:700; color:var(--text); margin-bottom:8px; }
-
-	.tip-wrap { height:24px; overflow:hidden; position:relative; margin-bottom:32px; width:100%; }
-	.tip { font-size:0.9rem; color:var(--text-soft); font-weight:500; position:absolute; width:100%; left:0; }
-
-	.prog-bg { width:200px; height:4px; border-radius:2px; background:var(--surface-2); overflow:hidden; position:relative; }
-	.prog-bar {
-		position:absolute; top:0; left:0; bottom:0; width:40%; border-radius:2px;
-		background:var(--primary);
-		animation: linear-prog 1.5s ease-in-out infinite;
+	/* Orb */
+	.l-orb { position:relative; width:80px; height:80px; display:flex; align-items:center; justify-content:center; }
+	.l-orb-inner {
+		width:64px; height:64px; border-radius:50%;
+		background:linear-gradient(135deg, var(--lav-soft), var(--mint-soft));
+		border:2px solid rgba(167,139,250,.3);
+		display:flex; align-items:center; justify-content:center;
+		animation:breathe 1.8s ease-in-out infinite;
+		box-shadow:0 0 32px var(--lav-glow);
+		position:relative; z-index:1;
 	}
+	.l-ring {
+		position:absolute; border-radius:50%; border:1.5px solid rgba(167,139,250,.2);
+		animation:ping 2s ease-out infinite;
+	}
+	.l-ring-1 { width:80px; height:80px; animation-delay:0s; }
+	.l-ring-2 { width:80px; height:80px; animation-delay:.7s; }
 
-	@keyframes linear-prog {
-		0%   { left:-40%; }
-		100% { left:100%; }
+	/* Text */
+	.l-text-wrap { height:22px; display:flex; align-items:center; overflow:hidden; }
+	.l-text { font-size:.88rem; color:var(--text-soft); font-weight:700; text-align:center; }
+
+	/* Progress bar */
+	.l-bar { width:160px; height:3px; background:var(--border); border-radius:2px; overflow:hidden; }
+	.l-bar-fill {
+		height:100%; width:40%;
+		background:linear-gradient(90deg, var(--lavender), var(--mint));
+		border-radius:2px;
+		animation:indeterminate 1.5s ease-in-out infinite;
+	}
+	@keyframes indeterminate {
+		0%   { transform:translateX(-150%); width:40%; }
+		60%  { width:60%; }
+		100% { transform:translateX(350%); width:40%; }
 	}
 </style>

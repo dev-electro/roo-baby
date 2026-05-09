@@ -17,28 +17,28 @@
 		<link
 			rel="preload"
 			as="style"
-			href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap"
+			href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Fraunces:ital,opsz,wght@0,9..144,700;1,9..144,400&display=swap"
 		/>
 		<link
 			rel="stylesheet"
-			href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap"
+			href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Fraunces:ital,opsz,wght@0,9..144,700;1,9..144,400&display=swap"
 			media="print"
 			onload="this.media='all'"
 		/>
 		<noscript>
-			<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet" />
+			<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Fraunces:ital,opsz,wght@0,9..144,700;1,9..144,400&display=swap" rel="stylesheet" />
 		</noscript>
 
 		<!-- Critical inline CSS: prevent FOUC, set bg immediately -->
 		<style>
-			:root { --bg: #05050A; --text: #F8FAFA; }
-			[data-theme="light"] { --bg: #F8FAFA; --text: #05050A; }
+			:root { --bg: #0E0D14; --text: #F0EDF8; }
+			[data-theme="light"] { --bg: #FDFCFF; --text: #1A1828; }
 			*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-			html { -webkit-font-smoothing: antialiased; font-size: clamp(16px, 1.2vw + 12px, 20px); }
+			html { -webkit-font-smoothing: antialiased; }
 			body {
 				background: var(--bg);
 				color: var(--text);
-				font-family: 'Inter', -apple-system, system-ui, sans-serif;
+				font-family: 'Nunito', -apple-system, system-ui, sans-serif;
 				min-height: 100dvh;
 				overflow-x: hidden;
 			}

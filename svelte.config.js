@@ -1,15 +1,10 @@
-// Force IDE to re-parse config after npm install
-import adapter from '@sveltejs/adapter-static';
+import adapter from '@sveltejs/adapter-cloudflare';
 import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
 
 export default {
 	preprocess: vitePreprocess(),
 	kit: {
-		adapter: adapter({
-			pages: '.svelte-kit/cloudflare',
-			assets: '.svelte-kit/cloudflare',
-			fallback: 'index.html'
-		}),
+		adapter: adapter(),
 		alias: {
 			$components: 'src/lib/components',
 			$utils: 'src/lib/utils',

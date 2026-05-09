@@ -1,125 +1,154 @@
 <script>
 	import { appState } from '$state/appState.svelte.js';
-	import { playResponse, stopResponse, unlock as ensureAudioResumed } from '$utils/soundGenerator.js';
-	import { speak, stopSpeak } from '$utils/ttsEngine.js';
 	import Icon from './Icon.svelte';
-	import { onDestroy, onMount } from 'svelte';
 
-	let { result } = $props();
-
-	/** @type {Record<string, string>} */
 	const MSGS = {
-		HUNGER: 'Shh little one… food is on the way.',
-		PAIN: 'It\'s okay baby… I\'m right here.',
-		TIRED: 'Sleep now… the world can wait.',
-		DISCOMFORT: 'Let\'s get comfortable.',
-		BURPING: 'Good baby… let it out.',
-		UNKNOWN: 'Shh… everything is okay.'
+		HUNGER:'Shh… food is coming. You\'re safe.',
+		PAIN:'It\'s okay baby… I\'m here.',
+		TIRED:'Sleep now… the world can wait.',
+		DISCOMFORT:'Let\'s get comfy… better soon.',
+		BURPING:'Let it out… good baby.',
+		UNKNOWN:'Shh… everything is okay.',
+		INVALID:'This appears to be an adult face. ROO is for babies only.',
 	};
 
-	let playingState = $state({ snd: false, tts: false });
-	let ttsSupported = $state(true);
-	let checkInterval;
+	const SOUNDS = {
+		heartbeat: { label:'Heartbeat', icon:'heart' },
+		whitenoise: { label:'White Noise', icon:'wind' },
+		lullaby:   { label:'Lullaby',    icon:'music' },
+		shush:     { label:'Shush',      icon:'volume' },
+	};
 
-	onMount(() => {
-		ttsSupported = 'speechSynthesis' in window;
-		checkInterval = setInterval(() => {
-			playingState = {
-				snd: appState.isPlayingResponse,
-				tts: appState.isSpeaking
-			};
-		}, 200);
-	});
+	import { playResponse, halt as stopAll, unlock as ensureAudio, setVol, isPlaying } from '$utils/soundGenerator.js';
+	import { speak, stopSpeaking, unlockSpeech, isSpeaking } from '$utils/ttsEngine.js';
+	import { playSound as trackSound, playTTS as trackTTS } from '$utils/analytics.js';
 
-	onDestroy(() => {
-		clearInterval(checkInterval);
-	});
+	let msg = $derived(appState.result ? MSGS[appState.result.category] || MSGS.UNKNOWN : '');
+	let currentSound = $derived(appState.result?.response_sound || 'whitenoise');
+	let playingTTS = $state(false);
+	let ttsTimer  = null;
 
-	const SOUNDS = [
-		{ id:'whitenoise', lbl:'White', icon:'radio' },
-		{ id:'pinknoise', lbl:'Pink', icon:'wind' },
-		{ id:'brownnoise', lbl:'Brown', icon:'cloud-rain' },
-		{ id:'lullaby', lbl:'Lullaby', icon:'music' }
-	];
-
-	function toggleSnd(id) {
-		ensureAudioResumed();
-		if (playingState.snd && appState.currentResponseSound === id) stopResponse();
-		else playResponse(id);
+	async function playTTS() {
+		unlockSpeech(); ensureAudio();
+		playingTTS = true;
+		speak(msg);
+		trackTTS(appState.result?.category || 'unknown');
+		// Bug fix: poll isSpeaking() to re-enable button
+		clearInterval(ttsTimer);
+		ttsTimer = setInterval(() => {
+			if (!isSpeaking()) { playingTTS = false; clearInterval(ttsTimer); }
+		}, 300);
 	}
 
-	function toggleTts() {
-		if (playingState.tts) stopSpeak();
-		else speak(MSGS[result?.category] || MSGS.UNKNOWN);
-	}
+	function playSound(name) { ensureAudio(); playResponse(name); trackSound(name, 'response'); }
+
+	function handleStop() { stopAll(); stopSpeaking(); playingTTS = false; clearInterval(ttsTimer); }
+
+	import { onDestroy } from 'svelte';
+	onDestroy(() => clearInterval(ttsTimer));
 </script>
 
-<div class="rp-card animate-in">
-	<div class="rp-head">
-		<h3 class="rp-title">Soothing Suggestions</h3>
-		{#if playingState.snd || playingState.tts}
-			<div class="eq-mini">
-				<span></span><span></span><span></span>
+{#if appState.result && appState.result.category !== 'INVALID'}
+<div class="p animate-up">
+	<div class="p-head">
+		<Icon name="sparkles" size={14} color="var(--mint)" />
+		Soothing Response
+	</div>
+
+	{#if appState.autoPlaySounds}
+		<div class="p-auto">
+			<div class="p-wave">
+				{#each Array(8) as _,i}
+					<div class="p-bar" style="animation-delay:{i*.1}s"></div>
+				{/each}
 			</div>
-		{/if}
-	</div>
+			<p class="p-hint">Playing automatically…</p>
+		</div>
+	{:else}
+		<!-- TTS button -->
+		<button class="p-tts" onclick={playTTS} disabled={playingTTS}>
+			<Icon name={playingTTS ? 'volume' : 'play'} size={16} color="currentColor" />
+			<span>"{msg.length > 32 ? msg.slice(0,32)+'…' : msg}"</span>
+		</button>
 
-	<div class="rp-grid">
-		{#each SOUNDS as s}
-			<button
-				class="snd-btn"
-				class:active={playingState.snd && appState.currentResponseSound === s.id}
-				onclick={() => toggleSnd(s.id)}
-			>
-				<Icon name={s.icon} size={20} color="currentColor" />
-				<span class="snd-lbl">{s.lbl}</span>
-				{#if playingState.snd && appState.currentResponseSound === s.id}
-					<div class="act-dot"></div>
-				{/if}
-			</button>
-		{/each}
+		<!-- Sound grid -->
+		<div class="p-grid">
+			{#each Object.entries(SOUNDS) as [key, s]}
+				<button class="p-tile" class:active={key === currentSound} onclick={() => playSound(key)}>
+					<Icon name={s.icon} size={20} color="currentColor" />
+					<span>{s.label}</span>
+					{#if key === currentSound}
+						<div class="p-eq">
+							<div></div><div style="animation-delay:.15s"></div><div style="animation-delay:.3s"></div>
+						</div>
+					{/if}
+				</button>
+			{/each}
+		</div>
+	{/if}
 
-		{#if ttsSupported && result?.category !== 'INVALID' && MSGS[result?.category]}
-			<button
-				class="snd-btn tts-btn"
-				class:active={playingState.tts}
-				onclick={toggleTts}
-			>
-				<Icon name="message-circle" size={20} color="currentColor" />
-				<span class="snd-lbl">Voice</span>
-				{#if playingState.tts}
-					<div class="act-dot"></div>
-				{/if}
-			</button>
-		{/if}
-	</div>
+	<button class="p-stop" onclick={handleStop}>
+		<Icon name="stop" size={14} color="currentColor" /> Stop all
+	</button>
 </div>
+{/if}
 
 <style>
-	.rp-card {
-		background:var(--surface); border:1px solid var(--border); border-radius:var(--r-md);
-		padding:20px; display:flex; flex-direction:column; gap:16px;
-		box-shadow:var(--shadow-card);
+	.p {
+		display:flex; flex-direction:column; align-items:center; gap:14px;
+		padding:20px; background:var(--surface); border:1px solid var(--border);
+		border-radius:var(--r-xl); box-shadow:var(--shadow-card);
 	}
-	.rp-head { display:flex; justify-content:space-between; align-items:center; }
-	.rp-title { font-size:1.05rem; font-weight:700; color:var(--text); margin:0; }
-
-	.rp-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(100px, 1fr)); gap:10px; }
-
-	.snd-btn {
-		display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px;
-		padding:16px 12px; border-radius:var(--r-sm); background:var(--surface-2); border:1px solid var(--border);
-		color:var(--text-soft); font-weight:600; font-size:0.85rem; transition:all 0.2s; position:relative;
+	.p-head {
+		display:flex; align-items:center; gap:6px;
+		font-size:.62rem; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:var(--mint);
 	}
-	.snd-btn:hover { background:var(--border-soft); color:var(--text); }
-	.snd-btn.active { background:var(--primary-soft); border-color:var(--primary); color:var(--primary); }
 
-	.tts-btn { grid-column:1 / -1; flex-direction:row; padding:12px; }
+	/* Auto-play wave */
+	.p-auto { display:flex; flex-direction:column; align-items:center; gap:10px; }
+	.p-wave { display:flex; align-items:flex-end; gap:3px; height:28px; }
+	.p-bar  {
+		width:4px; border-radius:100px;
+		background:linear-gradient(180deg, var(--mint), var(--lavender));
+		animation:wave 1.1s ease-in-out infinite; transform-origin:bottom;
+		min-height:4px;
+	}
+	.p-hint { font-size:.75rem; color:var(--text-soft); }
 
-	.act-dot { position:absolute; top:8px; right:8px; width:6px; height:6px; border-radius:50%; background:var(--primary); animation:pulse-glow 1.5s infinite; }
+	/* TTS button */
+	.p-tts {
+		width:100%; padding:12px 16px; border-radius:var(--r-md);
+		background:var(--mint-soft); border:1px solid rgba(110,231,183,.25); color:var(--mint);
+		display:flex; align-items:center; gap:8px;
+		font-size:.82rem; font-weight:700; cursor:pointer; transition:all .15s;
+		text-align:left;
+	}
+	.p-tts:hover:not(:disabled) { background:var(--mint-soft); border-color:var(--mint); }
+	.p-tts:disabled { opacity:.5; cursor:default; }
+	.p-tts span { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-style:italic; }
 
-	.eq-mini { display:flex; align-items:center; gap:3px; height:12px; }
-	.eq-mini span { display:block; width:3px; background:var(--primary); border-radius:2px; animation:eq .8s ease-in-out infinite alternate; }
-	.eq-mini span:nth-child(2) { animation-delay:.2s; }
-	.eq-mini span:nth-child(3) { animation-delay:.4s; }
+	/* Sound grid */
+	.p-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; width:100%; }
+	.p-tile {
+		padding:14px 10px; border-radius:var(--r-md);
+		background:var(--surface-2); border:1px solid var(--border); color:var(--text-soft);
+		display:flex; flex-direction:column; align-items:center; gap:6px;
+		font-size:.72rem; font-weight:700; cursor:pointer;
+		transition:all .2s; position:relative; min-height:80px;
+	}
+	.p-tile:hover { border-color:var(--lavender); color:var(--text); }
+	.p-tile.active { border-color:var(--mint); background:var(--mint-soft); color:var(--mint); }
+
+	/* EQ bars in tile */
+	.p-eq { display:flex; align-items:flex-end; gap:2px; height:12px; position:absolute; top:8px; right:8px; }
+	.p-eq div { width:3px; border-radius:1px; background:var(--mint); animation:eq .9s ease-in-out infinite; }
+
+	/* Stop */
+	.p-stop {
+		padding:7px 20px; border-radius:var(--r-pill);
+		font-size:.72rem; font-weight:700; color:var(--text-soft);
+		border:1px solid var(--border); transition:all .15s;
+		display:flex; align-items:center; gap:5px;
+	}
+	.p-stop:hover { border-color:var(--red); color:var(--red); background:var(--red-soft); }
 </style>
