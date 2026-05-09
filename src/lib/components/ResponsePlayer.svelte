@@ -1,32 +1,29 @@
 <script>
 	import { appState } from '$state/appState.svelte.js';
-	import { playResponseSound, playHeartbeat, playWhiteNoise, playLullaby, playShush, stopAllSounds, ensureAudioResumed } from '$utils/soundGenerator.js';
+	import { playResponse, halt as stopAll, unlock as ensureAudio, setVol, getVol, isPlaying } from '$utils/soundGenerator.js';
 	import { speak, stopSpeaking, unlockSpeech, isSpeaking } from '$utils/ttsEngine.js';
 	import Icon from './Icon.svelte';
-
 	const MSGS={HUNGER:"Shh… food is coming. You're safe.",PAIN:"It's okay baby… I'm here.",TIRED:"Sleep now… the world can wait.",DISCOMFORT:"Let's get comfy… better soon.",BURPING:"Let it out… good baby.",UNKNOWN:"Shh… everything is okay.",INVALID:"This appears to be an adult face. ROO is for babies only."};
-	const SOUNDS={heartbeat:{label:'Heartbeat',fn:playHeartbeat},whitenoise:{label:'White Noise',fn:()=>playWhiteNoise(30)},lullaby:{label:'Lullaby',fn:playLullaby},shush:{label:'Shush',fn:()=>playShush(20)}};
+	const SOUNDS={heartbeat:{label:'Heartbeat',sound:'heartbeat'},whitenoise:{label:'White Noise',sound:'whitenoise'},lullaby:{label:'Lullaby',sound:'lullaby'},shush:{label:'Shush',sound:'shush'}};
 
 	let msg = $derived(appState.result?MSGS[appState.result.category]||MSGS.UNKNOWN:'');
 	let currentSound = $derived(appState.result?.response_sound || 'whitenoise');
-
 	let playingTTS = $state(false);
 
 	async function playTTS() {
-		unlockSpeech(); ensureAudioResumed();
+		unlockSpeech(); ensureAudio();
 		playingTTS = true;
 		speak(msg);
 		setTimeout(() => { if(!isSpeaking()) playingTTS = false; }, 500);
 	}
 
 	function playSound(name) {
-		ensureAudioResumed();
-		const s = SOUNDS[name] || SOUNDS.whitenoise;
-		s.fn();
+		ensureAudio();
+		playResponse(name);
 	}
 
 	function handleStop() {
-		stopAllSounds();
+		stopAll();
 		stopSpeaking();
 		playingTTS = false;
 	}

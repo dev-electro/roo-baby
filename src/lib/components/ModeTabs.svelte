@@ -1,6 +1,6 @@
 <script>
 	import { appState } from '$state/appState.svelte.js';
-	import { stopAllSounds } from '$utils/soundGenerator.js';
+	import { halt as stopAllSounds } from '$utils/soundGenerator.js';
 	import { stopSpeaking } from '$utils/ttsEngine.js';
 	import Icon from './Icon.svelte';
 

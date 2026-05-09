@@ -1,298 +1,246 @@
 /**
- * Web Audio API sound generator for soothing baby sounds.
- * Supports loop, volume control, and multiple sound types.
+ * Standalone Web Audio synthesizer. Zero external dependencies.
+ * Generates all sounds in real-time — no audio files needed.
+ *
+ * Pattern from generative.fm: each sound is a self-contained unit
+ * with play() returning { stop() }.
  */
 
-let audioCtx = null;
-let masterGain = null;
-let activeSound = null; // { type, nodes, intervals, source }
+let ac = null;
+let master = null;
+let current = null;
 
-function getCtx() {
-	if (!audioCtx) {
-		audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-		masterGain = audioCtx.createGain();
-		masterGain.connect(audioCtx.destination);
-		masterGain.gain.value = 0.5;
+function ctx() {
+	if (!ac) {
+		ac = new (window.AudioContext || window.webkitAudioContext)();
+		master = ac.createGain();
+		master.gain.value = 0.5;
+		master.connect(ac.destination);
 	}
-	return audioCtx;
+	return ac;
 }
 
-export function ensureAudioResumed() {
-	const ctx = getCtx();
-	if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+/** Must be called from a user gesture on mobile */
+export function unlock() {
+	const c = ctx();
+	if (c.state === 'suspended') c.resume();
 }
 
-export function setVolume(level) {
-	getCtx();
-	if (masterGain) {
-		masterGain.gain.setTargetAtTime(Math.max(0, Math.min(1, level)), audioCtx.currentTime, 0.1);
-	}
+export function setVol(v) {
+	ctx();
+	master.gain.setTargetAtTime(Math.max(0, Math.min(1, v)), ac.currentTime, 0.05);
+}
+export function getVol() { return master?.gain.value ?? 0.5; }
+export function isOn() { return current !== null; }
+export function which() { return current?.type ?? null; }
+export function halt() {
+	if (current) { current.stop(); current = null; }
 }
 
-export function getVolume() {
-	return masterGain?.gain.value ?? 0.5;
+/* ── helper: noise buffer ── */
+function noiseBuf(sec, fill) {
+	const c = ctx();
+	const len = c.sampleRate * sec;
+	const b = c.createBuffer(1, len, c.sampleRate);
+	fill(b.getChannelData(0), len);
+	return b;
 }
 
-export function isPlaying() {
-	return activeSound !== null;
-}
-
-export function getActiveSoundType() {
-	return activeSound?.type ?? null;
-}
-
-export function stopAllSounds() {
-	if (activeSound) {
-		activeSound.nodes.forEach(n => {
-			try { n.stop(); } catch {}
-			try { n.disconnect(); } catch {}
-		});
-		activeSound.intervals.forEach(id => clearInterval(id));
-		activeSound = null;
-	}
+function noiseSrc(buf, loop, cfg = {}) {
+	const c = ctx();
+	const s = c.createBufferSource(); s.buffer = buf; s.loop = loop;
+	const g = c.createGain();
+	const f = c.createBiquadFilter();
+	if (cfg.ft) { f.type = cfg.ft; f.frequency.value = cfg.fq || 1000; f.Q.value = cfg.q || 0.5; }
+	s.connect(f); f.connect(g); g.connect(master);
+	const t = c.currentTime;
+	g.gain.setValueAtTime(0, t);
+	g.gain.linearRampToValueAtTime(cfg.gn || 0.25, t + (cfg.fi || 0.8));
+	return { s, g, f, stop() { try { s.stop(); } catch {} } };
 }
 
 /* ── White Noise ── */
-export function playWhiteNoise(loop = false) {
-	ensureAudioResumed();
-	stopAllSounds();
-	const ctx = audioCtx;
-	const bufferSize = loop ? ctx.sampleRate * 10 : ctx.sampleRate * 30;
-	const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-	const data = buffer.getChannelData(0);
-	for (let i = 0; i < bufferSize; i++) data[i] = (Math.random() * 2 - 1) * 0.12;
-
-	const source = ctx.createBufferSource();
-	const gain = ctx.createGain();
-	const filter = ctx.createBiquadFilter();
-	filter.type = 'lowpass'; filter.frequency.value = 800; filter.Q.value = 0.7;
-	source.buffer = buffer;
-	source.loop = loop;
-	source.connect(filter); filter.connect(gain); gain.connect(masterGain);
-
-	const t = ctx.currentTime;
-	gain.gain.setValueAtTime(0, t);
-	gain.gain.linearRampToValueAtTime(0.35, t + 1);
-	if (!loop) { gain.gain.setValueAtTime(0.35, t + bufferSize / ctx.sampleRate - 1.5); gain.gain.linearRampToValueAtTime(0, t + bufferSize / ctx.sampleRate); }
-
-	source.start();
-	if (!loop) source.stop(t + bufferSize / ctx.sampleRate + 0.1);
-	activeSound = { type: 'whitenoise', nodes: [source, gain, filter], intervals: [], source };
+function mkWhite() {
+	const buf = noiseBuf(8, (d, n) => { for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * 0.12; });
+	const { s, g, f, stop } = noiseSrc(buf, true, { ft: 'lowpass', fq: 800, q: 0.7, gn: 0.25, fi: 1 });
+	s.start();
+	return { type: 'whitenoise', stop };
 }
 
 /* ── Pink Noise ── */
-export function playPinkNoise(loop = false) {
-	ensureAudioResumed();
-	stopAllSounds();
-	const ctx = audioCtx;
-	const duration = loop ? 10 : 30;
-	const bufferSize = ctx.sampleRate * duration;
-	const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-	const data = buffer.getChannelData(0);
-	let b0=0,b1=0,b2=0,b3=0,b4=0,b5=0,b6=0;
-	for (let i=0;i<bufferSize;i++) {
-		const white = Math.random()*2-1;
-		b0=0.99886*b0+white*0.0555179;b1=0.99332*b1+white*0.0750759;b2=0.969*b2+white*0.153852;
-		b3=0.8665*b3+white*0.3104856;b4=0.55*b4+white*0.5329522;b5=-0.7616*b5-white*0.016898;
-		data[i]=(b0+b1+b2+b3+b4+b5+b6+white*0.5362)*0.06;b6=white*0.115926;
-	}
-	const source = ctx.createBufferSource();
-	const gain = ctx.createGain();
-	const filter = ctx.createBiquadFilter();
-	filter.type = 'lowpass'; filter.frequency.value = 600; filter.Q.value = 0.5;
-	source.buffer = buffer; source.loop = loop;
-	source.connect(filter); filter.connect(gain); gain.connect(masterGain);
-
-	const t=ctx.currentTime;
-	gain.gain.setValueAtTime(0,t);gain.gain.linearRampToValueAtTime(0.3,t+1);
-	if(!loop){gain.gain.setValueAtTime(0.3,t+duration-1.5);gain.gain.linearRampToValueAtTime(0,t+duration);}
-	source.start();if(!loop)source.stop(t+duration+0.1);
-	activeSound={type:'pinknoise',nodes:[source,gain,filter],intervals:[],source};
+function mkPink() {
+	const buf = noiseBuf(8, (d, n) => {
+		let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
+		for (let i = 0; i < n; i++) {
+			const w = Math.random() * 2 - 1;
+			b0 = 0.99886 * b0 + w * 0.0555179; b1 = 0.99332 * b1 + w * 0.0750759;
+			b2 = 0.969 * b2 + w * 0.153852; b3 = 0.8665 * b3 + w * 0.3104856;
+			b4 = 0.55 * b4 + w * 0.5329522; b5 = -0.7616 * b5 - w * 0.016898;
+			d[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + w * 0.5362) * 0.07; b6 = w * 0.115926;
+		}
+	});
+	const { s, g, f, stop } = noiseSrc(buf, true, { ft: 'lowpass', fq: 500, q: 0.5, gn: 0.2, fi: 1 });
+	s.start();
+	return { type: 'pinknoise', stop };
 }
 
 /* ── Brown Noise ── */
-export function playBrownNoise(loop = false) {
-	ensureAudioResumed();
-	stopAllSounds();
-	const ctx = audioCtx;
-	const duration = loop ? 10 : 30;
-	const bufferSize = ctx.sampleRate * duration;
-	const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-	const data = buffer.getChannelData(0);
-	let lastOut=0;
-	for(let i=0;i<bufferSize;i++) {
-		const white=Math.random()*2-1;
-		data[i]=(lastOut+(0.02*white))/1.02;lastOut=data[i];data[i]*=2.5;
-	}
-	const source=ctx.createBufferSource();
-	const gain=ctx.createGain();
-	const filter=ctx.createBiquadFilter();
-	filter.type='lowpass';filter.frequency.value=300;filter.Q.value=0.3;
-	source.buffer=buffer;source.loop=loop;
-	source.connect(filter);filter.connect(gain);gain.connect(masterGain);
-
-	const t=ctx.currentTime;
-	gain.gain.setValueAtTime(0,t);gain.gain.linearRampToValueAtTime(0.25,t+1.5);
-	if(!loop){gain.gain.setValueAtTime(0.25,t+duration-2);gain.gain.linearRampToValueAtTime(0,t+duration);}
-	source.start();if(!loop)source.stop(t+duration+0.1);
-	activeSound={type:'brownnoise',nodes:[source,gain,filter],intervals:[],source};
-}
-
-/* ── Heartbeat ── */
-export function playHeartbeat(loop = false) {
-	ensureAudioResumed();
-	stopAllSounds();
-	const ctx=audioCtx;
-	const nodes=[],intervals=[];
-	function beat() {
-		const t=ctx.currentTime;
-		const osc1=ctx.createOscillator(),g1=ctx.createGain();
-		osc1.connect(g1);g1.connect(masterGain);
-		osc1.type='sine';osc1.frequency.setValueAtTime(70,t);
-		g1.gain.setValueAtTime(0,t);g1.gain.linearRampToValueAtTime(0.35,t+0.04);g1.gain.exponentialRampToValueAtTime(0.001,t+0.18);g1.gain.linearRampToValueAtTime(0.25,t+0.26);g1.gain.exponentialRampToValueAtTime(0.001,t+0.4);
-		osc1.start(t);osc1.stop(t+0.45);nodes.push(osc1);
-		const osc2=ctx.createOscillator(),g2=ctx.createGain();
-		osc2.connect(g2);g2.connect(masterGain);
-		osc2.type='sine';osc2.frequency.setValueAtTime(55,t+0.14);
-		g2.gain.setValueAtTime(0,t+0.14);g2.gain.linearRampToValueAtTime(0.2,t+0.17);g2.gain.exponentialRampToValueAtTime(0.001,t+0.3);
-		osc2.start(t+0.14);osc2.stop(t+0.35);nodes.push(osc2);
-	}
-	beat();
-	const id=setInterval(beat,1000);
-	intervals.push(id);
-	if(!loop){const stopId=setTimeout(()=>stopAllSounds(),25000);intervals.push(stopId);}
-	activeSound={type:'heartbeat',nodes,intervals,source:null};
-}
-
-/* ── Lullaby ── */
-export function playLullaby(loop = false) {
-	ensureAudioResumed();
-	stopAllSounds();
-	const ctx=audioCtx;
-	const notes=[261.6,293.7,329.6,349.2,392.0,349.2,329.6,293.7,261.6];
-	const durs=[0.7,0.7,0.7,0.7,1.0,0.7,0.7,0.7,1.2];
-	const totalDur=notes.reduce((a,b,i)=>a+durs[i],0)+1;
-	const nodes=[],intervals=[];
-
-	function playMelody(baseTime) {
-		let tOff=0;
-		notes.forEach((freq,i)=>{
-			const osc=ctx.createOscillator(),gain=ctx.createGain();
-			osc.connect(gain);gain.connect(masterGain);
-			osc.type='sine';osc.frequency.value=freq;
-			const t=baseTime+tOff,dur=durs[i];
-			gain.gain.setValueAtTime(0,t);gain.gain.linearRampToValueAtTime(0.16,t+0.12);gain.gain.setValueAtTime(0.16,t+dur-0.2);gain.gain.linearRampToValueAtTime(0,t+dur);
-			osc.start(t);osc.stop(t+dur+0.1);nodes.push(osc);
-			tOff+=dur;
-		});
-	}
-	playMelody(ctx.currentTime);
-	if(loop) {
-		const id=setInterval(()=>playMelody(ctx.currentTime),totalDur*1000);
-		intervals.push(id);
-	} else {
-		const id=setTimeout(()=>stopAllSounds(),totalDur*1000+500);
-		intervals.push(id);
-	}
-	activeSound={type:'lullaby',nodes,intervals,source:null};
-}
-
-/* ── Shush ── */
-export function playShush(loop = false) {
-	ensureAudioResumed();
-	stopAllSounds();
-	const ctx=audioCtx;
-	const duration=loop?5:15;
-	const bufferSize=ctx.sampleRate*duration;
-	const buffer=ctx.createBuffer(1,bufferSize,ctx.sampleRate);
-	const data=buffer.getChannelData(0);
-	for(let i=0;i<bufferSize;i++)data[i]=(Math.random()*2-1)*0.18;
-
-	const source=ctx.createBufferSource();
-	const gain=ctx.createGain();
-	const filter=ctx.createBiquadFilter();
-	filter.type='bandpass';filter.frequency.value=2500;filter.Q.value=0.8;
-	source.buffer=buffer;source.loop=loop;
-	source.connect(filter);filter.connect(gain);gain.connect(masterGain);
-
-	const t=ctx.currentTime;
-	const cycles=Math.floor(duration/0.6);
-	for(let i=0;i<cycles;i++){
-		const s=t+i*0.6;
-		gain.gain.setValueAtTime(0,s);gain.gain.linearRampToValueAtTime(0.25,s+0.08);gain.gain.linearRampToValueAtTime(0,s+0.45);
-	}
-	source.start();if(!loop)source.stop(t+duration+0.1);
-	activeSound={type:'shush',nodes:[source,gain,filter],intervals:[],source};
+function mkBrown() {
+	const buf = noiseBuf(8, (d, n) => {
+		let last = 0;
+		for (let i = 0; i < n; i++) { const w = Math.random() * 2 - 1; d[i] = (last + 0.02 * w) / 1.02; last = d[i]; d[i] *= 2.5; }
+	});
+	const { s, g, f, stop } = noiseSrc(buf, true, { ft: 'lowpass', fq: 250, q: 0.3, gn: 0.18, fi: 1.5 });
+	s.start();
+	return { type: 'brownnoise', stop };
 }
 
 /* ── Rain ── */
-export function playRain(loop = false) {
-	ensureAudioResumed();
-	stopAllSounds();
-	const ctx=audioCtx;
-	const duration=loop?5:30;
-	const bufferSize=ctx.sampleRate*duration;
-	const buffer=ctx.createBuffer(1,bufferSize,ctx.sampleRate);
-	const data=buffer.getChannelData(0);
-	for(let i=0;i<bufferSize;i++){
-		data[i]=(Math.random()*2-1)*0.1;
-		if(Math.random()>0.7)data[i]+=(Math.random()*2-1)*0.15;
+function mkRain() {
+	const buf = noiseBuf(6, (d, n) => {
+		for (let i = 0; i < n; i++) { d[i] = (Math.random() * 2 - 1) * 0.1; if (Math.random() > 0.7) d[i] += (Math.random() * 2 - 1) * 0.2; }
+	});
+	const { s, g, f, stop } = noiseSrc(buf, true, { ft: 'highpass', fq: 600, q: 0.3, gn: 0.22, fi: 0.6 });
+	s.start();
+	return { type: 'rain', stop };
+}
+
+/* ── Ocean ── */
+function mkOcean() {
+	const buf = noiseBuf(8, (d, n) => {
+		const sr = ctx().sampleRate;
+		for (let i = 0; i < n; i++) {
+			const ph = (i / sr) % 4;
+			const env = Math.sin(ph * Math.PI / 4) * Math.max(0, 1 - ph / 2);
+			d[i] = (Math.random() * 2 - 1) * 0.08 + env * (Math.random() * 2 - 1) * 0.5;
+		}
+	});
+	const { s, g, f, stop } = noiseSrc(buf, true, { ft: 'lowpass', fq: 1200, q: 0.4, gn: 0.3, fi: 0.8 });
+	s.start();
+	return { type: 'ocean', stop };
+}
+
+/* ── Heartbeat ── */
+function mkHeartbeat() {
+	ctx();
+	const nodes = [];
+	let timer, stopped = false;
+
+	function beat() {
+		if (stopped) return;
+		const c = ctx(), t = c.currentTime;
+		// lub
+		const o1 = c.createOscillator(), g1 = c.createGain();
+		o1.type = 'sine'; o1.frequency.setValueAtTime(70, t);
+		o1.connect(g1); g1.connect(master);
+		g1.gain.setValueAtTime(0, t); g1.gain.linearRampToValueAtTime(0.3, t + 0.04);
+		g1.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+		g1.gain.linearRampToValueAtTime(0.22, t + 0.26);
+		g1.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
+		o1.start(t); o1.stop(t + 0.45); nodes.push(o1, g1);
+		// dub
+		const o2 = c.createOscillator(), g2 = c.createGain();
+		o2.type = 'sine'; o2.frequency.setValueAtTime(55, t + 0.14);
+		o2.connect(g2); g2.connect(master);
+		g2.gain.setValueAtTime(0, t + 0.14); g2.gain.linearRampToValueAtTime(0.18, t + 0.17);
+		g2.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
+		o2.start(t + 0.14); o2.stop(t + 0.35); nodes.push(o2, g2);
 	}
-	const source=ctx.createBufferSource();
-	const gain=ctx.createGain();
-	const filter=ctx.createBiquadFilter();
-	filter.type='highpass';filter.frequency.value=800;filter.Q.value=0.3;
-	source.buffer=buffer;source.loop=loop;
-	source.connect(filter);filter.connect(gain);gain.connect(masterGain);
-
-	const t=ctx.currentTime;
-	gain.gain.setValueAtTime(0,t);gain.gain.linearRampToValueAtTime(0.3,t+0.8);
-	if(!loop){gain.gain.setValueAtTime(0.3,t+duration-1.5);gain.gain.linearRampToValueAtTime(0,t+duration);}
-	source.start();if(!loop)source.stop(t+duration+0.1);
-	activeSound={type:'rain',nodes:[source,gain,filter],intervals:[],source};
+	beat();
+	timer = setInterval(beat, 1000);
+	return {
+		type: 'heartbeat',
+		stop() {
+			stopped = true;
+			clearInterval(timer);
+			nodes.forEach(n => { try { n.stop(); n.disconnect(); } catch {} });
+		}
+	};
 }
 
-/* ── Ocean Waves ── */
-export function playOcean(loop = false) {
-	ensureAudioResumed();
-	stopAllSounds();
-	const ctx=audioCtx;
-	const duration=loop?8:30;
-	const bufferSize=ctx.sampleRate*duration;
-	const buffer=ctx.createBuffer(1,bufferSize,ctx.sampleRate);
-	const data=buffer.getChannelData(0);
-	for(let i=0;i<bufferSize;i++){
-		const phase=(i/ctx.sampleRate)%4;
-		const envelope=Math.sin(phase*Math.PI/4)*Math.max(0,1-phase/2);
-		data[i]=(Math.random()*2-1)*0.08+envelope*(Math.random()*2-1)*0.5;
+/* ── Lullaby ── */
+function mkLullaby() {
+	ctx();
+	const mel = [261.6, 293.7, 329.6, 349.2, 392.0, 349.2, 329.6, 293.7, 261.6];
+	const dur = [0.7, 0.7, 0.7, 0.7, 1.0, 0.7, 0.7, 0.7, 1.2];
+	const total = dur.reduce((a, b) => a + b, 0) + 0.3;
+	const nodes = [];
+	let timer, stopped = false;
+
+	function melody(base) {
+		if (stopped) return;
+		const c = ctx();
+		let off = 0;
+		mel.forEach((f, i) => {
+			const o = c.createOscillator(), g = c.createGain();
+			o.type = 'sine'; o.frequency.value = f;
+			o.connect(g); g.connect(master);
+			const t = base + off, d = dur[i];
+			g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.14, t + 0.12);
+			g.gain.setValueAtTime(0.14, t + d - 0.2); g.gain.linearRampToValueAtTime(0, t + d);
+			o.start(t); o.stop(t + d + 0.1); nodes.push(o, g);
+			off += d;
+		});
 	}
-	const source=ctx.createBufferSource();
-	const gain=ctx.createGain();
-	const filter=ctx.createBiquadFilter();
-	filter.type='lowpass';filter.frequency.value=1500;filter.Q.value=0.4;
-	source.buffer=buffer;source.loop=loop;
-	source.connect(filter);filter.connect(gain);gain.connect(masterGain);
-
-	const t=ctx.currentTime;
-	gain.gain.setValueAtTime(0,t);gain.gain.linearRampToValueAtTime(0.4,t+1);
-	if(!loop){gain.gain.setValueAtTime(0.4,t+duration-2);gain.gain.linearRampToValueAtTime(0,t+duration);}
-	source.start();if(!loop)source.stop(t+duration+0.1);
-	activeSound={type:'ocean',nodes:[source,gain,filter],intervals:[],source};
+	melody(ctx().currentTime);
+	timer = setInterval(() => melody(ctx().currentTime), total * 1000);
+	return {
+		type: 'lullaby',
+		stop() {
+			stopped = true;
+			clearInterval(timer);
+			nodes.forEach(n => { try { n.stop(); n.disconnect(); } catch {} });
+		}
+	};
 }
 
-/* ── Play by type name ── */
-export function playResponseSound(soundName) {
-	switch(soundName){
-		case 'heartbeat': playHeartbeat(false); break;
-		case 'whitenoise': playWhiteNoise(false); break;
-		case 'lullaby': playLullaby(false); break;
-		case 'shush': playShush(false); break;
-		default: playWhiteNoise(false);
+/* ── Shush ── */
+function mkShush() {
+	const buf = noiseBuf(4, (d, n) => { for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * 0.18; });
+	const c = ctx();
+	const s = c.createBufferSource(); s.buffer = buf; s.loop = true;
+	const g = c.createGain();
+	const f = c.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 2800; f.Q.value = 1.2;
+	s.connect(f); f.connect(g); g.connect(master);
+	const t = c.currentTime;
+	for (let i = 0; i < Math.floor(4 / 0.5); i++) {
+		const st = t + i * 0.5;
+		g.gain.setValueAtTime(0, st); g.gain.linearRampToValueAtTime(0.22, st + 0.06);
+		g.gain.setValueAtTime(0, st + 0.38);
+	}
+	s.start();
+	return { type: 'shush', stop() { try { s.stop(); } catch {} } };
+}
+
+/* ── Public API ── */
+
+const CREATORS = { whitenoise: mkWhite, pinknoise: mkPink, brownnoise: mkBrown, rain: mkRain, ocean: mkOcean, heartbeat: mkHeartbeat, lullaby: mkLullaby, shush: mkShush };
+
+/** Start a synth sound. Returns { type, stop() }. Call stop() to end. */
+export function start(type) {
+	unlock();
+	halt();
+	const fn = CREATORS[type];
+	if (!fn) return null;
+	current = fn();
+	return current;
+}
+
+/** Play a one-shot response sound (non-looping) */
+export function playResponse(name) {
+	switch (name) {
+		case 'heartbeat': { const s = start('heartbeat'); if (s) setTimeout(() => s.stop(), 12000); break; }
+		case 'whitenoise': { const s = start('whitenoise'); if (s) setTimeout(() => s.stop(), 20000); break; }
+		case 'lullaby': { const s = start('lullaby'); if (s) setTimeout(() => s.stop(), 15000); break; }
+		case 'shush': { const s = start('shush'); if (s) setTimeout(() => s.stop(), 10000); break; }
+		default: { const s = start('whitenoise'); if (s) setTimeout(() => s.stop(), 15000); }
 	}
 }
 
-const SOUND_MAP = { whitenoise:playWhiteNoise, pinknoise:playPinkNoise, brownnoise:playBrownNoise, heartbeat:playHeartbeat, lullaby:playLullaby, shush:playShush, rain:playRain, ocean:playOcean };
-export function playByName(name, loop = false) {
-	const fn = SOUND_MAP[name];
-	if(fn) fn(loop);
-}
+// Backward compat aliases
+export const ensureAudioResumed = unlock;
+export const stopAllSounds = halt;
+export const setVolume = setVol;
+export const getVolume = getVol;
+export const isPlaying = isOn;
+export const playResponseSound = playResponse;

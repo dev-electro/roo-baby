@@ -2,7 +2,7 @@
 	import { appState } from '$state/appState.svelte.js';
 	import { analyze } from '$utils/apiClient.js';
 	import { extractAudioFeatures } from '$utils/audioFeatures.js';
-	import { playResponseSound, ensureAudioResumed } from '$utils/soundGenerator.js';
+	import { playResponse, unlock as ensureAudioResumed } from '$utils/soundGenerator.js';
 	import { speak, unlockSpeech } from '$utils/ttsEngine.js';
 	import { saveToHistory } from '$utils/historyStore.js';
 	import Icon from './Icon.svelte';
@@ -25,7 +25,7 @@
 			const data=await analyze({mode:appState.currentMode,audio:appState.audioBlob,image:appState.imageBlob,spectrogram:appState.spectrogramBlob,audioFeatures:feat});
 			if(appState.resetId !== rid) return;
 			appState.result=data; saveToHistory(data);
-			if(appState.autoPlaySounds && data.response_sound && data.category !== 'INVALID') playResponseSound(data.response_sound);
+			if(appState.autoPlaySounds && data.response_sound && data.category !== 'INVALID') playResponse(data.response_sound);
 			if(appState.autoPlaySounds && data.category !== 'INVALID') setTimeout(()=>speak(MSGS[data.category]||MSGS.UNKNOWN),1500);
 		}catch(err){appState.setError(err.message||'Analysis failed')}
 		finally{appState.isAnalyzing=false;busy=false}
