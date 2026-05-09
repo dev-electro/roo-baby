@@ -1,6 +1,7 @@
 <script>
 	import { appState } from '$state/appState.svelte.js';
 	import { onDestroy } from 'svelte';
+	import { capturePhoto as trackPhoto } from '$utils/analytics.js';
 	import Icon from './Icon.svelte';
 
 	let videoEl, canvasEl, preview = $state(''), fallback = $state(false), active = $state(false);
@@ -34,11 +35,12 @@
 				preview = URL.createObjectURL(b);
 				appState.imageBlob = b;
 				stopStream();
+				trackPhoto('camera');
 			}
 		}, 'image/jpeg', .9);
 	}
 
-	function upload(e) { const f = e.target.files[0]; if (f) { if (preview) URL.revokeObjectURL(preview); preview = URL.createObjectURL(f); appState.imageBlob = f; } }
+	function upload(e) { const f = e.target.files[0]; if (f) { if (preview) URL.revokeObjectURL(preview); preview = URL.createObjectURL(f); appState.imageBlob = f; trackPhoto('upload'); } }
 
 	function retake() { if (preview) URL.revokeObjectURL(preview); preview = ''; appState.imageBlob = null; fallback = false; active = false; asked = false; }
 

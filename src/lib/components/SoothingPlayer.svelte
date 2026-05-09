@@ -2,6 +2,7 @@
 	import { onDestroy } from 'svelte';
 	import { unlock, setVol, getVol, halt, isOn, start as startSynth } from '$utils/soundGenerator.js';
 	import { categories, synths, R2_BASE } from '$lib/data/soothingTracks.js';
+	import { playSound as trackSound } from '$utils/analytics.js';
 	import Icon from './Icon.svelte';
 
 	let tab = $state('synth');
@@ -33,6 +34,7 @@
 	function playTrack(t) {
 		if (currentTrack?.name === t.name && playing) { kill(); return; }
 		kill(); unlock();
+		trackSound(t.name, R2_BASE ? 'r2' : 'synth');
 		if (!t.url) { startSynthFallback(t, mapCatToSynth(t.categoryId)); return; }
 		const a = new Audio(); a.src = t.url; a.loop = loop; a.volume = vol; a.preload = 'auto';
 		let loaded = false;
@@ -53,6 +55,7 @@
 
 	function playSynth(s) {
 		kill(); unlock();
+		trackSound(s.id, 'synth');
 		const r = startSynth(s.id);
 		if (r) { synthOn = true; synthType = r.type; playing = true; currentTrack = { name: s.name, categoryName: 'Synth' }; }
 		tick = setInterval(() => { if (!isOn()) kill(); }, 500);

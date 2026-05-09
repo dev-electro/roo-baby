@@ -3,6 +3,7 @@
 	import { convertToWav, isSupportedAudioFormat } from '$utils/audioEncoder.js';
 	import { generateSpectrogram } from '$utils/spectrogramGenerator.js';
 	import { onDestroy } from 'svelte';
+	import { recordAudio as trackRecord } from '$utils/analytics.js';
 	import Icon from './Icon.svelte';
 
 	let recorder = null;
@@ -56,6 +57,7 @@
 		if (recorder?.state === 'recording') recorder.stop();
 		clearInterval(timer); timer = null;
 		appState.isRecording = false;
+		trackRecord(elapsed);
 	}
 
 	function toggle() { appState.isRecording ? stop() : start(); }

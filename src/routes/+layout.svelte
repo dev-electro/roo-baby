@@ -2,6 +2,7 @@
 	import '../app.css';
 	import { page } from '$app/stores';
 	import { appState } from '$state/appState.svelte.js';
+	import { init as initGA, pageView as trackPage, toggleTheme as trackTheme } from '$utils/analytics.js';
 	import Icon from '$components/Icon.svelte';
 	import SettingsPanel from '$components/SettingsPanel.svelte';
 
@@ -13,6 +14,7 @@
 	function toggleTheme() {
 		theme = theme === 'dark' ? 'light' : 'dark';
 		try { localStorage.setItem('roo-theme', theme); } catch {}
+		trackTheme(theme);
 	}
 
 	function refreshApp() {
@@ -24,6 +26,11 @@
 
 	$effect(() => {
 		document.documentElement.setAttribute('data-theme', theme);
+	});
+
+	$effect(() => {
+		initGA();
+		trackPage($page.url.pathname);
 	});
 
 	$effect(() => {

@@ -5,6 +5,7 @@
 	import { playResponse, unlock as ensureAudioResumed } from '$utils/soundGenerator.js';
 	import { speak, unlockSpeech } from '$utils/ttsEngine.js';
 	import { saveToHistory } from '$utils/historyStore.js';
+	import { analyzeCry as trackAnalyze, analyzeError as trackError } from '$utils/analytics.js';
 	import Icon from './Icon.svelte';
 
 	const MSGS={HUNGER:"Shh little one… food is on the way.",PAIN:"It's okay baby… I'm right here.",TIRED:"Sleep now… the world can wait.",DISCOMFORT:"Let's get comfortable.",BURPING:"Good baby… let it out.",UNKNOWN:"Shh… everything is okay.",INVALID:"Hey! We see you're testing ROO on yourself. The results are just for fun — ROO is for babies only. Try it on your little one!"};
@@ -70,9 +71,10 @@
 		const data=await analyze({mode:appState.currentMode,audio:appState.audioBlob,image:appState.imageBlob,spectrogram:appState.spectrogramBlob,audioFeatures:feat,userNotes:appState.userNotes});
 			if(appState.resetId !== rid) return;
 			appState.result=data; saveToHistory(data);
-		if(appState.autoPlaySounds && data.response_sound && data.category !== 'INVALID' && !data.is_adult) playResponse(data.response_sound);
-		if(appState.autoPlaySounds && data.category !== 'INVALID' && !data.is_adult) setTimeout(()=>speak(MSGS[data.category]||MSGS.UNKNOWN),1500);
-		}catch(err){appState.setError(err.message||'Analysis failed')}
+			trackAnalyze(appState.currentMode, data.category, data.confidence);
+			if(appState.autoPlaySounds && data.response_sound && data.category !== 'INVALID') playResponse(data.response_sound);
+			if(appState.autoPlaySounds && data.category !== 'INVALID') setTimeout(()=>speak(MSGS[data.category]||MSGS.UNKNOWN),1500);
+		}catch(err){appState.setError(err.message||'Analysis failed'); trackError(appState.currentMode, err.message)}
 		finally{appState.isAnalyzing=false;busy=false}
 	}
 </script>

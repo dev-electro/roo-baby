@@ -4,6 +4,8 @@
 	import { stopSpeaking } from '$utils/ttsEngine.js';
 	import Icon from './Icon.svelte';
 
+	import { modeSwitch as trackMode } from '$utils/analytics.js';
+
 	const modes = [
 		{ id: 'audio', icon: 'mic', label: 'Audio', sub: 'Cry analysis' },
 		{ id: 'image', icon: 'camera', label: 'Photo', sub: 'Face analysis' },
@@ -15,6 +17,7 @@
 		stopSpeaking();
 		appState.currentMode = mode;
 		appState.reset();
+		trackMode(mode);
 	}
 </script>
 

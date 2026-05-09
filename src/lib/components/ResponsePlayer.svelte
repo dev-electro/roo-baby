@@ -2,6 +2,7 @@
 	import { appState } from '$state/appState.svelte.js';
 	import { playResponse, halt as stopAll, unlock as ensureAudio, setVol, getVol, isPlaying } from '$utils/soundGenerator.js';
 	import { speak, stopSpeaking, unlockSpeech, isSpeaking } from '$utils/ttsEngine.js';
+	import { playSound as trackSound, playTTS as trackTTS } from '$utils/analytics.js';
 	import Icon from './Icon.svelte';
 	const MSGS={HUNGER:"Shh… food is coming. You're safe.",PAIN:"It's okay baby… I'm here.",TIRED:"Sleep now… the world can wait.",DISCOMFORT:"Let's get comfy… better soon.",BURPING:"Let it out… good baby.",UNKNOWN:"Shh… everything is okay.",INVALID:"This appears to be an adult face. ROO is for babies only."};
 	const SOUNDS={heartbeat:{label:'Heartbeat',sound:'heartbeat'},whitenoise:{label:'White Noise',sound:'whitenoise'},lullaby:{label:'Lullaby',sound:'lullaby'},shush:{label:'Shush',sound:'shush'}};
@@ -14,12 +15,14 @@
 		unlockSpeech(); ensureAudio();
 		playingTTS = true;
 		speak(msg);
+		trackTTS(appState.result?.category || 'unknown');
 		setTimeout(() => { if(!isSpeaking()) playingTTS = false; }, 500);
 	}
 
 	function playSound(name) {
 		ensureAudio();
 		playResponse(name);
+		trackSound(name, 'response');
 	}
 
 	function handleStop() {
