@@ -78,6 +78,19 @@
 </script>
 
 <div class="both">
+	{#if !appState.audioBlob || !appState.imageBlob}
+		<div class="flow-hint">
+			<div class="flow-step" class:done={!!appState.audioBlob} class:current={!appState.audioBlob && !aRecOn}>
+				<span class="flow-num">1</span> Record cry
+			</div>
+			<div class="flow-arrow"><Icon name="arrow-right" size={12} color="var(--text-dim)" /></div>
+			<div class="flow-step" class:done={!!appState.imageBlob} class:current={!!appState.audioBlob && !appState.imageBlob}>
+				<span class="flow-num">2</span> Capture face
+			</div>
+		</div>
+	{/if}
+
+	<div class="both-panels">
 	<div class="panel audio-panel">
 		<div class="p-label"><Icon name="mic" size={18} color="currentColor" /> Audio</div>
 		{#if appState.audioBlob && !aRecOn}
@@ -132,11 +145,22 @@
 			<label class="lk"><Icon name="upload" size={14} color="currentColor" /> Upload<input type="file" accept="image/*" onchange={cUpload} class="c-hidden"/></label>
 		{/if}
 	</div>
+	</div>
 </div>
 <canvas bind:this={cEl} style="display:none"></canvas>
 
 <style>
-	.both{display:flex;gap:10px;padding:16px 12px;width:100%;align-items:stretch}
+	.both{display:flex;flex-direction:column;gap:10px;padding:16px 12px;width:100%}
+	.flow-hint{display:flex;align-items:center;justify-content:center;gap:8px;padding:8px 12px;background:var(--bg);border-radius:var(--radius-sm)}
+	.flow-step{display:flex;align-items:center;gap:6px;font-size:.72rem;font-weight:600;color:var(--text-dim)}
+	.flow-step.current{color:var(--pink);font-weight:700}
+	.flow-step.done{color:var(--teal)}
+	.flow-num{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.62rem;font-weight:800;background:rgba(128,128,128,.1)}
+	.flow-step.current .flow-num{background:var(--pink-soft);color:var(--pink)}
+	.flow-step.done .flow-num{background:var(--teal-soft);color:var(--teal)}
+	.flow-arrow{opacity:.4}
+
+	.both-panels{display:flex;gap:10px;align-items:stretch}
 	.panel{flex:1;display:flex;flex-direction:column;align-items:center;gap:10px;min-width:0}
 	.p-label{font-size:.68rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--text-soft)}
 
@@ -172,5 +196,5 @@
 
 	.c-hidden{position:absolute;inset:0;opacity:0;cursor:pointer}
 
-	@media(max-width:420px){.both{flex-direction:column}.divider{width:100%;height:1px}}
+	@media(max-width:420px){.both-panels{flex-direction:column}.divider{width:100%;height:1px}}
 </style>
