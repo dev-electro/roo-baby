@@ -13,6 +13,15 @@
 
 {#if appState.result}
 	<div class="rc animate-slide">
+		{#if appState.result.is_adult || appState.result.category === 'INVALID'}
+			<div class="rc-adult-alert animate-shake">
+				<div class="rc-adult-icon">👶</div>
+				<div class="rc-adult-text">
+					<strong>Hey! We spotted an adult (or non-baby) face!</strong>
+					<p>You're testing ROO on yourself, aren't you? The results below are completely wrong — ROO is designed exclusively for babies aged 0-3 years. Try it on your little one for real insights!</p>
+				</div>
+			</div>
+		{/if}
 		<div class="rc-top">
 			<div class="rc-cat">
 				<div class="rc-icon" style="color:{CL[appState.result.category]||'var(--text-soft)'}">
@@ -26,6 +35,9 @@
 			<div class="rc-conf-h"><span>Confidence</span><span class="rc-conf-v">{appState.result.confidence}%</span></div>
 			<div class="rc-conf-t"><div class="rc-conf-f" style="width:{w}%"></div></div>
 		</div>
+		{#if appState.result.adult_message}
+			<div class="rc-adult-msg">{appState.result.adult_message}</div>
+		{/if}
 		{#if appState.result.reasoning}
 			<div class="rc-box"><div class="rc-box-l">Why</div><p class="rc-reason">"{appState.result.reasoning}"</p></div>
 		{/if}
@@ -54,4 +66,15 @@
 	.rc-action{padding:14px 16px;background:var(--teal-soft)}
 	.action-l{color:var(--teal)!important}
 	.rc-action-t{font-size:.9rem;font-weight:700;color:var(--text);line-height:1.4}
+
+	.rc-adult-alert{
+		margin:0;padding:14px 16px;
+		background:linear-gradient(135deg,rgba(255,107,122,.12),rgba(248,196,113,.1));
+		border-bottom:2px solid var(--pink);
+		display:flex;align-items:flex-start;gap:10px;
+	}
+	.rc-adult-icon{font-size:1.6rem;flex-shrink:0;line-height:1}
+	.rc-adult-text strong{font-size:.82rem;color:var(--pink);display:block;margin-bottom:3px}
+	.rc-adult-text p{font-size:.72rem;color:var(--text-soft);line-height:1.45;margin:0}
+	.rc-adult-msg{font-size:.7rem;color:var(--text-dim);padding:6px 16px;font-style:italic;background:rgba(255,107,122,.05)}
 </style>

@@ -7,7 +7,7 @@
 	import { saveToHistory } from '$utils/historyStore.js';
 	import Icon from './Icon.svelte';
 
-	const MSGS={HUNGER:"Shh little one… food is on the way.",PAIN:"It's okay baby… I'm right here.",TIRED:"Sleep now… the world can wait.",DISCOMFORT:"Let's get comfortable.",BURPING:"Good baby… let it out.",UNKNOWN:"Shh… everything is okay.",INVALID:"This doesn't appear to be a baby. ROO is designed for infant cry analysis only."};
+	const MSGS={HUNGER:"Shh little one… food is on the way.",PAIN:"It's okay baby… I'm right here.",TIRED:"Sleep now… the world can wait.",DISCOMFORT:"Let's get comfortable.",BURPING:"Good baby… let it out.",UNKNOWN:"Shh… everything is okay.",INVALID:"Hey! We see you're testing ROO on yourself. The results are just for fun — ROO is for babies only. Try it on your little one!"};
 
 	let busy=$state(false);
 
@@ -25,8 +25,8 @@
 			const data=await analyze({mode:appState.currentMode,audio:appState.audioBlob,image:appState.imageBlob,spectrogram:appState.spectrogramBlob,audioFeatures:feat});
 			if(appState.resetId !== rid) return;
 			appState.result=data; saveToHistory(data);
-			if(appState.autoPlaySounds && data.response_sound && data.category !== 'INVALID') playResponse(data.response_sound);
-			if(appState.autoPlaySounds && data.category !== 'INVALID') setTimeout(()=>speak(MSGS[data.category]||MSGS.UNKNOWN),1500);
+		if(appState.autoPlaySounds && data.response_sound && data.category !== 'INVALID' && !data.is_adult) playResponse(data.response_sound);
+		if(appState.autoPlaySounds && data.category !== 'INVALID' && !data.is_adult) setTimeout(()=>speak(MSGS[data.category]||MSGS.UNKNOWN),1500);
 		}catch(err){appState.setError(err.message||'Analysis failed')}
 		finally{appState.isAnalyzing=false;busy=false}
 	}
