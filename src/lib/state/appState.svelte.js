@@ -17,6 +17,7 @@ export function createAppState() {
 	let autoPlaySounds = $state(typeof localStorage !== 'undefined' ? localStorage.getItem('roo-autoplay') === 'true' : false);
 	let cameraStream = $state(null);
 	let resetId = $state(0);
+	let userNotes = $state('');
 
 	const isReady = $derived(() => {
 		if (currentMode === 'audio') return !!audioBlob && !!spectrogramBlob;
@@ -43,6 +44,7 @@ export function createAppState() {
 		isAnalyzing = false;
 		isConvertingAudio = false;
 		isGeneratingSpectrogram = false;
+		userNotes = '';
 	}
 
 	function setError(msg) {
@@ -80,6 +82,8 @@ export function createAppState() {
 		get cameraStream() { return cameraStream; },
 		set cameraStream(v) { cameraStream = v; },
 		get resetId() { return resetId; },
+		get userNotes() { return userNotes; },
+		set userNotes(v) { userNotes = v; },
 		get isReady() { return isReady(); },
 		get hasSpectrogram() { return hasSpectrogram(); },
 		get hasAnyInput() { return hasAnyInput(); },

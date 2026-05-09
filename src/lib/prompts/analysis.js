@@ -41,6 +41,8 @@ BURPING (strained effort):
 
 export const VISUAL_SIGNATURES = `
 VISUAL SIGNALS (if image provided):
+⚠️ FIRST CHECK: Is this a BABY (0-3 years)? Baby: round face, chubby cheeks, small nose, fine hair. Adult/older: facial hair, wrinkles, defined jawline, makeup.
+- If ADULT/OLDER CHILD (4+): set is_adult true — still analyze for fun but note results are incorrect
 - HUNGER: rooting reflex, hands toward mouth, lip smacking
 - PAIN: scrunched face, tightly shut eyes, red/flushed skin
 - TIRED: droopy eyelids, glassy eyes, limp posture

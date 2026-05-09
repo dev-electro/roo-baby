@@ -58,14 +58,13 @@ export async function extractAudioFeatures(blob) {
 		const silenceRatio = silentFrames / totalFrames;
 
 		// Energy variability: is energy uniform (noise) or bursty (cry)?
+		let energyVariability = 0;
 		if (frameEnergies.length > 1) {
 			const meanE = frameEnergies.reduce((a, b) => a + b, 0) / frameEnergies.length;
 			let eVar = 0;
 			for (const e of frameEnergies) eVar += (e - meanE) * (e - meanE);
-			eVar = Math.sqrt(eVar / frameEnergies.length);
-			const energyVariability = meanE > 0 ? eVar / meanE : 0;
-		} else {
-			const energyVariability = 0;
+			const stdDev = Math.sqrt(eVar / frameEnergies.length);
+			energyVariability = meanE > 0 ? stdDev / meanE : 0;
 		}
 
 		// Energy envelope: ratio of first half energy to second half (onset pattern)

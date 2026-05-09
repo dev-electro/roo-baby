@@ -38,7 +38,7 @@ BABY CRY CATEGORIES:
 - BURPING: short isolated bursts, pitch descending each burst
 
 The first image is a REFERENCE ATLAS. The second is the USER'S spectrogram.
-
+{{USER_NOTES}}
 STEP 1: Check WARNINGS first — if any edge case is flagged, respond accordingly (UNKNOWN or low confidence).
 STEP 2: Only if the signal looks like a real cry, compare against reference atlas.
 STEP 3: Match dominant frequency and rhythm pattern to the most likely category.
@@ -63,7 +63,7 @@ VISUAL CUES:
 - BURPING: squirming, brief back arching → burp
 
 If this is an ADULT or OLDER CHILD (4+ years) → Set is_adult to true. Still analyze the face EXACTLY as above (we want to show the funny result!), but make the reasoning playful — imagine if this adult were a giant baby. Keep the category, confidence, severity, and parent_action as you would for a baby (it's part of the joke!).
-
+{{USER_NOTES}}
 Respond with ONLY valid JSON (include is_adult AND adult_message if adult):
 {"category":"HUNGER","confidence":78,"severity":"MEDIUM","reasoning":"Rooting reflex visible with hands moving toward mouth area","parent_action":"Feed soon","response_sound":"heartbeat","pre_cry":true,"pre_cry_message":"Baby may be getting hungry soon","is_adult":false,"adult_message":null}
 For adults: {"category":"TIRED","confidence":65,"severity":"MEDIUM","reasoning":"Droopy adult eyes detected — clearly hasn't slept in days. Classic parent exhaustion pattern.","parent_action":"Hand the baby to your partner and take a nap","response_sound":"lullaby","pre_cry":false,"pre_cry_message":null,"is_adult":true,"adult_message":"We see you're testing ROO on yourself! The results are totally wrong — ROO is designed for babies 0-3 years only. Try it on your little one for real insights! 🍼"}
@@ -109,7 +109,7 @@ STEP 2: Read audio measurements — dominant freq, peak freqs, rhythm.
 STEP 3: Compare spectrogram against reference atlas.
 STEP 4: Analyze facial expression and body language.
 STEP 5: Cross-reference all signals. Higher confidence when they converge AND no edge cases.
-
+{{USER_NOTES}}
 Respond with ONLY valid JSON:
 {"category":"HUNGER","confidence":91,"severity":"HIGH","reasoning":"Dominant 450Hz + rhythmic onset 75% + rooting reflex — all three signals converge on hunger","parent_action":"Feed immediately","response_sound":"heartbeat","pre_cry":false,"pre_cry_message":null,"is_adult":false,"adult_message":null}
 For adults: include is_adult:true and a funny adult_message like "We see you're testing ROO on yourself! These results are nonsense — ROO is for babies. Try it on your little one!"
@@ -276,6 +276,7 @@ export async function onRequest(context) {
 		const spectrogramBlob = form.get('spectrogram');
 		const imageBlob = form.get('image');
 		const audioFeaturesStr = form.get('audio_features');
+		const userNotes = form.get('user_notes') || '';
 
 		let audioFeatures = null;
 		if (audioFeaturesStr) {
@@ -312,6 +313,12 @@ export async function onRequest(context) {
 			promptText = promptText.replace('{{AUDIO_FEATURES}}', featureStr);
 		} else {
 			promptText = promptText.replace('{{AUDIO_FEATURES}}', '(Audio measurements unavailable — rely on visual spectrogram analysis)');
+		}
+
+		if (userNotes) {
+			promptText = promptText.replace('{{USER_NOTES}}', `\nPARENT'S OBSERVATIONS (provided by the user — incorporate this context):\n"${userNotes}"\n`);
+		} else {
+			promptText = promptText.replace('{{USER_NOTES}}', '');
 		}
 
 		// Build image payloads

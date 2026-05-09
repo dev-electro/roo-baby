@@ -67,7 +67,7 @@
 			return;
 		}
 
-		const data=await analyze({mode:appState.currentMode,audio:appState.audioBlob,image:appState.imageBlob,spectrogram:appState.spectrogramBlob,audioFeatures:feat});
+		const data=await analyze({mode:appState.currentMode,audio:appState.audioBlob,image:appState.imageBlob,spectrogram:appState.spectrogramBlob,audioFeatures:feat,userNotes:appState.userNotes});
 			if(appState.resetId !== rid) return;
 			appState.result=data; saveToHistory(data);
 		if(appState.autoPlaySounds && data.response_sound && data.category !== 'INVALID' && !data.is_adult) playResponse(data.response_sound);

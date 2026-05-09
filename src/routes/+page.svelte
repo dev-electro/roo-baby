@@ -51,6 +51,17 @@
 		{/if}
 	</div>
 
+	<div class="notes-bar">
+		<Icon name="info-circle" size={14} color="var(--text-dim)" />
+		<input
+			type="text"
+			class="notes-input"
+			placeholder="Observations (optional) — e.g. &quot;just woke up&quot;, &quot;crying for 10 min&quot;, &quot;refusing bottle&quot;..."
+			bind:value={appState.userNotes}
+			maxlength={200}
+		/>
+	</div>
+
 	<ErrorToast />
 	<AnalyzeButton />
 	<LoadingState />
@@ -109,4 +120,18 @@
 	.footer-brand{display:flex;align-items:center;gap:6px;font-family:'Fraunces',serif;font-size:1.05rem;font-weight:700;color:var(--text-soft)}
 	.footer-tagline{font-size:.65rem;color:var(--text-dim);font-weight:600;letter-spacing:.04em}
 	.footer-sub{font-size:.6rem;color:var(--text-dim);opacity:.45;max-width:260px;line-height:1.5}
+
+	.notes-bar{
+		display:flex;align-items:center;gap:8px;
+		padding:8px 14px;
+		background:var(--card-bg);border:1px solid var(--card-border);
+		border-radius:var(--radius-sm);
+	}
+	.notes-input{
+		flex:1;border:none;background:none;
+		font-size:.75rem;color:var(--text);
+		font-family:inherit;
+		outline:none;
+	}
+	.notes-input::placeholder{color:var(--text-dim);font-style:italic}
 </style>
