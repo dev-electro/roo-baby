@@ -14,19 +14,26 @@ export function createAppState() {
 	let result = $state(null);
 	let error = $state(null);
 	let showSettings = $state(false);
+	let autoPlaySounds = $state(typeof localStorage !== 'undefined' ? localStorage.getItem('roo-autoplay') === 'true' : false);
 	let cameraStream = $state(null);
-	
+	let resetId = $state(0);
+
 	const isReady = $derived(() => {
 		if (currentMode === 'audio') return !!audioBlob && !!spectrogramBlob;
 		if (currentMode === 'image') return !!imageBlob;
 		return !!audioBlob && !!imageBlob && !!spectrogramBlob;
 	});
-	
+
 	const hasSpectrogram = $derived(() => !!spectrogramBlob);
-	
+
 	const hasAnyInput = $derived(() => !!audioBlob || !!imageBlob);
-	
+
 	function reset() {
+		resetId++;
+		if (cameraStream) {
+			cameraStream.getTracks().forEach(t => t.stop());
+			cameraStream = null;
+		}
 		audioBlob = null;
 		imageBlob = null;
 		spectrogramBlob = null;
@@ -36,20 +43,16 @@ export function createAppState() {
 		isAnalyzing = false;
 		isConvertingAudio = false;
 		isGeneratingSpectrogram = false;
-		if (cameraStream) {
-			cameraStream.getTracks().forEach(t => t.stop());
-			cameraStream = null;
-		}
 	}
-	
+
 	function setError(msg) {
 		error = msg;
 	}
-	
+
 	function clearError() {
 		error = null;
 	}
-	
+
 	return {
 		get currentMode() { return currentMode; },
 		set currentMode(v) { currentMode = v; },
@@ -72,8 +75,11 @@ export function createAppState() {
 		get error() { return error; },
 		get showSettings() { return showSettings; },
 		set showSettings(v) { showSettings = v; },
+		get autoPlaySounds() { return autoPlaySounds; },
+		set autoPlaySounds(v) { autoPlaySounds = v; },
 		get cameraStream() { return cameraStream; },
 		set cameraStream(v) { cameraStream = v; },
+		get resetId() { return resetId; },
 		get isReady() { return isReady(); },
 		get hasSpectrogram() { return hasSpectrogram(); },
 		get hasAnyInput() { return hasAnyInput(); },

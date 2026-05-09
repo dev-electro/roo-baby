@@ -24,10 +24,18 @@
 
 	function capture() {
 		if (!videoEl || !canvasEl) return;
+		const rid = appState.resetId;
 		canvasEl.width = videoEl.videoWidth || 640;
 		canvasEl.height = videoEl.videoHeight || 480;
 		canvasEl.getContext('2d').drawImage(videoEl, 0, 0);
-		canvasEl.toBlob(b => { if (b) { if (preview) URL.revokeObjectURL(preview); preview = URL.createObjectURL(b); appState.imageBlob = b; stopStream(); } }, 'image/jpeg', .9);
+		canvasEl.toBlob(b => {
+			if (b && appState.resetId === rid) {
+				if (preview) URL.revokeObjectURL(preview);
+				preview = URL.createObjectURL(b);
+				appState.imageBlob = b;
+				stopStream();
+			}
+		}, 'image/jpeg', .9);
 	}
 
 	function upload(e) { const f = e.target.files[0]; if (f) { if (preview) URL.revokeObjectURL(preview); preview = URL.createObjectURL(f); appState.imageBlob = f; } }

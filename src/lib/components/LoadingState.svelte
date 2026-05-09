@@ -1,9 +1,14 @@
 <script>
 	import { appState } from '$state/appState.svelte.js';
-	import Icon from './Icon.svelte';
-	const words=['Listening to your baby…','Reading the spectrogram…','Consulting ROO AI…','Almost there…'];
+	const words=[
+		'Decoding your baby\'s cry…',
+		'Analyzing Mel spectrogram patterns…',
+		'Cross-referencing with Gemma 4 VLM…',
+		'Identifying cry characteristics…',
+		'Almost ready…'
+	];
 	let w=$state(words[0]), i=0, id;
-	$effect(()=>{if(appState.isAnalyzing){id=setInterval(()=>{i=(i+1)%words.length;w=words[i]},2000);return()=>clearInterval(id)}else{w=words[0];i=0}});
+	$effect(()=>{if(appState.isAnalyzing){id=setInterval(()=>{i=(i+1)%words.length;w=words[i]},2200);return()=>clearInterval(id)}else{w=words[0];i=0}});
 </script>
 {#if appState.isAnalyzing}
 <div class="l animate-slide"><div class="l-pulse"><Icon name="kangaroo" size={24} color="var(--pink)" /></div><p class="l-text">{w}</p></div>

@@ -19,19 +19,28 @@
 			recorder = new MediaRecorder(stream);
 			recorder.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
 			recorder.onstop = async () => {
+				const rid = appState.resetId;
 				const raw = new Blob(chunks, { type: recorder.mimeType });
 				if (isSupportedAudioFormat(raw.type)) {
 					appState.audioBlob = raw;
 				} else {
 					appState.isConvertingAudio = true;
-					try { appState.audioBlob = await convertToWav(raw); }
+					try {
+						const wav = await convertToWav(raw);
+						if (appState.resetId !== rid) return;
+						appState.audioBlob = wav;
+					}
 					catch { appState.setError('Audio conversion failed'); }
 					finally { appState.isConvertingAudio = false; }
 				}
 				stream.getTracks().forEach(t => t.stop()); stream = null;
-				if (appState.audioBlob) {
+				if (appState.audioBlob && appState.resetId === rid) {
 					appState.isGeneratingSpectrogram = true;
-					try { appState.spectrogramBlob = await generateSpectrogram(appState.audioBlob); }
+					try {
+						const sg = await generateSpectrogram(appState.audioBlob);
+						if (appState.resetId !== rid) return;
+						appState.spectrogramBlob = sg;
+					}
 					catch { appState.spectrogramBlob = null; }
 					finally { appState.isGeneratingSpectrogram = false; }
 				}

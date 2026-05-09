@@ -17,13 +17,16 @@
 		if (!appState.isReady || appState.isAnalyzing || busy) return;
 		busy=true; appState.isAnalyzing=true; appState.clearError(); appState.result=null;
 		unlockSpeech(); ensureAudioResumed();
+		const rid = appState.resetId;
 		try {
 			let feat=null;
 			if(appState.audioBlob){try{feat=await extractAudioFeatures(appState.audioBlob)}catch{}}
+			if(appState.resetId !== rid) return;
 			const data=await analyze({mode:appState.currentMode,audio:appState.audioBlob,image:appState.imageBlob,spectrogram:appState.spectrogramBlob,audioFeatures:feat});
+			if(appState.resetId !== rid) return;
 			appState.result=data; saveToHistory(data);
-			if(data.response_sound && data.category !== 'INVALID') playResponseSound(data.response_sound);
-			if(data.category !== 'INVALID') setTimeout(()=>speak(MSGS[data.category]||MSGS.UNKNOWN),1500);
+			if(appState.autoPlaySounds && data.response_sound && data.category !== 'INVALID') playResponseSound(data.response_sound);
+			if(appState.autoPlaySounds && data.category !== 'INVALID') setTimeout(()=>speak(MSGS[data.category]||MSGS.UNKNOWN),1500);
 		}catch(err){appState.setError(err.message||'Analysis failed')}
 		finally{appState.isAnalyzing=false;busy=false}
 	}
@@ -35,9 +38,9 @@
 	{:else if processing}
 		<Icon name="loader" size={18} color="currentColor" /> Preparing…
 	{:else if appState.isReady}
-		<Icon name="search" size={18} color="currentColor" /> Analyze Cry
+		<Icon name="search" size={18} color="currentColor" /> Understand This Cry
 	{:else}
-		Record a cry to analyze
+		Record your baby to begin
 	{/if}
 </button>
 

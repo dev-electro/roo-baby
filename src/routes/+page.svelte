@@ -2,7 +2,6 @@
 	import { appState } from '$state/appState.svelte.js';
 	import { stopAllSounds } from '$utils/soundGenerator.js';
 	import { stopSpeaking } from '$utils/ttsEngine.js';
-	import { saveToHistory } from '$utils/historyStore.js';
 
 	import Header from '$components/Header.svelte';
 	import ModeTabs from '$components/ModeTabs.svelte';
@@ -34,17 +33,21 @@
 	<ModeTabs />
 
 	<div class="card">
+		{#key appState.currentMode}
+			{#if appState.currentMode === 'audio'}
+				<AudioRecorder />
+			{:else if appState.currentMode === 'image'}
+				<CameraCapture />
+			{:else}
+				<BothModePanel />
+			{/if}
+		{/key}
+
 		{#if appState.isConvertingAudio || appState.isGeneratingSpectrogram}
-			<div class="processing">
+			<div class="processing-overlay animate-fade">
 				<div class="spinner"></div>
-				<p>{appState.isConvertingAudio ? 'Optimizing…' : 'Creating spectrogram…'}</p>
+				<p>{appState.isConvertingAudio ? 'Optimizing audio…' : 'Generating spectrogram…'}</p>
 			</div>
-		{:else if appState.currentMode === 'audio'}
-			<AudioRecorder />
-		{:else if appState.currentMode === 'image'}
-			<CameraCapture />
-		{:else}
-			<BothModePanel />
 		{/if}
 	</div>
 
@@ -62,6 +65,17 @@
 	{/if}
 
 	<HistoryCard />
+
+	<footer class="footer">
+		<div class="footer-inner">
+			<div class="footer-brand">
+				<Icon name="kangaroo" size={16} color="var(--pink)" />
+				<span>ROO</span>
+			</div>
+			<p class="footer-tagline">Gemma 4 · Mel Spectrogram · Computer Vision</p>
+			<p class="footer-sub">Not a medical device — always consult your pediatrician.</p>
+		</div>
+	</footer>
 </div>
 
 <style>
@@ -71,11 +85,16 @@
 		background:var(--card-bg);border:1px solid var(--card-border);
 		border-radius:var(--radius-xl);overflow:hidden;
 		min-height:180px;display:flex;align-items:center;justify-content:center;
+		position:relative;
 	}
 
-	.processing{display:flex;flex-direction:column;align-items:center;gap:12px;padding:36px}
+	.processing-overlay{
+		position:absolute;inset:0;z-index:10;
+		display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;
+		background:rgba(19,16,28,.92);backdrop-filter:blur(2px);
+	}
+	.processing-overlay p{font-size:.85rem;color:var(--text-soft);font-weight:600}
 	.spinner{width:28px;height:28px;border:3px solid var(--card-border);border-top-color:var(--pink);border-radius:50%;animation:spin .8s linear infinite}
-	.processing p{font-size:.85rem;color:var(--text-soft);font-weight:600}
 
 	.reset-btn{
 		align-self:center;padding:12px 28px;border-radius:100px;
@@ -84,4 +103,10 @@
 		transition:all .15s;
 	}
 	.reset-btn:hover{border-color:var(--pink);color:var(--text)}
+
+	.footer{margin-top:14px;padding:18px 0 32px;border-top:1px solid var(--card-border);text-align:center}
+	.footer-inner{display:flex;flex-direction:column;align-items:center;gap:4px}
+	.footer-brand{display:flex;align-items:center;gap:6px;font-family:'Fraunces',serif;font-size:1.05rem;font-weight:700;color:var(--text-soft)}
+	.footer-tagline{font-size:.65rem;color:var(--text-dim);font-weight:600;letter-spacing:.04em}
+	.footer-sub{font-size:.6rem;color:var(--text-dim);opacity:.45;max-width:260px;line-height:1.5}
 </style>

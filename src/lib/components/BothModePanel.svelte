@@ -18,14 +18,25 @@
 			aChunks=[]; aRec=new MediaRecorder(aStream);
 			aRec.ondataavailable=e=>{if(e.data.size)aChunks.push(e.data)};
 			aRec.onstop=async()=>{
+				const rid = appState.resetId;
 				const raw=new Blob(aChunks,{type:aRec.mimeType});
 				if(isSupportedAudioFormat(raw.type)){appState.audioBlob=raw}else{
 					appState.isConvertingAudio=true;
-					try{appState.audioBlob=await convertToWav(raw)}catch{appState.setError('Conversion failed')}finally{appState.isConvertingAudio=false}
+					try{
+						const wav = await convertToWav(raw);
+						if(appState.resetId !== rid) return;
+						appState.audioBlob=wav;
+					}catch{appState.setError('Conversion failed')}finally{appState.isConvertingAudio=false}
 				}
 				aStream.getTracks().forEach(t=>t.stop());aStream=null;
-				if(appState.audioBlob){appState.isGeneratingSpectrogram=true;
-					try{appState.spectrogramBlob=await generateSpectrogram(appState.audioBlob)}catch{appState.spectrogramBlob=null}finally{appState.isGeneratingSpectrogram=false}}
+				if(appState.audioBlob && appState.resetId === rid){
+					appState.isGeneratingSpectrogram=true;
+					try{
+						const sg = await generateSpectrogram(appState.audioBlob);
+						if(appState.resetId !== rid) return;
+						appState.spectrogramBlob=sg;
+					}catch{appState.spectrogramBlob=null}finally{appState.isGeneratingSpectrogram=false}
+				}
 			};
 			aRec.start();aRecOn=true;appState.isRecording=true;aElapsed=0;
 			aTimer=setInterval(()=>{aElapsed++;if(aElapsed>=MAX)aStop()},1000);
@@ -47,9 +58,17 @@
 	}
 	async function cFlip(){facing=facing==='user'?'environment':'user';if(camOn){camOn=false;await cStart()}}
 	function cCapture(){
-		if(!vEl||!cEl)return;cEl.width=vEl.videoWidth||640;cEl.height=vEl.videoHeight||480;
+		if(!vEl||!cEl)return;
+		const rid = appState.resetId;
+		cEl.width=vEl.videoWidth||640;cEl.height=vEl.videoHeight||480;
 		cEl.getContext('2d').drawImage(vEl,0,0);
-		cEl.toBlob(b=>{if(b){if(preview)URL.revokeObjectURL(preview);preview=URL.createObjectURL(b);appState.imageBlob=b;imgOk=true;cStop()}},'image/jpeg',.9)
+		cEl.toBlob(b=>{
+			if(b && appState.resetId === rid){
+				if(preview)URL.revokeObjectURL(preview);
+				preview=URL.createObjectURL(b);
+				appState.imageBlob=b;imgOk=true;cStop();
+			}
+		},'image/jpeg',.9)
 	}
 	function cUpload(e){const f=e.target.files[0];if(f){if(preview)URL.revokeObjectURL(preview);preview=URL.createObjectURL(f);appState.imageBlob=f;imgOk=true;cStop()}}
 	function cRetake(){if(preview)URL.revokeObjectURL(preview);preview='';appState.imageBlob=null;imgOk=false;camAsk=false;imgFall=false;camOn=false}
@@ -61,9 +80,7 @@
 <div class="both">
 	<div class="panel audio-panel">
 		<div class="p-label"><Icon name="mic" size={18} color="currentColor" /> Audio</div>
-		{#if appState.isConvertingAudio || appState.isGeneratingSpectrogram}
-			<div class="spin-wrap"><div class="spin"></div><span>Processing…</span></div>
-		{:else if appState.audioBlob && !aRecOn}
+		{#if appState.audioBlob && !aRecOn}
 			<div class="done animate-scale"><Icon name="check" size={18} color="var(--teal)" /><div class="done-t">Recorded</div><button class="btn-xs" onclick={aReset}><Icon name="refresh" size={14} color="currentColor" /></button></div>
 		{:else}
 			<div class="a-wrap">
@@ -122,7 +139,6 @@
 	.both{display:flex;gap:10px;padding:16px 12px;width:100%;align-items:stretch}
 	.panel{flex:1;display:flex;flex-direction:column;align-items:center;gap:10px;min-width:0}
 	.p-label{font-size:.68rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--text-soft)}
-	.divider{width:1px;background:var(--card-border);flex-shrink:0}
 
 	.a-wrap{display:flex;flex-direction:column;align-items:center;gap:8px}
 	.a-btn{width:60px;height:60px;border-radius:50%;background:linear-gradient(145deg,var(--pink),#E04060);font-size:1.5rem;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(255,107,122,.3);transition:transform .15s}
@@ -131,6 +147,8 @@
 	.a-prog{width:60px;height:2px;background:var(--card-border);border-radius:1px;overflow:hidden}
 	.a-prog-fill{height:100%;background:var(--pink);border-radius:1px}
 	.a-hint{font-size:.72rem;color:var(--text-soft);font-weight:600}
+
+	.divider{width:1px;background:var(--card-border);flex-shrink:0}
 
 	.c-ask{display:flex;flex-direction:column;align-items:center;gap:4px;padding:4px}
 	.c-ask-icon{font-size:1.6rem}
@@ -151,9 +169,6 @@
 	.lk{font-size:.65rem;color:var(--text-soft);cursor:pointer;position:relative;transition:color .15s}.lk:hover{color:var(--text)}
 
 	.fall{display:flex;flex-direction:column;align-items:center;gap:6px}.fall-label{display:flex;flex-direction:column;align-items:center;gap:4px;padding:18px 20px;border:1px dashed var(--card-border);border-radius:var(--radius-sm);cursor:pointer;font-size:.7rem;color:var(--text-soft);position:relative;transition:border-color .15s}.fall-label:hover{border-color:var(--pink)}
-
-	.spin-wrap{display:flex;flex-direction:column;align-items:center;gap:6px;font-size:.7rem;color:var(--text-soft)}
-	.spin{width:22px;height:22px;border:2px solid var(--card-border);border-top-color:var(--pink);border-radius:50%;animation:spin .8s linear infinite}
 
 	.c-hidden{position:absolute;inset:0;opacity:0;cursor:pointer}
 

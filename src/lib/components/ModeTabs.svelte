@@ -1,14 +1,18 @@
 <script>
 	import { appState } from '$state/appState.svelte.js';
+	import { stopAllSounds } from '$utils/soundGenerator.js';
+	import { stopSpeaking } from '$utils/ttsEngine.js';
 	import Icon from './Icon.svelte';
 
 	const modes = [
-		{ id: 'audio', icon: 'mic', label: 'Audio', sub: 'Cry only' },
-		{ id: 'image', icon: 'camera', label: 'Photo', sub: 'Face only' },
-		{ id: 'both',  icon: 'star', label: 'Best',  sub: 'Audio+Photo' },
+		{ id: 'audio', icon: 'mic', label: 'Audio', sub: 'Cry analysis' },
+		{ id: 'image', icon: 'camera', label: 'Photo', sub: 'Face analysis' },
+		{ id: 'both',  icon: 'star', label: 'Dual',  sub: 'Audio+Face' },
 	];
 
 	function pick(mode) {
+		stopAllSounds();
+		stopSpeaking();
 		appState.currentMode = mode;
 		appState.reset();
 	}

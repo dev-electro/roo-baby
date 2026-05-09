@@ -1,5 +1,6 @@
 <script>
 	import '../app.css';
+	import { page } from '$app/stores';
 	import { appState } from '$state/appState.svelte.js';
 	import Icon from '$components/Icon.svelte';
 	import SettingsPanel from '$components/SettingsPanel.svelte';
@@ -24,6 +25,11 @@
 			<Icon name="kangaroo" size={18} color="var(--pink)" />
 			<span class="topbar-brand">ROO</span>
 			<div class="topbar-end">
+				{#if $page.url.pathname !== '/soothe'}
+					<a href="/soothe" class="tb-btn" aria-label="Soothing sounds">
+						<Icon name="play" size={16} color="currentColor" />
+					</a>
+				{/if}
 				<button class="tb-btn" onclick={toggleTheme} aria-label="Toggle theme">
 					<Icon name={theme === 'dark' ? 'sun' : 'moon'} size={16} color="currentColor" />
 				</button>
@@ -53,7 +59,7 @@
 	.tb-btn{
 		width:32px;height:32px;border-radius:50%;
 		display:flex;align-items:center;justify-content:center;
-		transition:background .15s;
+		transition:background .15s;color:var(--text-soft);text-decoration:none;
 	}
 	.tb-btn:hover{background:var(--card-bg)}
 	.main{max-width:480px;margin:0 auto;padding:12px 20px 60px;display:flex;flex-direction:column;gap:14px}
