@@ -5,12 +5,23 @@
 
 :root {
   /* ── Dark surfaces (true charcoal, zero hue) ── */
+  /* ── Surfaces ── */
   --bg:         #09090B;
   --surface:    #111113;
   --surface-2:  #18181B;
   --surface-3:  #1E1E22;
   --border:     #2A2A30;
   --border-soft:#1F1F25;
+  --topbar-bg:  rgba(9,9,11,.88);
+  --dot-color:  #2E2E36;
+
+  /* ── Extended palette (dark muted) ── */
+  --teal:        #14B8A6;  --teal-bg:   #061514;  --teal-border: rgba(20,184,166,.28);
+  --sky:         #38BDF8;  --sky-bg:    #040F1C;  --sky-border:  rgba(56,189,248,.28);
+  --rose:        #FB7185;  --rose-bg:   #1C0608;  --rose-border: rgba(251,113,133,.28);
+  --amber:       #FBBF24;  --amber-bg:  #1A1200;  --amber-border:rgba(251,191,36,.28);
+  --emerald:     #34D399;  --emerald-bg:#031A10;  --emerald-border:rgba(52,211,153,.28);
+  --indigo:      #818CF8;  --indigo-bg: #0A0B1C;  --indigo-border:rgba(129,140,248,.28);
 
   /* ── Text — WCAG AA+ ── */
   --text:       #F4F4F5;   /* 16:1 on --bg */
@@ -59,12 +70,23 @@
 
 /* ── Light theme — warm white, strong contrast ── */
 [data-theme="light"] {
+  /* ── Surfaces ── */
   --bg:         #F8F8FA;
   --surface:    #FFFFFF;
   --surface-2:  #F2F2F5;
   --surface-3:  #E8E8EE;
   --border:     #E0E0E8;
   --border-soft:#EBEBF0;
+  --topbar-bg:  rgba(248,248,250,.92);
+  --dot-color:  #C4C4D0;
+
+  /* ── Extended palette (light vivid) ── */
+  --teal:        #0D9488;  --teal-bg:   #F0FDF9;  --teal-border: rgba(13,148,136,.2);
+  --sky:         #0284C7;  --sky-bg:    #F0F9FF;  --sky-border:  rgba(2,132,199,.2);
+  --rose:        #F43F5E;  --rose-bg:   #FFF1F2;  --rose-border: rgba(244,63,94,.2);
+  --amber:       #D97706;  --amber-bg:  #FFFBEB;  --amber-border:rgba(217,119,6,.2);
+  --emerald:     #059669;  --emerald-bg:#ECFDF5;  --emerald-border:rgba(5,150,105,.2);
+  --indigo:      #4F46E5;  --indigo-bg: #EEF2FF;  --indigo-border:rgba(79,70,229,.2);
 
   --text:       #0A0A0F;   /* 19:1 */
   --text-2:     #4A4A5A;   /* 7:1  */
@@ -124,17 +146,13 @@ a { color:inherit; text-decoration:none; }
 /* ── Background dot grid ── */
 .bg-pattern {
   position: fixed; inset: 0; z-index: -1; pointer-events: none;
-  background-image: radial-gradient(circle, var(--border) 1px, transparent 1px);
-  background-size: 28px 28px;
-  opacity: .45;
-}
-[data-theme="light"] .bg-pattern {
-  background-image: radial-gradient(circle, var(--border) 1px, transparent 1px);
-  opacity: .6;
+  background-image: radial-gradient(circle, var(--dot-color) 1.2px, transparent 1.2px);
+  background-size: 26px 26px;
+  opacity: 1;
 }
 .bg-vignette {
   position: fixed; inset: 0; z-index: -1; pointer-events: none;
-  background: radial-gradient(ellipse at 50% 30%, transparent 35%, var(--bg) 85%);
+  background: radial-gradient(ellipse at 50% 30%, transparent 30%, var(--bg) 82%);
 }
 
 /* ── Keyframes ── */

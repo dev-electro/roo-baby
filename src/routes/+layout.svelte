@@ -7,13 +7,24 @@
 
 	let { children } = $props();
 
-	let theme = $state((() => { try { return localStorage.getItem('roo-theme') || 'dark'; } catch { return 'dark'; } })());
+	let theme = $state('dark');
+
+	// Read saved theme ASAP — before first render where possible
+	$effect.root(() => {
+		try {
+			const saved = localStorage.getItem('roo-theme') || 'dark';
+			theme = saved;
+			document.documentElement.setAttribute('data-theme', saved);
+		} catch {}
+	});
 
 	function toggleTheme() {
 		theme = theme === 'dark' ? 'light' : 'dark';
+		document.documentElement.setAttribute('data-theme', theme);
 		try { localStorage.setItem('roo-theme', theme); } catch {}
 	}
 
+	// Keep in sync if changed externally
 	$effect(() => { document.documentElement.setAttribute('data-theme', theme); });
 
 	const isSoothe = $derived($page.url.pathname === '/soothe');
@@ -63,13 +74,12 @@
 	/* ── Topbar ── */
 	.topbar {
 		position:sticky; top:0; z-index:50;
-		background:rgba(9,9,11,.9);
+		background:var(--topbar-bg);
 		backdrop-filter:blur(24px) saturate(140%);
 		-webkit-backdrop-filter:blur(24px) saturate(140%);
 		border-bottom:1px solid var(--border);
 		padding-top:env(safe-area-inset-top);
 	}
-	[data-theme="light"] .topbar { background:rgba(248,248,250,.92); }
 
 	.topbar-inner {
 		max-width:720px; margin:0 auto;

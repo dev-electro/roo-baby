@@ -4,89 +4,132 @@
 </script>
 
 <svelte:head>
-	<title>Soothe — ROO Baby</title>
-	<meta name="description" content="Soothing sounds and synthesized audio to calm your baby. White noise, lullabies, womb sounds, and more." />
+	<title>ROO — Soothe</title>
+	<meta name="description" content="Soothing sounds for babies — white noise, lullabies, ocean waves, heartbeat, binaural beats and more." />
 </svelte:head>
 
-<div class="soothe">
-	<!-- Hero -->
-	<div class="hero">
-		<div class="hero-blob" aria-hidden="true"></div>
-		<div class="hero-icon">
-			<Icon name="music" size={28} color="var(--lavender)" />
-		</div>
-		<h1 class="hero-title">Soothe</h1>
-		<p class="hero-sub">Synthesized and curated sounds for your little one</p>
-		<div class="hero-badges">
-			<span class="hbadge hbadge-lav">12 synths</span>
-			<span class="hbadge hbadge-mint">Real-time audio</span>
-			<span class="hbadge hbadge-amber">No streaming needed</span>
-		</div>
+<!-- Header -->
+<div class="sh">
+	<div class="sh-mark">
+		<Icon name="music" size={28} color="var(--amber)" />
 	</div>
-
-	<!-- Tips row -->
-	<div class="tips">
-		<div class="tip">
-			<Icon name="volume" size={14} color="var(--lavender)" />
-			<span>Keep volume at <strong>60–70%</strong> for newborns</span>
-		</div>
-		<div class="tip">
-			<Icon name="moon" size={14} color="var(--indigo)" />
-			<span>Brown noise great for bedtime</span>
-		</div>
-		<div class="tip">
-			<Icon name="heart" size={14} color="var(--blush)" />
-			<span>Heartbeat perfect for ages 0–3mo</span>
-		</div>
+	<div>
+		<h1 class="sh-title">
+			<span style="color:var(--amber)">Soothe</span> · Baby Sounds
+		</h1>
+		<p class="sh-sub">12 synthesized sounds crafted to calm your little one</p>
 	</div>
-
-	<SoothingPlayer />
-
-	<footer class="s-footer">
-		<p>All sounds generated in real-time in your browser — no download or streaming.</p>
-	</footer>
 </div>
 
-<style>
-	.soothe { display:flex; flex-direction:column; gap:20px; }
+<!-- Benefit chips -->
+<div class="sh-chips">
+	<span class="sh-chip emerald">🌿 White noise</span>
+	<span class="sh-chip sky">🌊 Ocean waves</span>
+	<span class="sh-chip rose">❤️ Heartbeat</span>
+	<span class="sh-chip indigo">🎵 Binaural beats</span>
+	<span class="sh-chip amber">⚡ Instant start</span>
+</div>
 
-	/* Hero */
-	.hero {
-		display:flex; flex-direction:column; align-items:center; gap:8px;
-		text-align:center; position:relative; padding:8px 0 4px;
+<!-- Player -->
+<div class="block">
+	<div class="block-head" style="border-color:var(--amber-border)">
+		<p class="label">Choose a sound</p>
+		<span class="badge" style="color:var(--amber); border-color:var(--amber-border); background:var(--amber-bg)">12 tracks</span>
+	</div>
+	<div style="padding:16px">
+		<SoothingPlayer />
+	</div>
+</div>
+
+<!-- How-to tips -->
+<div class="tips-block">
+	<p class="label" style="margin-bottom:10px">Tips for best results</p>
+	<div class="tips">
+		<div class="tip emerald">
+			<span>🔊</span>
+			<p>Set volume to 50–60% — enough to mask background noise without being too loud</p>
+		</div>
+		<div class="tip sky">
+			<span>🎧</span>
+			<p>Use headphones for Binaural beats — the stereo effect only works with earphones</p>
+		</div>
+		<div class="tip rose">
+			<span>❤️</span>
+			<p>Heartbeat works best for newborns — familiar from the womb</p>
+		</div>
+		<div class="tip amber">
+			<span>🌙</span>
+			<p>Play continuously while settling baby to sleep — use the loop toggle</p>
+		</div>
+	</div>
+</div>
+
+<a href="/" class="back-link">
+	<Icon name="mic" size={14} color="currentColor" /> ← Back to Analyzer
+</a>
+
+<style>
+	/* Soothe header */
+	.sh {
+		display:flex; align-items:center; gap:16px; padding:6px 0 2px;
 	}
-	.hero-blob {
-		position:absolute; top:-40px; left:50%; transform:translateX(-50%);
-		width:240px; height:180px;
-		background:radial-gradient(circle, rgba(110,231,183,.2) 0%, transparent 70%);
-		animation:breathe 4s ease-in-out infinite; pointer-events:none;
-	}
-	.hero-icon {
-		width:60px; height:60px; border-radius:var(--r-lg);
-		background:var(--mint-soft); border:1px solid rgba(110,231,183,.25);
+	.sh-mark {
+		width:64px; height:64px; border-radius:var(--r-2xl); flex-shrink:0;
+		background:var(--amber-bg); border:1px solid var(--amber-border);
 		display:flex; align-items:center; justify-content:center;
-		animation:float 3.5s ease-in-out infinite;
-		box-shadow:0 8px 28px var(--mint-glow);
-		position:relative; z-index:1;
 	}
-	.hero-title {
-		font-family:'Fraunces',serif; font-size:2.4rem; font-weight:700;
-		background:linear-gradient(135deg, var(--mint), var(--lavender));
-		-webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+	.sh-title {
+		font-family:'Instrument Serif',serif;
+		font-size:1.6rem; font-weight:400; color:var(--text); line-height:1.1;
 	}
-	.hero-sub { font-size:.88rem; color:var(--text-soft); font-weight:600; }
-	.hero-badges { display:flex; gap:6px; flex-wrap:wrap; justify-content:center; margin-top:2px; }
-	.hbadge { padding:4px 12px; border-radius:var(--r-pill); font-size:.6rem; font-weight:800; letter-spacing:.06em; text-transform:uppercase; }
-	.hbadge-lav  { background:var(--lav-soft);  border:1px solid rgba(167,139,250,.25); color:var(--lavender); }
-	.hbadge-mint { background:var(--mint-soft);  border:1px solid rgba(110,231,183,.25); color:var(--mint); }
-	.hbadge-amber{ background:var(--amber-soft); border:1px solid rgba(252,211,77,.25);  color:var(--amber); }
+	.sh-sub { font-size:.8rem; color:var(--text-2); font-weight:600; margin-top:5px; }
+
+	.sh-chips { display:flex; flex-wrap:wrap; gap:5px; }
+	.sh-chip {
+		padding:4px 10px; border-radius:var(--r-pill);
+		font-size:.62rem; font-weight:800; border:1px solid; white-space:nowrap;
+	}
+	.sh-chip.emerald { color:var(--emerald); background:var(--emerald-bg); border-color:var(--emerald-border); }
+	.sh-chip.sky     { color:var(--sky);     background:var(--sky-bg);     border-color:var(--sky-border); }
+	.sh-chip.rose    { color:var(--rose);    background:var(--rose-bg);    border-color:var(--rose-border); }
+	.sh-chip.indigo  { color:var(--indigo);  background:var(--indigo-bg);  border-color:var(--indigo-border); }
+	.sh-chip.amber   { color:var(--amber);   background:var(--amber-bg);   border-color:var(--amber-border); }
+
+	/* Block */
+	.block {
+		background:var(--surface); border:1px solid var(--border);
+		border-radius:var(--r-xl); overflow:hidden;
+		border-left:3px solid var(--amber);
+	}
+	.block-head {
+		display:flex; align-items:center; justify-content:space-between;
+		padding:12px 16px; border-bottom:1px solid var(--border);
+	}
 
 	/* Tips */
-	.tips { display:flex; flex-direction:column; gap:6px; padding:10px 14px; background:var(--surface); border:1px solid var(--border); border-radius:var(--r-md); }
-	.tip  { display:flex; align-items:center; gap:8px; font-size:.74rem; color:var(--text-soft); }
-	.tip strong { color:var(--text); font-weight:700; }
+	.tips-block {
+		background:var(--surface); border:1px solid var(--border);
+		border-radius:var(--r-xl); padding:16px;
+	}
+	.tips { display:flex; flex-direction:column; gap:8px; }
+	.tip {
+		display:flex; align-items:flex-start; gap:10px;
+		padding:10px 12px; border-radius:var(--r-md);
+		font-size:.8rem; line-height:1.6; border:1px solid;
+	}
+	.tip span { font-size:1rem; flex-shrink:0; }
+	.tip p    { color:var(--text-2); }
+	.tip.emerald { background:var(--emerald-bg); border-color:var(--emerald-border); }
+	.tip.sky     { background:var(--sky-bg);     border-color:var(--sky-border); }
+	.tip.rose    { background:var(--rose-bg);    border-color:var(--rose-border); }
+	.tip.amber   { background:var(--amber-bg);   border-color:var(--amber-border); }
 
-	/* Footer */
-	.s-footer { text-align:center; }
-	.s-footer p { font-size:.62rem; color:var(--text-dim); line-height:1.6; }
+	.back-link {
+		display:inline-flex; align-items:center; gap:6px;
+		padding:10px 16px; border-radius:var(--r-md);
+		font-size:.78rem; font-weight:700; color:var(--text-2);
+		background:var(--surface-2); border:1px solid var(--border);
+		text-decoration:none; transition:all .12s; align-self:flex-start;
+	}
+	.back-link:hover { color:var(--text); border-color:var(--accent-border); }
 </style>
