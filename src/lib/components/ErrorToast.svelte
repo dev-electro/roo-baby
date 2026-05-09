@@ -1,4 +1,4 @@
-<script>import { appState } from '$state/appState.svelte.js';</script>
+<script>import { appState } from '$state/appState.svelte.js'; import Icon from './Icon.svelte';</script>
 {#if appState.error}
 <div class="e animate-slide"><Icon name="warning" size={18} color="var(--red)" /> <span>{appState.error}</span><button class="e-x" onclick={appState.clearError}><Icon name="close" size={14} color="currentColor" /></button></div>
 {/if}

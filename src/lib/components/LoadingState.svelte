@@ -1,5 +1,6 @@
 <script>
 	import { appState } from '$state/appState.svelte.js';
+	import Icon from './Icon.svelte';
 	const words=['Listening to your baby…','Reading the spectrogram…','Consulting ROO AI…','Almost there…'];
 	let w=$state(words[0]), i=0, id;
 	$effect(()=>{if(appState.isAnalyzing){id=setInterval(()=>{i=(i+1)%words.length;w=words[i]},2000);return()=>clearInterval(id)}else{w=words[0];i=0}});

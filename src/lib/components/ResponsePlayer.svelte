@@ -2,6 +2,7 @@
 	import { appState } from '$state/appState.svelte.js';
 	import { stopAllSounds } from '$utils/soundGenerator.js';
 	import { stopSpeaking } from '$utils/ttsEngine.js';
+	import Icon from './Icon.svelte';
 	const MSGS={HUNGER:"Shh… food is coming. You're safe.",PAIN:"It's okay baby… I'm here.",TIRED:"Sleep now… the world can wait.",DISCOMFORT:"Let's get comfy… better soon.",BURPING:"Let it out… good baby.",UNKNOWN:"Shh… everything is okay.",INVALID:"This appears to be an adult face. ROO is for babies only."};
 	$: msg=appState.result?MSGS[appState.result.category]||MSGS.UNKNOWN:'';
 	function stop(){stopAllSounds();stopSpeaking()}

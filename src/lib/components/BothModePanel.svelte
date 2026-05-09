@@ -3,6 +3,7 @@
 	import { convertToWav, isSupportedAudioFormat } from '$utils/audioEncoder.js';
 	import { generateSpectrogram } from '$utils/spectrogramGenerator.js';
 	import { onDestroy } from 'svelte';
+	import Icon from './Icon.svelte';
 
 	let aChunks=[], aStream=null; let aRec=null, aTimer=null, aElapsed=$state(0), aRecOn=$state(false);
 	let vEl, cEl; let imgOk=$state(false), camOn=$state(false), imgFall=$state(false);

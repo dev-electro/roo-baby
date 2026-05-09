@@ -1,6 +1,7 @@
 <script>
 	import { appState } from '$state/appState.svelte.js';
 	import { getApiUrl, setApiUrl } from '$utils/apiClient.js';
+	import Icon from './Icon.svelte';
 	let url=$state(getApiUrl()), ok=$state(false);
 	function save(){setApiUrl(url.trim());ok=true;setTimeout(()=>ok=false,2000)}
 </script>
@@ -11,7 +12,7 @@
 		<div class="pn-b">
 			<div class="sec"><h4>Backend URL</h4><p>Leave empty for Cloudflare Pages default.</p>
 				<input type="url" placeholder="Custom URL (optional)" bind:value={url}/>
-				<button class="save" onclick={save}>{ok?'<Icon name="check" size={18} color="var(--teal)" /> Saved':'Save'}</button>
+				<button class="save" onclick={save}>{#if ok}<Icon name="check" size={18} color="var(--teal)" /> Saved{:else}Save{/if}</button>
 			</div>
 			<div class="hr"></div>
 			<div class="sec"><h4>About</h4>

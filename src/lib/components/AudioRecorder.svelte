@@ -3,6 +3,7 @@
 	import { convertToWav, isSupportedAudioFormat } from '$utils/audioEncoder.js';
 	import { generateSpectrogram } from '$utils/spectrogramGenerator.js';
 	import { onDestroy } from 'svelte';
+	import Icon from './Icon.svelte';
 
 	let recorder = null;
 	let chunks = [];

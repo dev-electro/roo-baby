@@ -6,11 +6,11 @@
 
 	let { children } = $props();
 
-	let theme = $state(globalThis.localStorage?.getItem('roo-theme') || 'dark');
+	let theme = $state(typeof localStorage !== 'undefined' ? localStorage.getItem('roo-theme') || 'dark' : 'dark');
 
 	function toggleTheme() {
 		theme = theme === 'dark' ? 'light' : 'dark';
-		globalThis.localStorage?.setItem('roo-theme', theme);
+		try { localStorage.setItem('roo-theme', theme); } catch {}
 	}
 
 	$effect(() => {
@@ -21,13 +21,14 @@
 <div class="shell">
 	<div class="topbar">
 		<div class="topbar-inner">
-			<span class="topbar-logo"><Icon name="kangaroo" size={18} color="var(--pink)" /> ROO</span>
+			<Icon name="kangaroo" size={18} color="var(--pink)" />
+			<span class="topbar-brand">ROO</span>
 			<div class="topbar-end">
 				<button class="tb-btn" onclick={toggleTheme} aria-label="Toggle theme">
-					<Icon name={theme === 'dark' ? 'sun' : 'moon'} size={18} color="currentColor" />
+					<Icon name={theme === 'dark' ? 'sun' : 'moon'} size={16} color="currentColor" />
 				</button>
 				<button class="tb-btn" onclick={() => appState.showSettings = true} aria-label="Info">
-					<Icon name="info-circle" size={18} color="currentColor" />
+					<Icon name="info-circle" size={16} color="currentColor" />
 				</button>
 			</div>
 		</div>
@@ -45,14 +46,14 @@
 	}
 	.topbar-inner{
 		max-width:480px;margin:0 auto;padding:8px 20px;
-		display:flex;align-items:center;justify-content:space-between;
+		display:flex;align-items:center;justify-content:space-between;gap:8px;
 	}
-	.topbar-logo{font-family:'Fraunces',serif;font-size:1rem;font-weight:700;color:var(--text)}
+	.topbar-brand{font-family:'Fraunces',serif;font-size:1rem;font-weight:700;color:var(--text)}
 	.topbar-end{display:flex;gap:4px}
 	.tb-btn{
-		width:36px;height:36px;border-radius:50%;
+		width:32px;height:32px;border-radius:50%;
 		display:flex;align-items:center;justify-content:center;
-		font-size:1rem;transition:background .15s;
+		transition:background .15s;
 	}
 	.tb-btn:hover{background:var(--card-bg)}
 	.main{max-width:480px;margin:0 auto;padding:12px 20px 60px;display:flex;flex-direction:column;gap:14px}

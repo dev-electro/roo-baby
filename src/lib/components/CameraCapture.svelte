@@ -1,6 +1,7 @@
 <script>
 	import { appState } from '$state/appState.svelte.js';
 	import { onDestroy } from 'svelte';
+	import Icon from './Icon.svelte';
 
 	let videoEl, canvasEl, preview = $state(''), fallback = $state(false), active = $state(false);
 	let facing = $state('user'), busy = $state(false), asked = $state(false);
