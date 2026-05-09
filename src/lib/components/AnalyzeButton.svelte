@@ -19,10 +19,55 @@
 		unlockSpeech(); ensureAudioResumed();
 		const rid = appState.resetId;
 		try {
-			let feat=null;
-			if(appState.audioBlob){try{feat=await extractAudioFeatures(appState.audioBlob)}catch{}}
-			if(appState.resetId !== rid) return;
-			const data=await analyze({mode:appState.currentMode,audio:appState.audioBlob,image:appState.imageBlob,spectrogram:appState.spectrogramBlob,audioFeatures:feat});
+		let feat=null;
+		if(appState.audioBlob){try{feat=await extractAudioFeatures(appState.audioBlob)}catch{}}
+		if(appState.resetId !== rid) return;
+
+		if (feat?.isProblematic) {
+			let reason, action;
+			if (feat.isSilent) {
+				reason = "No cry sound detected — the recording is mostly silence. Make sure your baby is crying and the microphone is close enough.";
+				action = "Re-record your baby's cry. Hold the phone near your baby.";
+			} else if (feat.isClipping) {
+				reason = "Audio is distorted/clipped — the microphone picked up too loud a signal. Try moving the phone slightly away from your baby.";
+				action = "Re-record with the phone at a moderate distance from your baby.";
+			} else if (feat.isTooShort) {
+				reason = "Recording is too short to analyze. Please record at least 1 second of your baby crying.";
+				action = "Re-record for at least 1-2 seconds.";
+			} else if (feat.isNoise) {
+				reason = "Detected ambient noise (static, fan, hum) instead of a baby cry. The sound lacks the characteristic pitch patterns of an infant cry.";
+				action = "Move to a quieter room and re-record your baby crying.";
+			} else if (feat.isMusicLike) {
+				reason = "This sounds more like music or TV audio than a baby crying. The frequency pattern shows strong harmonic structure typical of music.";
+				action = "Make sure only your baby's cry is being recorded. Turn off TV/music.";
+			} else if (feat.hasMultipleSources) {
+				reason = "Multiple overlapping sounds detected — there may be background noise or voices mixed with the baby's cry. This makes analysis unreliable.";
+				action = "Try recording in a quieter environment with only your baby crying.";
+			} else if (feat.isOutsideCryRange) {
+				reason = "The dominant frequency is outside the typical baby cry range (200-1000 Hz). This doesn't sound like a baby crying.";
+				action = "Make sure you're recording your baby's cry, not other sounds.";
+			} else {
+				reason = "The audio quality is too low for reliable analysis. The signal doesn't match baby cry patterns.";
+				action = "Re-record in a quiet environment with your baby crying clearly.";
+			}
+			appState.result = {
+				category: 'UNKNOWN',
+				confidence: 0,
+				severity: 'NONE',
+				reasoning: reason,
+				parent_action: action,
+				response_sound: 'whitenoise',
+				pre_cry: false,
+				pre_cry_message: null,
+				is_adult: false,
+				adult_message: null,
+				_isEdgeCase: true,
+			};
+			saveToHistory(appState.result);
+			return;
+		}
+
+		const data=await analyze({mode:appState.currentMode,audio:appState.audioBlob,image:appState.imageBlob,spectrogram:appState.spectrogramBlob,audioFeatures:feat});
 			if(appState.resetId !== rid) return;
 			appState.result=data; saveToHistory(data);
 		if(appState.autoPlaySounds && data.response_sound && data.category !== 'INVALID' && !data.is_adult) playResponse(data.response_sound);

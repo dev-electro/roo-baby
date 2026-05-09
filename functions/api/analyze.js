@@ -12,23 +12,39 @@ const PROMPTS = {
 AUDIO MEASUREMENTS (from signal processing):
 {{AUDIO_FEATURES}}
 
+⚠️ CRITICAL EDGE-CASE CHECKS — do these FIRST:
+
+1. SILENCE: If silence ratio > 80% AND RMS < 0.002 AND autocorrelation < 0.2 → NO cry. Return UNKNOWN/0%.
+2. NOISE (static/fan/hum): If autocorrelation < 0.2 AND spectral spread > 800Hz AND peaks are scattered outside 200-1000Hz → ambient noise, NOT a cry. Return UNKNOWN.
+3. CLIPPING: If clipping ratio > 5% → audio is distorted, analysis unreliable. Note this and lower confidence.
+4. MUSIC/TV: If harmonic ratio > 0.6 AND multiple harmonic peaks → NOT a baby cry. Return UNKNOWN.
+5. MULTIPLE SOURCES: If cry-range peak ratio < 50% AND many spectral peaks → overlapping sounds. Lower confidence significantly.
+6. OUTSIDE CRY RANGE: If dominant frequency < 200Hz or > 1000Hz → likely not a baby cry. Return UNKNOWN or low confidence.
+7. LOW QUALITY: If autocorrelation < 0.2 → pitch is unreliable. Lower confidence by 30%+.
+
+ONLY if the WARNINGS say "No edge case detected — likely a real baby cry" should you analyze with normal confidence.
+
 SPECTROGRAM READING GUIDE:
-- X-axis: time (seconds, labeled), Y-axis: frequency (Hz, labeled on left)
-- Color brightness = intensity (dark=silent, bright=loud)
-- HUNGER: rhythmic vertical bands at 400-600Hz, gradual intensity buildup
-- PAIN: sudden bright spikes at 600-800Hz with dark silence gaps between cries
-- TIRED: dim low-frequency smears at 300-450Hz, fading in and out
-- DISCOMFORT: steady mid-frequency glow at 400-500Hz, sustained
-- BURPING: short isolated bursts, pitch descending with each burst
+- X-axis: time (seconds), Y-axis: frequency (Hz)
+- Color: bright = loud, dark = silent
+- A real baby cry shows: visible bright bands in 200-1000Hz, rhythmic gaps, clear onset/offset patterns
+- A dark/empty spectrogram = silence or near-silence → return UNKNOWN
 
-The first image is a REFERENCE ATLAS showing labeled example spectrograms for each cry category. The second image is the USER'S spectrogram to analyze.
+BABY CRY CATEGORIES:
+- HUNGER: rhythmic vertical bands 400-600Hz, gradual buildup, 0.5-1s intervals
+- PAIN: sudden bright spikes 600-800Hz with dark gaps, urgent pattern
+- TIRED: dim smears 300-450Hz, fading in/out, whiny quality
+- DISCOMFORT: steady glow 400-500Hz, sustained, grunting
+- BURPING: short isolated bursts, pitch descending each burst
 
-STEP 1: Read the audio measurements above. Note the dominant frequency, peak frequencies, and rhythm pattern.
-STEP 2: Compare the user's spectrogram pattern against the reference atlas.
-STEP 3: Match the dominant frequency and rhythm to the most likely category.
+The first image is a REFERENCE ATLAS. The second is the USER'S spectrogram.
+
+STEP 1: Check WARNINGS first — if any edge case is flagged, respond accordingly (UNKNOWN or low confidence).
+STEP 2: Only if the signal looks like a real cry, compare against reference atlas.
+STEP 3: Match dominant frequency and rhythm pattern to the most likely category.
 
 Respond with ONLY valid JSON:
-{"category":"HUNGER","confidence":85,"severity":"MEDIUM","reasoning":"Dominant frequency 450Hz with rhythmic onset pattern (75% in first half), consistent with hunger","parent_action":"Feed the baby now","response_sound":"heartbeat","pre_cry":false,"pre_cry_message":null}
+{"category":"HUNGER","confidence":85,"severity":"MEDIUM","reasoning":"Dominant 450Hz with rhythmic onset, no edge cases detected","parent_action":"Feed the baby now","response_sound":"heartbeat","pre_cry":false,"pre_cry_message":null}
 severity: LOW|MEDIUM|HIGH|CRITICAL  sound: heartbeat|whitenoise|lullaby|shush`,
 
 	image: `You are ROO, the world's best baby cry analyst. Analyze this photo.
@@ -65,6 +81,13 @@ If the face is an ADULT or OLDER CHILD (4+ years) → Set is_adult to true. Stil
 AUDIO MEASUREMENTS (from signal processing):
 {{AUDIO_FEATURES}}
 
+⚠️ AUDIO EDGE-CASE CHECKS (check these next):
+- If WARNINGS include SILENCE/NOISE/DISTORTION/MUSIC → the audio is unreliable. Still cross-reference with the face, but note audio issues and reduce confidence by 40-60%.
+- If the spectrogram is dark/empty AND WARNINGS confirm silence → the audio adds nothing. Rely on face analysis only, set confidence lower.
+- If autocorrelation < 0.2 → pitch data is unreliable. Don't trust dominant frequency.
+- If multiple sources detected → a mixed signal. Lower confidence significantly.
+- Only if WARNINGS say "No edge case detected" → audio data is reliable for cross-reference.
+
 The first image is a REFERENCE ATLAS. The second image is the USER'S spectrogram. The third image is the face.
 
 SPECTROGRAM READING: X=time, Y=freq (Hz), brightness=intensity (dark=silent, bright=loud)
@@ -81,10 +104,11 @@ FACIAL CUES:
 - DISCOMFORT: arched back, legs up, fidgeting
 - BURPING: squirming, brief arching
 
-STEP 1: Read audio measurements — dominant freq, peak freqs, rhythm.
-STEP 2: Compare spectrogram against reference atlas.
-STEP 3: Analyze facial expression and body language.
-STEP 4: Cross-reference all signals. Higher confidence when they converge.
+STEP 1: Check WARNINGS for audio quality issues.
+STEP 2: Read audio measurements — dominant freq, peak freqs, rhythm.
+STEP 3: Compare spectrogram against reference atlas.
+STEP 4: Analyze facial expression and body language.
+STEP 5: Cross-reference all signals. Higher confidence when they converge AND no edge cases.
 
 Respond with ONLY valid JSON:
 {"category":"HUNGER","confidence":91,"severity":"HIGH","reasoning":"Dominant 450Hz + rhythmic onset 75% + rooting reflex — all three signals converge on hunger","parent_action":"Feed immediately","response_sound":"heartbeat","pre_cry":false,"pre_cry_message":null,"is_adult":false,"adult_message":null}
@@ -264,13 +288,27 @@ export async function onRequest(context) {
 
 		let promptText = PROMPTS[mode];
 		if (audioFeatures) {
+			const edgeFlags = [];
+			if (audioFeatures.isSilent) edgeFlags.push('⚠️ SILENCE DETECTED');
+			if (audioFeatures.isClipping) edgeFlags.push('⚠️ CLIPPING/DISTORTION');
+			if (audioFeatures.isNoise) edgeFlags.push('⚠️ LIKELY AMBIENT NOISE (not a cry)');
+			if (audioFeatures.isOutsideCryRange) edgeFlags.push('⚠️ FREQ OUTSIDE CRY RANGE');
+			if (audioFeatures.hasMultipleSources) edgeFlags.push('⚠️ MULTIPLE SOUND SOURCES');
+			if (audioFeatures.isMusicLike) edgeFlags.push('⚠️ MUSIC/TV-LIKE AUDIO');
+			if (audioFeatures.isLowQualitySignal) edgeFlags.push('⚠️ LOW QUALITY SIGNAL');
+
 			const featureStr = `- Duration: ${audioFeatures.duration ?? '?'}s
 - Dominant frequency: ${audioFeatures.dominantFreqHz ?? '?'} Hz
 - Peak frequencies: ${(audioFeatures.peakFreqHz ?? []).join(', ')} Hz
 - Energy (RMS): ${audioFeatures.rmsEnergy ?? '?'}
 - Zero-crossing rate: ${audioFeatures.zeroCrossRate ?? '?'}/s
 - Silence ratio: ${(audioFeatures.silenceRatio ?? 0) * 100}%
-- Onset ratio: ${(audioFeatures.onsetRatio ?? 0) * 100}% energy in first half`;
+- Onset ratio: ${(audioFeatures.onsetRatio ?? 0) * 100}% energy in first half
+- Autocorrelation strength: ${audioFeatures.autoCorrStrength ?? '?'} (how "pitched" the sound is)
+- Clipping ratio: ${(audioFeatures.clippingRatio ?? 0) * 100}%
+- Spectral centroid: ${audioFeatures.spectralCentroid ?? '?'} Hz (sound brightness)
+- Cry-range peak ratio: ${(audioFeatures.cryPeakRatio ?? 0) * 100}% peaks in 200-1000Hz
+- WARNINGS: ${edgeFlags.length > 0 ? edgeFlags.join('; ') : 'No edge case detected — likely a real baby cry'}`;
 			promptText = promptText.replace('{{AUDIO_FEATURES}}', featureStr);
 		} else {
 			promptText = promptText.replace('{{AUDIO_FEATURES}}', '(Audio measurements unavailable — rely on visual spectrogram analysis)');

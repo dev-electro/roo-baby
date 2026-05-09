@@ -26,6 +26,11 @@ MODEL_ID = "google/gemma-4-E4B-it"
 PROMPTS = {
     "audio": """You are ROO, the world's best baby cry analyst. Analyze this baby cry audio.
 
+⚠️ FIRST: Check if this is ACTUALLY a baby crying. If the audio is mostly silence, ambient noise, static, or no cry sound at all, return:
+{"category":"UNKNOWN","confidence":0,"severity":"NONE","reasoning":"No baby cry detected in the audio. The recording appears to be silence or noise.","parent_action":"Record your baby crying. No cry was heard.","response_sound":"whitenoise","pre_cry":false,"pre_cry_message":null}
+
+Only analyze if baby cry sounds are present.
+
 CRY PATTERNS:
 HUNGER: rhythmic "neh" pattern, builds slowly, 400-600Hz → feed
 PAIN: sudden sharp cry, 600-800Hz, breath pauses between → soothe immediately

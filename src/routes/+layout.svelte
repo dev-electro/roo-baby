@@ -44,14 +44,14 @@
 </div>
 
 <style>
-	.shell{min-height:100dvh}
+	.shell{min-height:100dvh;width:100%}
 	.topbar{
 		position:sticky;top:0;z-index:40;
 		background:var(--bg);border-bottom:1px solid var(--card-border);
 		padding-top:env(safe-area-inset-top);
 	}
 	.topbar-inner{
-		max-width:480px;margin:0 auto;padding:8px 20px;
+		width:100%;padding:8px 20px;
 		display:flex;align-items:center;justify-content:space-between;gap:8px;
 	}
 	.topbar-brand{font-family:'Fraunces',serif;font-size:1rem;font-weight:700;color:var(--text)}
@@ -62,5 +62,7 @@
 		transition:background .15s;color:var(--text-soft);text-decoration:none;
 	}
 	.tb-btn:hover{background:var(--card-bg)}
-	.main{max-width:480px;margin:0 auto;padding:12px 20px 60px;display:flex;flex-direction:column;gap:14px}
+	.main{width:100%;padding:12px 20px 60px;display:flex;flex-direction:column;gap:14px}
+	@media(min-width:640px){.main{max-width:720px;margin:0 auto;padding:16px 24px 80px}.topbar-inner{max-width:720px;margin:0 auto;padding:10px 24px}}
+	@media(min-width:1024px){.main{max-width:960px;gap:18px}.topbar-inner{max-width:960px}}
 </style>

@@ -14,7 +14,8 @@
 </div>
 
 <style>
-	.page{max-width:480px;margin:0 auto;padding:14px 16px 40px;display:flex;flex-direction:column;gap:12px}
+	.page{padding:14px 16px 40px;display:flex;flex-direction:column;gap:12px}
+	@media(min-width:640px){.page{padding:20px 24px 48px}}
 	.back{display:inline-flex;align-items:center;gap:4px;font-size:.68rem;font-weight:700;color:var(--text-soft);text-decoration:none;align-self:flex-start;transform:rotate(180deg)}
 	.back:hover{color:var(--text)}
 	.title{font-family:'Fraunces',serif;font-size:1.4rem;font-weight:700;color:var(--text);margin-top:2px}
