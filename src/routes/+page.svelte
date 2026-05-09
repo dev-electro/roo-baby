@@ -1,8 +1,5 @@
 <script>
 	import { appState } from '$state/appState.svelte.js';
-	import { halt as stopAllSounds } from '$utils/soundGenerator.js';
-	import { stopSpeaking } from '$utils/ttsEngine.js';
-
 	import Header from '$components/Header.svelte';
 	import ModeTabs from '$components/ModeTabs.svelte';
 	import AudioRecorder from '$components/AudioRecorder.svelte';
@@ -12,126 +9,86 @@
 	import LoadingState from '$components/LoadingState.svelte';
 	import ResultCard from '$components/ResultCard.svelte';
 	import ResponsePlayer from '$components/ResponsePlayer.svelte';
-	import ErrorToast from '$components/ErrorToast.svelte';
 	import HistoryCard from '$components/HistoryCard.svelte';
+	import ErrorToast from '$components/ErrorToast.svelte';
 	import Icon from '$components/Icon.svelte';
-
-	function handleReset() {
-		stopAllSounds();
-		stopSpeaking();
-		appState.reset();
-	}
 </script>
 
 <svelte:head>
-	<title>ROO — Baby Cry Analyzer</title>
-	<meta name="description" content="Understand why your baby is crying. AI-powered cry analysis in seconds." />
+	<title>ROO — Analyze</title>
 </svelte:head>
 
-<div class="page">
+<div class="pg">
 	<Header />
-	<ModeTabs />
 
-	<div class="card">
-		{#key appState.currentMode}
-			{#if appState.currentMode === 'audio'}
-				<AudioRecorder />
-			{:else if appState.currentMode === 'image'}
-				<CameraCapture />
-			{:else}
-				<BothModePanel />
-			{/if}
-		{/key}
+	{#if appState.isAnalyzing}
+		<LoadingState />
+	{:else}
+		<!-- Main Input Panel -->
+		<div class="panel-box animate-in">
+			<ModeTabs />
+			
+			<div class="panel-content">
+				{#if appState.currentMode === 'audio'}
+					<AudioRecorder />
+				{:else if appState.currentMode === 'image'}
+					<CameraCapture />
+				{:else}
+					<BothModePanel />
+				{/if}
+			</div>
 
-		{#if appState.isConvertingAudio || appState.isGeneratingSpectrogram}
-			<div class="processing-overlay animate-fade">
-				<div class="spinner"></div>
-				<p>{appState.isConvertingAudio ? 'Optimizing audio…' : 'Generating spectrogram…'}</p>
+			<div class="panel-foot">
+				<label class="notes-box">
+					<span class="notes-lbl"><Icon name="edit-2" size={14} color="currentColor"/> Additional Context</span>
+					<textarea
+						bind:value={appState.userNotes}
+						placeholder="E.g. Woke up 10 mins ago, hasn't eaten in 3 hours..."
+						maxlength="200"
+					></textarea>
+					<span class="notes-count">{appState.userNotes.length}/200</span>
+				</label>
+			</div>
+		</div>
+
+		<AnalyzeButton />
+
+		{#if appState.result}
+			<div class="res-box">
+				<ResultCard result={appState.result} />
+				{#if appState.result.category !== 'INVALID'}
+					<ResponsePlayer result={appState.result} />
+				{/if}
 			</div>
 		{/if}
-	</div>
 
-	<div class="notes-bar">
-		<Icon name="info-circle" size={14} color="var(--text-dim)" />
-		<input
-			type="text"
-			class="notes-input"
-			placeholder="Observations (optional) — e.g. &quot;just woke up&quot;, &quot;crying for 10 min&quot;, &quot;refusing bottle&quot;..."
-			bind:value={appState.userNotes}
-			maxlength={200}
-		/>
-	</div>
-
-	<ErrorToast />
-	<AnalyzeButton />
-	<LoadingState />
-	<ResultCard />
-	<ResponsePlayer />
-
-	{#if appState.result}
-		<button class="reset-btn animate-scale" onclick={handleReset}>
-			<Icon name="refresh" size={14} color="currentColor" />
-			Analyze Another Cry
-		</button>
+		<div class="hist-box animate-fade" style="animation-delay: 0.1s">
+			<HistoryCard />
+		</div>
 	{/if}
 
-	<HistoryCard />
-
-	<footer class="footer">
-		<div class="footer-inner">
-			<div class="footer-brand">
-				<Icon name="kangaroo" size={16} color="var(--pink)" />
-				<span>ROO</span>
-			</div>
-			<p class="footer-tagline">Gemma 4 · Mel Spectrogram · Computer Vision</p>
-			<p class="footer-sub">Not a medical device — always consult your pediatrician.</p>
-		</div>
-	</footer>
+	<ErrorToast />
 </div>
 
 <style>
-	.page{display:flex;flex-direction:column;gap:14px}
+	.pg { display:flex; flex-direction:column; gap:24px; width:100%; }
 
-	.card{
-		background:var(--card-bg);border:1px solid var(--card-border);
-		border-radius:var(--radius-xl);overflow:hidden;
-		min-height:180px;display:flex;align-items:center;justify-content:center;
-		position:relative;
+	.panel-box {
+		background:var(--surface); border:1px solid var(--border); border-radius:var(--r-md);
+		overflow:hidden; box-shadow:var(--shadow-card); display:flex; flex-direction:column;
 	}
+	
+	.panel-content { min-height:280px; display:flex; align-items:center; justify-content:center; }
 
-	.processing-overlay{
-		position:absolute;inset:0;z-index:10;
-		display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;
-		background:rgba(19,16,28,.92);backdrop-filter:blur(2px);
+	.panel-foot { padding:16px 20px; border-top:1px solid var(--border); background:var(--surface-2); }
+	.notes-box { display:flex; flex-direction:column; gap:8px; position:relative; }
+	.notes-lbl { font-size:0.85rem; font-weight:700; color:var(--text-soft); display:flex; align-items:center; gap:6px; }
+	.notes-box textarea {
+		width:100%; height:80px; resize:none; padding:12px; border-radius:var(--r-sm);
+		font-size:0.9rem; line-height:1.4; transition:border-color .2s;
 	}
-	.processing-overlay p{font-size:.85rem;color:var(--text-soft);font-weight:600}
-	.spinner{width:28px;height:28px;border:3px solid var(--card-border);border-top-color:var(--pink);border-radius:50%;animation:spin .8s linear infinite}
+	.notes-count { position:absolute; bottom:8px; right:12px; font-size:0.75rem; font-weight:600; color:var(--text-dim); }
 
-	.reset-btn{
-		align-self:center;padding:12px 28px;border-radius:100px;
-		font-size:.88rem;font-weight:700;color:var(--text-soft);
-		border:1px solid var(--card-border);background:var(--card-bg);
-		transition:all .15s;
-	}
-	.reset-btn:hover{border-color:var(--pink);color:var(--text)}
-
-	.footer{margin-top:14px;padding:18px 0 32px;border-top:1px solid var(--card-border);text-align:center}
-	.footer-inner{display:flex;flex-direction:column;align-items:center;gap:4px}
-	.footer-brand{display:flex;align-items:center;gap:6px;font-family:'Fraunces',serif;font-size:1.05rem;font-weight:700;color:var(--text-soft)}
-	.footer-tagline{font-size:.65rem;color:var(--text-dim);font-weight:600;letter-spacing:.04em}
-	.footer-sub{font-size:.6rem;color:var(--text-dim);opacity:.45;max-width:260px;line-height:1.5}
-
-	.notes-bar{
-		display:flex;align-items:center;gap:8px;
-		padding:8px 14px;
-		background:var(--card-bg);border:1px solid var(--card-border);
-		border-radius:var(--radius-sm);
-	}
-	.notes-input{
-		flex:1;border:none;background:none;
-		font-size:.75rem;color:var(--text);
-		font-family:inherit;
-		outline:none;
-	}
-	.notes-input::placeholder{color:var(--text-dim);font-style:italic}
+	.res-box { display:flex; flex-direction:column; gap:20px; margin-top:16px; }
+	.hist-box { margin-top:24px; }
 </style>

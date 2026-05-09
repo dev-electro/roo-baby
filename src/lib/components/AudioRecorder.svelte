@@ -1,142 +1,190 @@
 <script>
 	import { appState } from '$state/appState.svelte.js';
-	import { convertToWav, isSupportedAudioFormat } from '$utils/audioEncoder.js';
-	import { generateSpectrogram } from '$utils/spectrogramGenerator.js';
-	import { onDestroy } from 'svelte';
-	import { recordAudio as trackRecord } from '$utils/analytics.js';
 	import Icon from './Icon.svelte';
+	import { onDestroy } from 'svelte';
 
+	let isRec = $state(false);
+	let duration = $state(0);
+	let error = $state(null);
+	
+	/** @type {MediaRecorder|null} */
 	let recorder = null;
+	/** @type {BlobPart[]} */
 	let chunks = [];
 	let timer = null;
-	let elapsed = $state(0);
+	/** @type {MediaStream|null} */
 	let stream = null;
+
 	const MAX = 10;
+	let progress = $derived((duration / MAX) * 100);
 
 	async function start() {
+		error = null;
 		try {
 			stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-			chunks = [];
 			recorder = new MediaRecorder(stream);
-			recorder.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
-			recorder.onstop = async () => {
-				const rid = appState.resetId;
-				const raw = new Blob(chunks, { type: recorder.mimeType });
-				if (isSupportedAudioFormat(raw.type)) {
-					appState.audioBlob = raw;
-				} else {
-					appState.isConvertingAudio = true;
-					try {
-						const wav = await convertToWav(raw);
-						if (appState.resetId !== rid) return;
-						appState.audioBlob = wav;
-					}
-					catch { appState.setError('Audio conversion failed'); }
-					finally { appState.isConvertingAudio = false; }
-				}
-				stream.getTracks().forEach(t => t.stop()); stream = null;
-				if (appState.audioBlob && appState.resetId === rid) {
-					appState.isGeneratingSpectrogram = true;
-					try {
-						const sg = await generateSpectrogram(appState.audioBlob);
-						if (appState.resetId !== rid) return;
-						appState.spectrogramBlob = sg;
-					}
-					catch { appState.spectrogramBlob = null; }
-					finally { appState.isGeneratingSpectrogram = false; }
-				}
+			chunks = [];
+
+			recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
+			recorder.onstop = () => {
+				appState.audioBlob = new Blob(chunks, { type: 'audio/webm' });
+				cleanup();
 			};
-			recorder.start();
-			appState.isRecording = true;
-			elapsed = 0;
-			timer = setInterval(() => { elapsed++; if (elapsed >= MAX) stop(); }, 1000);
-		} catch { appState.setError('Microphone access needed'); }
+
+			recorder.start(200);
+			isRec = true;
+			duration = 0;
+			
+			timer = setInterval(() => {
+				duration++;
+				if (duration >= MAX) stop();
+			}, 1000);
+		} catch (err) {
+			/** @type {Error} */
+			const e = err;
+			error = e.name === 'NotAllowedError' 
+				? 'Microphone access denied. Check browser permissions.'
+				: 'Could not start recording. Ensure microphone is connected.';
+			cleanup();
+		}
 	}
 
 	function stop() {
-		if (recorder?.state === 'recording') recorder.stop();
-		clearInterval(timer); timer = null;
-		appState.isRecording = false;
-		trackRecord(elapsed);
+		if (recorder && recorder.state !== 'inactive') {
+			recorder.stop();
+		}
 	}
 
-	function toggle() { appState.isRecording ? stop() : start(); }
+	function reset() {
+		appState.audioBlob = null;
+		error = null;
+		cleanup();
+	}
 
-	function reset() { appState.audioBlob = null; appState.spectrogramBlob = null; }
-
-	onDestroy(() => {
+	function cleanup() {
+		isRec = false;
 		clearInterval(timer);
-		if (recorder?.state === 'recording') recorder.stop();
 		if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
-	});
+	}
 
-	let prog = $derived(elapsed / MAX);
+	function upload(e) {
+		const f = e.target.files[0];
+		if (!f) return;
+		appState.audioBlob = f;
+		error = null;
+	}
+
+	onDestroy(cleanup);
 </script>
 
-<div class="r">
-	{#if appState.audioBlob && !appState.isRecording}
-		<div class="r-done animate-scale">
-			<div class="r-check"><Icon name="check" size={18} color="var(--teal)" /></div>
-			<div class="r-done-t">Cry recorded</div>
-			<div class="r-done-s">{appState.isGeneratingSpectrogram ? 'Creating spectrogram…' : 'Ready'}</div>
-			<button class="r-redo" onclick={reset}><Icon name="refresh" size={14} color="currentColor" /> Re‑record</button>
+<div class="card-inner">
+	{#if error}
+		<div class="state-block error">
+			<Icon name="warning" size={24} color="var(--blush)" />
+			<p>{error}</p>
+			<button class="btn btn-outline" onclick={() => error = null}>Try Again</button>
+		</div>
+	{:else if appState.audioBlob}
+		<div class="state-block success">
+			<div class="icon-circle success-bg">
+				<Icon name="check" size={24} color="var(--primary)" />
+			</div>
+			<p>Audio recorded successfully</p>
+			<button class="btn btn-outline" onclick={reset}>Record Again</button>
 		</div>
 	{:else}
-		<div class="r-wrap">
-			{#if appState.isRecording}
-				<div class="r-rings">
-					<div class="r-ring" style="animation-delay:0s"></div>
-					<div class="r-ring" style="animation-delay:.7s"></div>
-					<div class="r-ring" style="animation-delay:1.4s"></div>
+		<div class="rec-block">
+			<button class="rec-btn" class:recording={isRec} onclick={isRec ? stop : start}>
+				<div class="rec-btn-inner">
+					{#if isRec}
+						<Icon name="stop" size={28} color="#fff" />
+					{:else}
+						<Icon name="mic" size={28} color="#fff" />
+					{/if}
 				</div>
-			{/if}
-			<button class="r-btn" class:rec={appState.isRecording} onclick={toggle}>
-				{#if appState.isRecording}
-					<Icon name="stop" size={22} color="#fff" />
-				{:else}
-					<Icon name="mic" size={22} color="#fff" />
-				{/if}
 			</button>
-			{#if appState.isRecording}
-				<div class="r-timer">0:{elapsed.toString().padStart(2,'0')}</div>
-				<div class="r-progress"><div class="r-progress-fill" style="width:{prog*100}%"></div></div>
-				<div class="r-wave">
-					{#each Array(11) as _, i}<div class="r-bar" style="animation-delay:{i*.07}s"></div>{/each}
+			<p class="rec-hint">{isRec ? `Recording... 0:${duration.toString().padStart(2,'0')}` : 'Tap to record baby\'s cry'}</p>
+			
+			{#if isRec}
+				<div class="progress-wrap">
+					<div class="progress-bar" style="width: {progress}%"></div>
 				</div>
 			{:else}
-				<div class="r-hint">Tap to record your baby's cry</div>
-				<div class="r-hint-sub">10 seconds max</div>
+				<div class="or-divider"><span>or</span></div>
+				<label class="upload-btn">
+					<Icon name="upload" size={16} color="currentColor" />
+					Upload audio file
+					<input type="file" accept="audio/*" onchange={upload} hidden />
+				</label>
 			{/if}
 		</div>
 	{/if}
 </div>
 
 <style>
-	.r{display:flex;flex-direction:column;align-items:center;padding:28px 20px;width:100%}
-	.r-wrap{display:flex;flex-direction:column;align-items:center;gap:10px;position:relative}
-	.r-btn{
-		width:88px;height:88px;border-radius:50%;position:relative;z-index:2;
-		background:linear-gradient(145deg,var(--pink),#E04060);
-		box-shadow:0 8px 28px rgba(255,107,122,.4),0 0 0 4px rgba(255,107,122,.12);
-		font-size:2rem;display:flex;align-items:center;justify-content:center;
-		transition:transform .15s;
+	.card-inner { padding:32px 24px; width:100%; display:flex; flex-direction:column; align-items:center; }
+
+	.state-block { display:flex; flex-direction:column; align-items:center; gap:16px; text-align:center; }
+	.state-block p { font-size:0.95rem; font-weight:500; color:var(--text); }
+	
+	.error { color:var(--blush); }
+
+	.icon-circle {
+		width:64px; height:64px; border-radius:50%;
+		display:flex; align-items:center; justify-content:center;
 	}
-	.r-btn:hover{transform:scale(1.06)}
-	.r-btn:active{transform:scale(.95)}
-	.r-btn.rec{background:linear-gradient(145deg,#C03040,#E05060);animation:dot 1s ease-in-out infinite}
-	.r-rings{position:absolute;inset:-10px;display:flex;align-items:center;justify-content:center}
-	.r-ring{position:absolute;width:100%;height:100%;border-radius:50%;border:2px solid rgba(255,107,122,.3);animation:ring 2.2s ease-out infinite}
-	.r-timer{font-family:'Fraunces',serif;font-size:1.2rem;color:var(--pink);font-weight:700}
-	.r-progress{width:80px;height:3px;background:var(--card-border);border-radius:2px;overflow:hidden}
-	.r-progress-fill{height:100%;background:linear-gradient(90deg,var(--pink),var(--gold));border-radius:2px;transition:width .3s linear}
-	.r-wave{display:flex;align-items:flex-end;gap:3px;height:36px}
-	.r-bar{width:4px;border-radius:100px;background:linear-gradient(180deg,var(--pink),var(--gold));animation:wave 1s ease-in-out infinite;height:5px}
-	.r-hint{font-size:.85rem;color:var(--text-soft);font-weight:600}
-	.r-hint-sub{font-size:.7rem;color:var(--text-dim)}
-	.r-done{display:flex;flex-direction:column;align-items:center;gap:8px}
-	.r-check{font-size:2rem}
-	.r-done-t{font-size:1.05rem;font-weight:700;color:var(--text)}
-	.r-done-s{font-size:.78rem;color:var(--text-soft)}
-	.r-redo{padding:8px 20px;border-radius:100px;font-size:.8rem;font-weight:700;color:var(--text-soft);border:1px solid var(--card-border);background:var(--card-bg);transition:all .15s}
-	.r-redo:hover{border-color:var(--pink);color:var(--text)}
+	.success-bg { background:var(--primary-soft); border:1px solid var(--primary-glow); }
+
+	.btn {
+		padding:10px 20px; border-radius:var(--r-sm); font-size:0.85rem; font-weight:600;
+		transition:all 0.2s;
+	}
+	.btn-outline { border:1px solid var(--border); color:var(--text); }
+	.btn-outline:hover { background:var(--surface-2); border-color:var(--text-dim); }
+
+	.rec-block { display:flex; flex-direction:column; align-items:center; gap:16px; width:100%; max-width:320px; }
+	
+	.rec-btn {
+		width:88px; height:88px; border-radius:50%;
+		background:var(--surface-2); border:1px solid var(--border);
+		display:flex; align-items:center; justify-content:center;
+		transition:all 0.2s; position:relative;
+	}
+	.rec-btn-inner {
+		width:72px; height:72px; border-radius:50%;
+		background:var(--text);
+		display:flex; align-items:center; justify-content:center;
+		transition:all 0.2s;
+	}
+	.rec-btn:hover .rec-btn-inner { transform:scale(1.05); }
+	
+	.rec-btn.recording .rec-btn-inner { background:var(--red); border-radius:var(--r-md); }
+	.rec-btn.recording::before {
+		content:''; position:absolute; inset:-8px; border-radius:50%;
+		border:2px solid var(--red); animation:pulse-ring 1.5s infinite;
+	}
+
+	.rec-hint { font-size:0.9rem; color:var(--text-soft); font-weight:500; }
+
+	.progress-wrap { width:100%; height:4px; background:var(--border); border-radius:2px; overflow:hidden; }
+	.progress-bar { height:100%; background:var(--red); transition:width 1s linear; }
+
+	.or-divider {
+		width:100%; text-align:center; position:relative; margin:8px 0;
+	}
+	.or-divider::before {
+		content:''; position:absolute; top:50%; left:0; right:0; height:1px; background:var(--border); z-index:0;
+	}
+	.or-divider span {
+		background:var(--surface); padding:0 12px; font-size:0.8rem; color:var(--text-dim);
+		position:relative; z-index:1; font-weight:500;
+	}
+
+	.upload-btn {
+		display:flex; align-items:center; justify-content:center; gap:8px;
+		width:100%; padding:12px; border-radius:var(--r-sm);
+		border:1px dashed var(--text-dim); color:var(--text-soft);
+		font-size:0.85rem; font-weight:600; cursor:pointer; transition:all 0.2s;
+	}
+	.upload-btn:hover { border-color:var(--text); color:var(--text); background:var(--surface-2); }
 </style>

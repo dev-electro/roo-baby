@@ -1,35 +1,92 @@
 <script>
-	import { getGroupedHistory, clearHistory } from '$utils/historyStore.js';
+	import { history, clearHistory } from '$utils/historyStore.js';
 	import Icon from './Icon.svelte';
-	let groups=$state(getGroupedHistory());
-	const IC={HUNGER:'bottle',PAIN:'bandage',TIRED:'moon',DISCOMFORT:'thermometer',BURPING:'wind',UNKNOWN:'info-circle',INVALID:'warning'};
-	function refresh(){groups=getGroupedHistory()}
-	function clear(){clearHistory();refresh()}
-	$effect(()=>{const id=setInterval(refresh,3000);return()=>clearInterval(id)});
+
+	let items = $derived($history);
+	let showClearConfirm = $state(false);
+
+	const ICONS = { HUNGER:'baby', PAIN:'warning', TIRED:'moon', DISCOMFORT:'settings', BURPING:'check', UNKNOWN:'search', INVALID:'alert-circle' };
+	const COLORS = { HIGH:'var(--red)', MEDIUM:'var(--amber)', LOW:'var(--primary)', NONE:'var(--text-soft)' };
+
+	function getRelTime(iso) {
+		const d = new Date(iso);
+		const diffMs = Date.now() - d.getTime();
+		const diffMins = Math.floor(diffMs / 60000);
+		if (diffMins < 1) return 'Just now';
+		if (diffMins < 60) return `${diffMins}m ago`;
+		const diffHrs = Math.floor(diffMins / 60);
+		if (diffHrs < 24) return `${diffHrs}h ago`;
+		return d.toLocaleDateString(undefined, { month:'short', day:'numeric' });
+	}
 </script>
-{#if Object.keys(groups).length}
-<div class="hc animate-slide">
-	<div class="hc-head"><span class="hc-title">Recent Analyses</span><button class="hc-clear" onclick={clear}>Clear</button></div>
-	{#each Object.entries(groups).slice(0,5) as [date,entries]}
-		<div class="hc-group">
-			<div class="hc-date">{date===new Date().toLocaleDateString()?'Today':date}</div>
-			{#each entries.slice(0,8) as e}
-				<div class="hc-entry"><Icon name={IC[e.category]||'info-circle'} size={16} color="var(--text-soft)" /><span class="hc-cat">{e.category}</span><span class="hc-conf">{e.confidence}%</span><span class="hc-time">{new Date(e.timestamp).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</span></div>
-			{/each}
-		</div>
-	{/each}
+
+<div class="h-card">
+	<div class="h-head">
+		<h3 class="h-title"><Icon name="clock" size={18} color="currentColor" /> History</h3>
+		{#if items.length > 0}
+			{#if showClearConfirm}
+				<div class="h-actions">
+					<button class="h-btn cancel" onclick={()=>showClearConfirm=false}>Cancel</button>
+					<button class="h-btn confirm" onclick={()=>{clearHistory();showClearConfirm=false;}}>Confirm</button>
+				</div>
+			{:else}
+				<button class="h-btn clear" onclick={()=>showClearConfirm=true}>Clear</button>
+			{/if}
+		{/if}
+	</div>
+
+	<div class="h-body">
+		{#if items.length === 0}
+			<div class="h-empty">
+				<Icon name="inbox" size={32} color="var(--border)" />
+				<p>No recent analysis</p>
+			</div>
+		{:else}
+			<div class="timeline">
+				{#each items.slice(0, 5) as item}
+					{@const c = COLORS[item.severity] || 'var(--text-dim)'}
+					<div class="tl-item">
+						<div class="tl-dot" style="background:{c}; border-color:var(--surface)"></div>
+						<div class="tl-content">
+							<div class="tl-row">
+								<span class="tl-cat" style="color:{c}"><Icon name={ICONS[item.category] || 'search'} size={14} color="currentColor"/> {item.category}</span>
+								<span class="tl-time">{getRelTime(item.timestamp)}</span>
+							</div>
+							<p class="tl-desc">{item.reasoning}</p>
+						</div>
+					</div>
+				{/each}
+			</div>
+		{/if}
+	</div>
 </div>
-{/if}
+
 <style>
-	.hc{background:var(--card-bg);border:1px solid var(--card-border);border-radius:var(--radius-xl);overflow:hidden}
-	.hc-head{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--card-border)}
-	.hc-title{font-size:.65rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--text-soft)}
-	.hc-clear{font-size:.6rem;font-weight:700;color:var(--text-dim);padding:2px 6px;border-radius:6px;transition:all .15s}
-	.hc-clear:hover{color:var(--red);background:rgba(248,113,113,.08)}
-	.hc-group{padding:6px 16px;border-bottom:1px solid var(--card-border)}.hc-group:last-child{border-bottom:none}
-	.hc-date{font-size:.58rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim);padding:4px 0}
-	.hc-entry{display:flex;align-items:center;gap:6px;padding:5px 0;font-size:.75rem}
-	.hc-emoji{font-size:.85rem;line-height:1}
-	.hc-cat{font-weight:700;color:var(--text);flex:1}.hc-conf{font-size:.68rem;color:var(--text-soft);font-family:'Fraunces',serif}
-	.hc-time{font-size:.62rem;color:var(--text-dim)}
+	.h-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--r-md); box-shadow:var(--shadow-card); }
+	
+	.h-head { display:flex; justify-content:space-between; align-items:center; padding:16px 20px; border-bottom:1px solid var(--border); }
+	.h-title { font-size:1.05rem; font-weight:700; color:var(--text); margin:0; display:flex; align-items:center; gap:8px; }
+	
+	.h-actions { display:flex; gap:8px; }
+	.h-btn { font-size:0.8rem; font-weight:600; padding:6px 12px; border-radius:var(--r-xs); transition:all .2s; }
+	.h-btn.clear { color:var(--text-soft); background:var(--surface-2); border:1px solid var(--border); }
+	.h-btn.clear:hover { color:var(--blush); border-color:var(--blush); background:var(--blush-soft); }
+	.h-btn.cancel { color:var(--text); background:var(--surface-2); border:1px solid var(--border); }
+	.h-btn.confirm { color:var(--surface); background:var(--blush); }
+
+	.h-body { padding:20px; }
+	
+	.h-empty { display:flex; flex-direction:column; align-items:center; gap:12px; padding:24px 0; color:var(--text-dim); font-size:0.9rem; font-weight:500; }
+
+	.timeline { display:flex; flex-direction:column; gap:20px; position:relative; }
+	.timeline::before { content:''; position:absolute; top:8px; bottom:8px; left:5px; width:2px; background:var(--surface-2); }
+
+	.tl-item { display:flex; gap:16px; position:relative; }
+	.tl-dot { width:12px; height:12px; border-radius:50%; border:2px solid var(--surface); position:absolute; left:0; top:4px; z-index:2; }
+	
+	.tl-content { flex:1; padding-left:24px; display:flex; flex-direction:column; gap:4px; }
+	.tl-row { display:flex; justify-content:space-between; align-items:center; }
+	.tl-cat { font-size:0.8rem; font-weight:700; text-transform:uppercase; display:flex; align-items:center; gap:4px; }
+	.tl-time { font-size:0.75rem; color:var(--text-dim); font-weight:600; }
+	.tl-desc { font-size:0.85rem; color:var(--text-soft); line-height:1.4; margin:0; }
 </style>

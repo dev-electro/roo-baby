@@ -1,130 +1,183 @@
 <script>
 	import { appState } from '$state/appState.svelte.js';
-	import { onDestroy } from 'svelte';
-	import { capturePhoto as trackPhoto } from '$utils/analytics.js';
 	import Icon from './Icon.svelte';
+	import { onDestroy } from 'svelte';
 
-	let videoEl, canvasEl, preview = $state(''), fallback = $state(false), active = $state(false);
-	let facing = $state('user'), busy = $state(false), asked = $state(false);
-
-	function req() { asked = true; start(); }
+	/** @type {HTMLVideoElement|null} */
+	let videoEl = null;
+	/** @type {HTMLCanvasElement|null} */
+	let canvasEl = null;
+	
+	let isCam = $state(false);
+	let error = $state(null);
+	/** @type {MediaStream|null} */
+	let stream = null;
 
 	async function start() {
-		if (active || busy) return;
-		if (appState.imageBlob) return;
-		busy = true; stopStream();
+		error = null;
+		appState.imageBlob = null;
 		try {
-			const s = await navigator.mediaDevices.getUserMedia({ video: { facingMode: facing, width: { ideal: 1280 }, height: { ideal: 960 } } });
-			appState.cameraStream = s;
-			active = true; busy = false;
-			if (videoEl) { videoEl.srcObject = s; try { await videoEl.play() } catch {} }
-		} catch { busy = false; fallback = true; }
+			stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+			if (videoEl) {
+				videoEl.srcObject = stream;
+				isCam = true;
+			}
+		} catch (err) {
+			/** @type {Error} */
+			const e = err;
+			error = e.name === 'NotAllowedError'
+				? 'Camera access denied. Check browser permissions.'
+				: 'Could not start camera. Ensure it is connected.';
+			cleanup();
+		}
 	}
-
-	async function flip() { facing = facing === 'user' ? 'environment' : 'user'; if (active) { active = false; await start() } }
 
 	function capture() {
-		if (!videoEl || !canvasEl) return;
-		const rid = appState.resetId;
-		canvasEl.width = videoEl.videoWidth || 1280;
-		canvasEl.height = videoEl.videoHeight || 960;
-		canvasEl.getContext('2d').drawImage(videoEl, 0, 0);
+		if (!videoEl || !canvasEl || !isCam) return;
+		canvasEl.width = videoEl.videoWidth;
+		canvasEl.height = videoEl.videoHeight;
+		const ctx = canvasEl.getContext('2d');
+		if (ctx) ctx.drawImage(videoEl, 0, 0);
 		canvasEl.toBlob(b => {
-			if (b && appState.resetId === rid) {
-				if (preview) URL.revokeObjectURL(preview);
-				preview = URL.createObjectURL(b);
-				appState.imageBlob = b;
-				stopStream();
-				trackPhoto('camera');
-			}
-		}, 'image/jpeg', .92);
+			if (b) appState.imageBlob = b;
+			cleanup();
+		}, 'image/jpeg', 0.8);
 	}
 
-	function upload(e) { const f = e.target.files[0]; if (f) { if (preview) URL.revokeObjectURL(preview); preview = URL.createObjectURL(f); appState.imageBlob = f; trackPhoto('upload'); } }
+	function reset() {
+		appState.imageBlob = null;
+		error = null;
+		cleanup();
+	}
 
-	function retake() { if (preview) URL.revokeObjectURL(preview); preview = ''; appState.imageBlob = null; fallback = false; active = false; asked = false; }
+	function cleanup() {
+		isCam = false;
+		if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+		if (videoEl) videoEl.srcObject = null;
+	}
 
-	function stopStream() { if (appState.cameraStream) { appState.cameraStream.getTracks().forEach(t => t.stop()); appState.cameraStream = null; } active = false; }
+	function upload(e) {
+		const f = e.target.files[0];
+		if (!f) return;
+		appState.imageBlob = f;
+		error = null;
+		cleanup();
+	}
 
-	onDestroy(() => { stopStream(); if (preview) URL.revokeObjectURL(preview); });
+	onDestroy(cleanup);
 </script>
 
-<div class="c">
-	{#if appState.imageBlob && preview}
-		<div class="c-preview animate-scale">
-			<div class="c-preview-img"><img src={preview} alt="Captured" /></div>
-			<div class="c-preview-label"><Icon name="check" size={18} color="var(--teal)" /> Face captured</div>
-			<div class="c-row">
-				<button class="c-btn" onclick={retake}><Icon name="refresh" size={14} color="currentColor" /> Retake</button>
-				<label class="c-btn c-upload"><Icon name="upload" size={14} color="currentColor" /> Upload<input type="file" accept="image/jpeg,image/png" onchange={upload} class="c-hidden" /></label>
+<div class="card-inner">
+	{#if error}
+		<div class="state-block error">
+			<Icon name="warning" size={24} color="var(--blush)" />
+			<p>{error}</p>
+			<button class="btn btn-outline" onclick={() => error = null}>Try Again</button>
+		</div>
+	{:else if appState.imageBlob}
+		<div class="state-block success">
+			<div class="img-preview">
+				<img src={URL.createObjectURL(appState.imageBlob)} alt="Captured baby face" />
+				<div class="img-badge"><Icon name="check" size={12} color="#fff" /></div>
 			</div>
-		</div>
-	{:else if fallback}
-		<div class="c-fallback">
-			<label class="c-fb-label">
-				<div class="c-fb-icon"><Icon name="upload" size={20} color="currentColor" /></div>
-				<div class="c-fb-text">Upload a baby photo</div>
-				<div class="c-fb-sub">JPG or PNG, well‑lit</div>
-				<input type="file" accept="image/jpeg,image/png" onchange={upload} class="c-hidden" />
-			</label>
-			<button class="c-btn" onclick={() => { fallback = false; req(); }}><Icon name="camera" size={18} color="currentColor" /> Try camera</button>
-		</div>
-	{:else if !asked}
-		<div class="c-ask">
-			<div class="c-ask-icon"><Icon name="camera" size={28} color="currentColor" /></div>
-			<div class="c-ask-text">Capture baby's face</div>
-			<div class="c-ask-sub">Point camera at your baby's face for best results</div>
-			<button class="c-big" onclick={req}><Icon name="camera" size={18} color="currentColor" /> Open Camera</button>
-			<label class="c-link"><Icon name="upload" size={14} color="currentColor" /> Or upload photo<input type="file" accept="image/jpeg,image/png" onchange={upload} class="c-hidden" /></label>
+			<p>Face captured successfully</p>
+			<button class="btn btn-outline" onclick={reset}>Retake Photo</button>
 		</div>
 	{:else}
-		<div class="c-view-full">
-			<video bind:this={videoEl} autoplay playsinline muted class="c-video" class:mirror={facing === 'user'}></video>
-			<div class="c-guide">
-				<svg viewBox="0 0 120 140" class="c-oval"><ellipse cx="60" cy="70" rx="45" ry="58" fill="none" stroke="var(--pink)" stroke-width="2" stroke-dasharray="5 5" opacity=".35"/></svg>
-			</div>
-			<div class="c-overlay-top">
-				<button class="c-flip" onclick={flip}><Icon name="flip-camera" size={14} color="#fff" /></button>
-			</div>
-			<div class="c-overlay-bottom">
-				<button class="c-snap" onclick={capture}><Icon name="camera" size={22} color="currentColor" /></button>
+		<div class="cam-block">
+			<!-- svelte-ignore a11y_media_has_caption -->
+			<video bind:this={videoEl} autoplay playsinline class="video-feed" class:active={isCam}></video>
+			<canvas bind:this={canvasEl} hidden></canvas>
+			
+			{#if !isCam}
+				<div class="cam-placeholder">
+					<Icon name="camera" size={32} color="var(--border)" />
+				</div>
+			{/if}
+
+			<div class="cam-controls">
+				{#if isCam}
+					<button class="cap-btn" onclick={capture} aria-label="Take photo">
+						<div class="cap-btn-inner"></div>
+					</button>
+				{:else}
+					<button class="btn btn-primary" onclick={start}>Open Camera</button>
+					<div class="or-divider"><span>or</span></div>
+					<label class="upload-btn">
+						<Icon name="upload" size={16} color="currentColor" />
+						Upload photo
+						<input type="file" accept="image/*" onchange={upload} hidden />
+					</label>
+				{/if}
 			</div>
 		</div>
 	{/if}
-	<canvas bind:this={canvasEl} style="display:none"></canvas>
 </div>
 
 <style>
-	.c{width:100%;display:flex;flex-direction:column;align-items:center}
+	.card-inner { padding:24px; width:100%; display:flex; flex-direction:column; align-items:center; }
 
-	.c-view-full{position:relative;width:100%;aspect-ratio:3/4;max-height:70vh;border-radius:var(--radius);overflow:hidden;background:var(--card-border)}
-	.c-video{width:100%;height:100%;object-fit:cover}.c-video.mirror{transform:scaleX(-1)}
-	.c-guide{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none}
-	.c-oval{width:65%;height:75%}
-	.c-overlay-top{position:absolute;top:8px;right:8px;z-index:3;display:flex;gap:6px}
-	.c-overlay-bottom{position:absolute;bottom:16px;left:0;right:0;display:flex;justify-content:center;z-index:3}
-	.c-flip{width:36px;height:36px;border-radius:50%;background:rgba(0,0,0,.45);font-size:.9rem;display:flex;align-items:center;justify-content:center;border:none;cursor:pointer}
-	.c-snap{width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,var(--pink),var(--gold));font-size:1.3rem;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(255,107,122,.35);border:none;cursor:pointer}
-	.c-snap:active{transform:scale(.94)}
+	.state-block { display:flex; flex-direction:column; align-items:center; gap:16px; text-align:center; }
+	.state-block p { font-size:0.95rem; font-weight:500; color:var(--text); }
+	.error { color:var(--blush); }
 
-	.c-preview{display:flex;flex-direction:column;align-items:center;gap:10px;width:100%;padding:8px}
-	.c-preview-img{width:100%;max-width:280px;border-radius:var(--radius);overflow:hidden;border:2px solid var(--teal)}
-	.c-preview-img img{width:100%;display:block}
-	.c-preview-label{font-size:.82rem;font-weight:700;color:var(--teal);display:flex;align-items:center;gap:6px}
-	.c-row{display:flex;gap:8px}
-	.c-btn{padding:8px 18px;border-radius:100px;font-size:.78rem;font-weight:700;color:var(--text-soft);border:1px solid var(--card-border);background:var(--card-bg);transition:all .15s;display:inline-flex;align-items:center;gap:5px;position:relative;cursor:pointer}
-	.c-btn:hover{border-color:var(--pink);color:var(--text)}
-	.c-ask,.c-fallback{display:flex;flex-direction:column;align-items:center;gap:6px;padding:24px 12px;width:100%}
-	.c-ask-icon,.c-fb-icon{color:var(--text-dim)}
-	.c-ask-text{font-size:.92rem;font-weight:700;color:var(--text)}
-	.c-ask-sub{font-size:.75rem;color:var(--text-soft);margin-bottom:6px}
-	.c-big{padding:14px 32px;border-radius:100px;font-size:.92rem;font-weight:700;background:linear-gradient(135deg,var(--pink),var(--gold));color:#fff;box-shadow:0 4px 16px rgba(255,107,122,.25);transition:transform .15s;border:none;cursor:pointer}
-	.c-big:active{transform:scale(.97)}
-	.c-link{font-size:.75rem;color:var(--text-soft);font-weight:600;position:relative;cursor:pointer;padding:8px 14px;border-radius:8px;transition:all .15s;display:inline-block}
-	.c-link:hover{color:var(--text);background:var(--card-bg)}
-	.c-fb-label{display:flex;flex-direction:column;align-items:center;gap:6px;padding:32px 40px;border:2px dashed var(--card-border);border-radius:var(--radius);background:var(--card-bg);cursor:pointer;position:relative;transition:border-color .15s}
-	.c-fb-label:hover{border-color:var(--pink)}
-	.c-fb-text{font-size:.92rem;font-weight:700;color:var(--text)}
-	.c-fb-sub{font-size:.72rem;color:var(--text-soft)}
-	.c-hidden{position:absolute;inset:0;opacity:0;cursor:pointer}
+	.btn {
+		padding:10px 20px; border-radius:var(--r-sm); font-size:0.85rem; font-weight:600;
+		transition:all 0.2s;
+	}
+	.btn-outline { border:1px solid var(--border); color:var(--text); }
+	.btn-outline:hover { background:var(--surface-2); border-color:var(--text-dim); }
+	.btn-primary { background:var(--text); color:var(--surface); }
+	.btn-primary:hover { opacity:0.9; }
+
+	.img-preview { position:relative; width:120px; height:120px; border-radius:var(--r-md); padding:4px; border:2px solid var(--primary); }
+	.img-preview img { width:100%; height:100%; object-fit:cover; border-radius:calc(var(--r-md) - 4px); }
+	.img-badge {
+		position:absolute; bottom:-6px; right:-6px; width:24px; height:24px; border-radius:50%;
+		background:var(--primary); display:flex; align-items:center; justify-content:center;
+		box-shadow:0 2px 8px rgba(0,0,0,0.2); border:2px solid var(--surface);
+	}
+
+	.cam-block { display:flex; flex-direction:column; gap:16px; width:100%; max-width:320px; position:relative; }
+	
+	.video-feed {
+		width:100%; aspect-ratio:3/4; object-fit:cover; border-radius:var(--r-md);
+		background:var(--surface-2); display:none; border:1px solid var(--border);
+	}
+	.video-feed.active { display:block; }
+	
+	.cam-placeholder {
+		width:100%; aspect-ratio:3/4; border-radius:var(--r-md);
+		background:var(--surface-2); border:1px dashed var(--border);
+		display:flex; align-items:center; justify-content:center;
+	}
+
+	.cam-controls { display:flex; flex-direction:column; gap:12px; width:100%; }
+
+	.cap-btn {
+		width:64px; height:64px; border-radius:50%; border:3px solid var(--text);
+		background:transparent; display:flex; align-items:center; justify-content:center;
+		margin:0 auto; transition:transform 0.1s;
+	}
+	.cap-btn:active { transform:scale(0.95); }
+	.cap-btn-inner { width:50px; height:50px; border-radius:50%; background:var(--text); }
+
+	.or-divider {
+		width:100%; text-align:center; position:relative; margin:4px 0;
+	}
+	.or-divider::before {
+		content:''; position:absolute; top:50%; left:0; right:0; height:1px; background:var(--border); z-index:0;
+	}
+	.or-divider span {
+		background:var(--surface); padding:0 12px; font-size:0.8rem; color:var(--text-dim);
+		position:relative; z-index:1; font-weight:500;
+	}
+
+	.upload-btn {
+		display:flex; align-items:center; justify-content:center; gap:8px;
+		width:100%; padding:12px; border-radius:var(--r-sm);
+		border:1px dashed var(--text-dim); color:var(--text-soft);
+		font-size:0.85rem; font-weight:600; cursor:pointer; transition:all 0.2s;
+	}
+	.upload-btn:hover { border-color:var(--text); color:var(--text); background:var(--surface-2); }
 </style>

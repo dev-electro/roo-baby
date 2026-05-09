@@ -1,41 +1,45 @@
 <script>
 	import { appState } from '$state/appState.svelte.js';
-	import { halt as stopAllSounds } from '$utils/soundGenerator.js';
-	import { stopSpeaking } from '$utils/ttsEngine.js';
 	import Icon from './Icon.svelte';
 
-	import { modeSwitch as trackMode } from '$utils/analytics.js';
-
-	const modes = [
-		{ id: 'audio', icon: 'mic', label: 'Audio', sub: 'Cry analysis' },
-		{ id: 'image', icon: 'camera', label: 'Photo', sub: 'Face analysis' },
-		{ id: 'both',  icon: 'star', label: 'Dual',  sub: 'Audio+Face' },
+	const TABS = [
+		{ id:'audio', label:'Audio', icon:'mic',   desc:'Microphone' },
+		{ id:'image', label:'Video', icon:'camera',desc:'Camera' },
+		{ id:'both',  label:'Both',  icon:'check', desc:'High accuracy' }
 	];
-
-	function pick(mode) {
-		stopAllSounds();
-		stopSpeaking();
-		appState.currentMode = mode;
-		appState.reset();
-		trackMode(mode);
-	}
 </script>
 
-<nav class="tabs">
-	{#each modes as m}
-		<button class="tab" class:on={appState.currentMode === m.id} onclick={() => pick(m.id)}>
-			<Icon name={m.icon} size={18} color="currentColor" />
-			<span class="tab-l">{m.label}</span>
-			<span class="tab-s">{m.sub}</span>
+<div class="tabs">
+	{#each TABS as t}
+		<button
+			class="tab"
+			class:active={appState.currentMode === t.id}
+			onclick={() => {
+				if (appState.isAnalyzing) return;
+				appState.setMode(t.id);
+			}}
+			disabled={appState.isAnalyzing}
+			aria-pressed={appState.currentMode === t.id}
+		>
+			<Icon name={t.icon} size={16} color="currentColor" />
+			<span class="tab-lbl">{t.label}</span>
 		</button>
 	{/each}
-</nav>
+</div>
 
 <style>
-	.tabs{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;padding:5px;background:var(--card-bg);border:1px solid var(--card-border);border-radius:var(--radius)}
-	.tab{display:flex;flex-direction:column;align-items:center;gap:2px;padding:10px 4px;border-radius:var(--radius-sm);font-weight:600;transition:all .2s;color:var(--text-soft)}
-	.tab:hover:not(.on){background:rgba(128,128,128,.06)}
-	.tab.on{background:linear-gradient(135deg,var(--pink-soft),var(--gold-soft));color:var(--text);box-shadow:0 0 0 1px var(--pink)}
-	.tab-l{font-size:.78rem}
-	.tab-s{font-size:.58rem;opacity:.5}
+	.tabs {
+		display:flex; background:var(--surface); padding:4px;
+		border-radius:var(--r-sm); border:1px solid var(--border);
+		box-shadow:var(--shadow-card);
+	}
+	.tab {
+		flex:1; display:flex; align-items:center; justify-content:center; gap:8px;
+		padding:10px 0; border-radius:var(--r-xs);
+		font-size:0.85rem; font-weight:600; color:var(--text-soft);
+		transition:all 0.2s; position:relative; z-index:1;
+	}
+	.tab:hover:not(:disabled):not(.active) { color:var(--text); background:var(--surface-2); }
+	.tab.active { color:var(--surface); background:var(--text); box-shadow:0 1px 4px rgba(0,0,0,0.2); }
+	.tab:disabled { opacity:0.5; cursor:not-allowed; }
 </style>

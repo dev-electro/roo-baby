@@ -1,191 +1,215 @@
 <script>
-	import { onDestroy } from 'svelte';
-	import { unlock, setVol, getVol, halt, isOn, start as startSynth } from '$utils/soundGenerator.js';
-	import { categories, synths, R2_BASE } from '$lib/data/soothingTracks.js';
-	import { playSound as trackSound } from '$utils/analytics.js';
 	import Icon from './Icon.svelte';
+	import { unlock as ensureAudioResumed, playResponse, stopResponse } from '$utils/soundGenerator.js';
+	import { appState } from '$state/appState.svelte.js';
+	import { onMount, onDestroy } from 'svelte';
+
+	// We have Synths and Nature tracks
+	const SYNTHS = [
+		{ id:'whitenoise',  name:'White Noise', icon:'radio' },
+		{ id:'pinknoise',   name:'Pink Noise',  icon:'wind' },
+		{ id:'brownnoise',  name:'Brown Noise', icon:'cloud-rain' },
+		{ id:'heartbeat',   name:'Heartbeat',   icon:'heart' },
+		{ id:'womb',        name:'Womb Sim',    icon:'circle' },
+		{ id:'shush',       name:'Shusher',     icon:'mic' },
+		{ id:'fan',         name:'Box Fan',     icon:'loader' },
+		{ id:'thunder',     name:'Thunder',     icon:'cloud-lightning' },
+		{ id:'binaural',    name:'Binaural',    icon:'headphones' },
+		{ id:'lullaby',     name:'Lullaby',     icon:'music' }
+	];
+
+	// Remote R2 tracks
+	const NATURE = [
+		{ id:'nature_stream', name:'Forest Stream', url:'https://assets.roo-baby.com/stream.mp3' },
+		{ id:'nature_rain',   name:'Gentle Rain',   url:'https://assets.roo-baby.com/rain.mp3' },
+		{ id:'nature_ocean',  name:'Ocean Waves',   url:'https://assets.roo-baby.com/ocean.mp3' }
+	];
 
 	let tab = $state('synth');
-	let trackCat = $state(categories[0]?.id || '');
+	let vol = $state(80);
+	
+	let playingId = $state(null);
+	let isPlaying = $state(false);
+	
+	// Remote audio handling
+	let audioEl = null;
 
-	let audio = $state(null);
-	let playing = $state(false);
-	let currentTrack = $state(null);
-	let loop = $state(true);
-	let vol = $state(typeof localStorage !== 'undefined' ? parseFloat(localStorage.getItem('roo-vol')) || 0.5 : 0.5);
-	let progress = $state(0);
-	let curTime = $state(0);
-	let dur = $state(0);
-	let tick = null;
-	let synthOn = $state(false);
-	let synthType = $state(null);
+	let checkInterval;
+	onMount(() => {
+		checkInterval = setInterval(() => {
+			if (appState.currentResponseSound && appState.isPlayingResponse) {
+				playingId = appState.currentResponseSound;
+				isPlaying = true;
+			} else if (audioEl && !audioEl.paused) {
+				isPlaying = true;
+			} else {
+				isPlaying = false;
+				playingId = null;
+			}
+		}, 200);
+	});
+	onDestroy(() => {
+		clearInterval(checkInterval);
+		if (audioEl) { audioEl.pause(); audioEl = null; }
+	});
 
-	$effect(() => { setVol(vol); });
-
-	function fmt(t) { const m = Math.floor(t / 60), s = Math.floor(t % 60); return `${m}:${s.toString().padStart(2, '0')}`; }
-	function setVolume(v) { vol = v; setVol(v); if (audio) audio.volume = v; try { localStorage.setItem('roo-vol', v); } catch {} }
-
-	function kill() {
-		halt(); if (audio) { audio.pause(); audio = null; }
-		playing = false; currentTrack = null; progress = 0; curTime = 0; dur = 0;
-		synthOn = false; synthType = null; if (tick) { clearInterval(tick); tick = null; }
+	function toggleSynth(id) {
+		ensureAudioResumed();
+		if (audioEl) { audioEl.pause(); } // Stop remote if playing
+		
+		if (playingId === id && appState.isPlayingResponse) {
+			stopResponse();
+			playingId = null;
+		} else {
+			appState.currentResponseSound = id;
+			playResponse(id);
+			playingId = id;
+		}
 	}
 
-	function playTrack(t) {
-		if (currentTrack?.name === t.name && playing) { kill(); return; }
-		kill(); unlock();
-		trackSound(t.name, R2_BASE ? 'r2' : 'synth');
-		if (!t.url) { startSynthFallback(t, mapCatToSynth(t.categoryId)); return; }
-		const a = new Audio(); a.src = t.url; a.loop = loop; a.volume = vol; a.preload = 'auto';
-		let loaded = false;
-		a.onloadedmetadata = () => { loaded = true; dur = a.duration; a.play().catch(() => {}); };
-		a.onerror = () => { startSynthFallback(t, mapCatToSynth(t.categoryId)); };
-		a.onplay = () => { playing = true; currentTrack = t; };
-		a.onpause = () => { playing = false; };
-		a.onended = () => { if (!a.loop) { playing = false; progress = 0; } };
-		tick = setInterval(() => { if (audio && !audio.paused) { curTime = audio.currentTime; progress = audio.duration ? (audio.currentTime / audio.duration) * 100 : 0; } }, 200);
-		audio = a; a.play().catch(() => { if (!loaded) startSynthFallback(t, mapCatToSynth(t.categoryId)); });
+	function toggleNature(track) {
+		if (appState.isPlayingResponse) stopResponse();
+		
+		if (!audioEl) {
+			audioEl = new Audio();
+			audioEl.loop = true;
+		}
+
+		if (playingId === track.id && !audioEl.paused) {
+			audioEl.pause();
+			playingId = null;
+		} else {
+			audioEl.src = track.url;
+			audioEl.volume = vol / 100;
+			audioEl.play().catch(e => console.error("Audio block:", e));
+			playingId = track.id;
+		}
 	}
 
-	function startSynthFallback(t, type) {
-		const s = startSynth(type);
-		if (s) { synthOn = true; synthType = s.type; currentTrack = t; playing = true; }
-		tick = setInterval(() => { if (!isOn()) kill(); }, 500);
-	}
-
-	function playSynth(s) {
-		kill(); unlock();
-		trackSound(s.id, 'synth');
-		const r = startSynth(s.id);
-		if (r) { synthOn = true; synthType = r.type; playing = true; currentTrack = { name: s.name, categoryName: 'Synth' }; }
-		tick = setInterval(() => { if (!isOn()) kill(); }, 500);
-	}
-
-	function mapCatToSynth(catId) {
-		const m = { lullabies: 'lullaby', nature: 'rain', noise: 'whitenoise', heartbeat: 'heartbeat', shush: 'shush' };
-		return m[catId] || 'whitenoise';
-	}
-
-	const catTracks = $derived(categories.find(c => c.id === trackCat)?.tracks || []);
-	const currentList = $derived(tab === 'synth' ? synths : catTracks);
-
-	function next() { const idx = currentList.findIndex(t => t.name === currentTrack?.name); const n = currentList[(idx + 1) % currentList.length]; tab === 'synth' ? playSynth(n) : playTrack(n); }
-	function prev() { const idx = currentList.findIndex(t => t.name === currentTrack?.name); const n = currentList[(idx - 1 + currentList.length) % currentList.length]; tab === 'synth' ? playSynth(n) : playTrack(n); }
-	function toggleLoop() { loop = !loop; if (audio) audio.loop = loop; }
-
-	onDestroy(() => { kill(); });
+	$effect(() => {
+		// sync volume
+		if (audioEl) audioEl.volume = vol / 100;
+		// synth volume is global for now, handled via gain nodes internally if we add it to soundGen
+	});
 </script>
 
-<div class="player">
-	<nav class="tabs">
-		<button class="tb" class:on={tab === 'tracks'} onclick={() => tab = 'tracks'}><Icon name="star" size={14} color="currentColor" /> Library</button>
-		<button class="tb" class:on={tab === 'synth'} onclick={() => tab = 'synth'}><Icon name="bolt" size={14} color="currentColor" /> Synth</button>
-	</nav>
+<div class="sp-wrap">
+	<!-- Tab Bar -->
+	<div class="sp-tabs">
+		<button class="sp-tab" class:active={tab==='synth'} onclick={()=>tab='synth'}>Generator</button>
+		<button class="sp-tab" class:active={tab==='nature'} onclick={()=>tab='nature'}>Premium Tracks</button>
+	</div>
 
-	{#if tab === 'tracks'}
-		{#if !R2_BASE}
-			<div class="notice"><Icon name="info-circle" size={14} color="var(--gold)" /> Set PUBLIC_R2_BASE for audio files. Synth fallback active.</div>
+	<!-- Content -->
+	<div class="sp-body">
+		{#if tab === 'synth'}
+			<div class="grid">
+				{#each SYNTHS as s}
+					<button class="t-btn" class:active={playingId === s.id} onclick={()=>toggleSynth(s.id)}>
+						<div class="t-icon"><Icon name={s.icon} size={24} color="currentColor" /></div>
+						<span class="t-lbl">{s.name}</span>
+						{#if playingId === s.id}
+							<div class="eq-mini"><span></span><span></span><span></span></div>
+						{/if}
+					</button>
+				{/each}
+			</div>
+		{:else}
+			<div class="list">
+				{#each NATURE as n}
+					<div class="l-item" class:active={playingId === n.id}>
+						<div class="l-info">
+							<div class="l-icon"><Icon name="music" size={20} color="currentColor"/></div>
+							<span class="l-lbl">{n.name}</span>
+						</div>
+						<button class="play-btn" onclick={()=>toggleNature(n)}>
+							<Icon name={playingId === n.id ? "stop" : "play"} size={16} color="currentColor" />
+						</button>
+					</div>
+				{/each}
+			</div>
 		{/if}
-		<nav class="cats">
-			{#each categories as cat}
-				<button class="cat" class:on={trackCat === cat.id} onclick={() => trackCat = cat.id}>{cat.name}</button>
-			{/each}
-		</nav>
-		<div class="grid">
-			{#each catTracks as t, i}
-				<button class="tile" class:active={currentTrack?.name === t.name && playing} onclick={() => playTrack(t)}>
-					<div class="tile-name">{t.name}</div>
-					<div class="tile-artist">{t.artist}</div>
-					<div class="tile-play">
-						{#if currentTrack?.name === t.name && playing}
-							<div class="eq"><div></div><div></div><div></div></div>
-						{:else}
-							<Icon name="play" size={13} color="currentColor" />
-						{/if}
-					</div>
-				</button>
-			{/each}
-		</div>
-	{:else}
-		<div class="grid">
-			{#each synths as s}
-				<button class="tile" class:active={synthType === s.id && playing} onclick={() => playSynth(s)} style="--tc:{s.color}">
-					<Icon name={s.icon} size={18} color={s.color} />
-					<div class="tile-name">{s.name}</div>
-					<div class="tile-state">
-						{#if synthType === s.id && playing}
-							<div class="eq"><div></div><div></div><div></div></div>
-						{:else}
-							<Icon name="play" size={12} color="currentColor" />
-						{/if}
-					</div>
-				</button>
-			{/each}
-		</div>
-	{/if}
+	</div>
 
-	{#if playing && currentTrack}
-		<div class="ctrl animate-slide">
-			<div class="ctrl-top">
-				<span class="np">{currentTrack.name}</span>
-				<span class="time">{fmt(curTime)}{dur > 0 ? ' / ' + fmt(dur) : ''}</span>
-			</div>
-			{#if audio}
-				<div class="bar" onclick={e => { if (!audio) return; const r = e.currentTarget.getBoundingClientRect(); audio.currentTime = ((e.clientX - r.left) / r.width) * audio.duration; }} role="slider" tabindex="0">
-					<div class="fill" style="width:{progress}%"></div>
-				</div>
-			{/if}
-			<div class="ctrl-row">
-				<button class="cb" class:on={loop} onclick={toggleLoop}><Icon name="refresh" size={11} color={loop?'var(--teal)':'var(--text-dim)'} /> Loop</button>
-				<div class="cc">
-					<button class="cb skip" onclick={prev}><Icon name="arrow-right" size={14} color="currentColor" style="transform:rotate(180deg)" /></button>
-					<button class="cb stop" onclick={kill}><Icon name="stop" size={16} color="var(--red)" /></button>
-					<button class="cb skip" onclick={next}><Icon name="arrow-right" size={14} color="currentColor" /></button>
-				</div>
-				<div class="vol"><Icon name="mic" size={10} color="var(--text-dim)" /><input type="range" min="0" max="100" value={vol*100} oninput={e => setVolume(e.target.value/100)} class="vs" /></div>
-			</div>
+	<!-- Controls -->
+	<div class="sp-foot">
+		<div class="vol-wrap">
+			<Icon name="volume-2" size={18} color="var(--text-soft)" />
+			<input type="range" class="vol-slider" min="0" max="100" bind:value={vol} />
 		</div>
-	{/if}
+		{#if isPlaying}
+			<button class="stop-all" onclick={() => { stopResponse(); if(audioEl) audioEl.pause(); }}>
+				Stop
+			</button>
+		{/if}
+	</div>
 </div>
 
 <style>
-	.player{display:flex;flex-direction:column;gap:12px}
+	.sp-wrap {
+		background:var(--surface); border:1px solid var(--border); border-radius:var(--r-md);
+		overflow:hidden; display:flex; flex-direction:column; box-shadow:var(--shadow-card);
+	}
+	
+	.sp-tabs { display:flex; background:var(--surface-2); border-bottom:1px solid var(--border); }
+	.sp-tab {
+		flex:1; padding:16px; font-size:0.9rem; font-weight:600; color:var(--text-soft);
+		border-bottom:2px solid transparent; transition:all .2s;
+	}
+	.sp-tab:hover { color:var(--text); }
+	.sp-tab.active { color:var(--primary); border-bottom-color:var(--primary); background:var(--surface); }
 
-	.tabs{display:flex;gap:6px}
-	.tb{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:10px;border-radius:var(--radius-sm);font-size:.82rem;font-weight:700;color:var(--text-soft);border:1px solid var(--card-border);background:var(--card-bg);cursor:pointer;transition:all .15s}
-	.tb:hover{border-color:var(--pink)}
-	.tb.on{background:var(--teal-soft);border-color:var(--teal);color:var(--teal)}
+	.sp-body { padding:20px; }
 
-	.notice{display:flex;align-items:center;gap:6px;padding:8px 10px;background:var(--gold-soft);border:1px solid rgba(245,166,35,.2);border-radius:var(--radius-sm);font-size:.7rem;color:var(--gold);font-weight:600}
+	/* Grid for synths */
+	.grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(100px, 1fr)); gap:12px; }
+	.t-btn {
+		display:flex; flex-direction:column; align-items:center; gap:8px; padding:16px 8px;
+		background:var(--surface-2); border:1px solid var(--border); border-radius:var(--r-sm);
+		color:var(--text-soft); transition:all .2s; position:relative;
+	}
+	.t-btn:hover { background:var(--border-soft); color:var(--text); }
+	.t-btn.active { background:var(--primary-soft); border-color:var(--primary); color:var(--primary); }
+	.t-icon { margin-bottom:4px; }
+	.t-lbl { font-size:0.8rem; font-weight:600; text-align:center; }
 
-	.cats{display:flex;gap:5px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}.cats::-webkit-scrollbar{display:none}
-	.cat{padding:7px 14px;border-radius:100px;font-size:.74rem;font-weight:700;color:var(--text-soft);border:1px solid var(--card-border);background:var(--card-bg);cursor:pointer;white-space:nowrap;transition:all .15s;flex-shrink:0}
-	.cat:hover{border-color:var(--pink)}.cat.on{background:var(--pink-soft);border-color:var(--pink);color:var(--pink)}
+	/* List for nature */
+	.list { display:flex; flex-direction:column; gap:8px; }
+	.l-item {
+		display:flex; justify-content:space-between; align-items:center; padding:12px 16px;
+		background:var(--surface-2); border:1px solid var(--border); border-radius:var(--r-sm);
+		transition:all .2s;
+	}
+	.l-item.active { background:var(--primary-soft); border-color:var(--primary); }
+	.l-info { display:flex; align-items:center; gap:12px; color:var(--text); font-weight:600; font-size:0.95rem; }
+	.l-icon { width:32px; height:32px; border-radius:50%; background:var(--surface); display:flex; align-items:center; justify-content:center; color:var(--primary); }
+	.play-btn {
+		width:36px; height:36px; border-radius:50%; background:var(--text); color:var(--surface);
+		display:flex; align-items:center; justify-content:center; transition:transform .1s;
+	}
+	.play-btn:active { transform:scale(0.9); }
 
-	.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-	@media(min-width:500px){.grid{grid-template-columns:repeat(3,1fr)}}
-	@media(min-width:768px){.grid{grid-template-columns:repeat(4,1fr);gap:10px}}
+	.sp-foot {
+		padding:16px 20px; border-top:1px solid var(--border); background:var(--surface-2);
+		display:flex; justify-content:space-between; align-items:center; gap:16px;
+	}
+	.vol-wrap { display:flex; align-items:center; gap:12px; flex:1; max-width:200px; }
+	.vol-slider {
+		-webkit-appearance:none; appearance:none; width:100%; height:4px; border-radius:2px;
+		background:var(--border); outline:none;
+	}
+	.vol-slider::-webkit-slider-thumb {
+		-webkit-appearance:none; appearance:none; width:16px; height:16px; border-radius:50%;
+		background:var(--text); cursor:pointer;
+	}
+	
+	.stop-all {
+		padding:8px 16px; border-radius:var(--r-xs); background:var(--blush-soft); color:var(--blush);
+		font-size:0.85rem; font-weight:600; border:1px solid var(--blush);
+	}
 
-	.tile{background:var(--card-bg);border:1px solid var(--card-border);border-radius:var(--radius);padding:14px 12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:pointer;transition:all .15s;text-align:center;min-width:0;min-height:88px}
-	.tile:hover{border-color:var(--pink)}
-	.tile.active{border-color:var(--teal);background:var(--teal-soft)}
-	.tile-name{font-size:.85rem;font-weight:700;color:var(--text);line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
-	.tile-artist{font-size:.68rem;color:var(--text-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
-	.tile-play{color:var(--text-dim)}
-	.tile-state{color:var(--text-dim);margin-top:2px}
-
-	.eq{display:flex;align-items:flex-end;gap:2px;height:14px}.eq div{width:3px;border-radius:1px;background:var(--teal);animation:eqm 1s ease-in-out infinite}.eq div:nth-child(2){animation-delay:.15s}.eq div:nth-child(3){animation-delay:.3s}@keyframes eqm{0%,100%{height:4px}50%{height:13px}}
-
-	.ctrl{background:var(--card-bg);border:1px solid var(--card-border);border-radius:var(--radius);padding:12px 14px;display:flex;flex-direction:column;gap:8px}
-	.ctrl-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
-	.np{font-size:.85rem;font-weight:700;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-	.time{font-size:.62rem;color:var(--text-dim);font-family:'Fraunces',serif;flex-shrink:0}
-	.bar{height:4px;background:var(--card-border);border-radius:2px;cursor:pointer}.fill{height:100%;background:linear-gradient(90deg,var(--pink),var(--gold));border-radius:2px;transition:width .2s linear}
-	.ctrl-row{display:flex;align-items:center;justify-content:space-between;gap:6px}
-	.cc{display:flex;align-items:center;gap:4px}
-	.cb{display:flex;align-items:center;gap:4px;padding:5px 10px;border-radius:100px;font-size:.7rem;font-weight:700;color:var(--text-soft);border:1px solid var(--card-border);background:var(--card-bg);cursor:pointer;transition:all .15s}
-	.cb:hover{border-color:var(--pink)}.cb.on{border-color:var(--teal);color:var(--teal);background:var(--teal-soft)}
-	.skip{border:none;background:none;padding:4px 6px}.skip:disabled{opacity:.3}
-	.stop{border-color:rgba(248,113,113,.15);background:rgba(248,113,113,.05);padding:6px 12px}.stop:hover{border-color:var(--red);background:rgba(248,113,113,.1)}
-	.vol{display:flex;align-items:center;gap:4px}.vs{width:52px;height:3px;-webkit-appearance:none;appearance:none;background:var(--card-border);border-radius:2px;outline:none;cursor:pointer}.vs::-webkit-slider-thumb{width:12px;height:12px;border-radius:50%;background:var(--text-soft);-webkit-appearance:none;cursor:pointer}
+	.eq-mini { position:absolute; top:8px; right:8px; display:flex; gap:2px; height:10px; }
+	.eq-mini span { display:block; width:2px; background:currentColor; border-radius:1px; animation:eq .8s ease-in-out infinite alternate; }
+	.eq-mini span:nth-child(2) { animation-delay:.2s; }
+	.eq-mini span:nth-child(3) { animation-delay:.4s; }
 </style>

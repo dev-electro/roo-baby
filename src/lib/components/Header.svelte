@@ -1,21 +1,32 @@
-<script>import Icon from './Icon.svelte';</script>
+<script>
+	import Icon from './Icon.svelte';
+</script>
 
-<header class="h">
-	<div class="h-icon"><Icon name="kangaroo" size={36} color="var(--pink)" /></div>
-	<h1 class="h-title">ROO</h1>
-	<p class="h-sub">Multimodal baby cry analysis — powered by Gemma 4</p>
-	<div class="h-badges">
-		<div class="h-badge"><Icon name="sparkles" size={11} color="var(--teal)" /> VLM + Spectrogram</div>
-		<div class="h-badge h-badge-gold"><Icon name="bolt" size={11} color="var(--gold)" /> Sub‑second</div>
+<div class="pg-head">
+	<div class="pg-icon">
+		<Icon name="search" size={24} color="var(--primary)" />
 	</div>
-</header>
+	<div class="pg-titles">
+		<h1 class="pg-title">Analyze Cry</h1>
+		<p class="pg-desc">Upload audio or video to understand why your baby is crying.</p>
+	</div>
+</div>
 
 <style>
-	.h{text-align:center;padding:8px 0 0;display:flex;flex-direction:column;align-items:center;gap:6px}
-	.h-icon{width:52px;height:52px;border-radius:var(--radius);background:var(--pink-soft);border:1px solid rgba(255,107,122,.2);display:flex;align-items:center;justify-content:center;animation:float 3s ease-in-out infinite;margin-bottom:2px}
-	.h-title{font-family:'Fraunces',serif;font-size:2.2rem;font-weight:700;line-height:1;background:linear-gradient(135deg,var(--pink),var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-	.h-sub{font-size:.85rem;color:var(--text-soft);font-weight:600}
-	.h-badges{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
-	.h-badge{display:inline-flex;align-items:center;gap:3px;background:var(--teal-soft);border:1px solid var(--teal);color:var(--teal);font-size:.6rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;padding:4px 8px;border-radius:100px}
-	.h-badge-gold{background:var(--gold-soft);border-color:var(--gold);color:var(--gold)}
+	.pg-head {
+		display:flex; flex-direction:column; gap:16px;
+		padding-bottom:16px; border-bottom:1px solid var(--border);
+	}
+	@media(min-width:640px){ .pg-head { flex-direction:row; align-items:center; } }
+
+	.pg-icon {
+		width:48px; height:48px; border-radius:var(--r-md);
+		background:var(--surface); border:1px solid var(--border);
+		display:flex; align-items:center; justify-content:center; flex-shrink:0;
+		box-shadow:var(--shadow-card);
+	}
+	
+	.pg-titles { display:flex; flex-direction:column; gap:4px; }
+	.pg-title { font-size:1.4rem; font-weight:700; color:var(--text); letter-spacing:-0.01em; }
+	.pg-desc { font-size:0.9rem; color:var(--text-soft); max-width:480px; line-height:1.4; }
 </style>

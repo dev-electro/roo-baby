@@ -1,79 +1,107 @@
 <script>
-	export let name = '';
-	export let size = 24;
-	export let color = 'currentColor';
-	export let strokeWidth = 1.5;
-	
+	/** Unified icon system — all 24×24 viewBox, 2px stroke, round caps/joins */
+	let { name = '', size = 20, color = 'currentColor', style = '' } = $props();
+
 	const icons = {
-		bottle: `<path d="M8 4C8 2.5 9.5 2 11 2C12.5 2 14 2.5 14 4V7H15C15.5 7 16 7.5 16 8V9C16 9.5 15.5 10 15 10H14V12C14 14 12.5 15 11 15C9.5 15 8 14 8 12V10H7C6.5 10 6 9.5 6 9V8C6 7.5 6.5 7 7 7H8V4Z" fill="none" stroke="${color}" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round"/><path d="M9 17C9 17 9.5 19 11 19C12.5 19 13 17 13 17" fill="none" stroke="${color}" stroke-width="${strokeWidth}" stroke-linecap="round"/>`,
-		
-		mic: `<rect x="9" y="2" width="6" height="11" rx="3" fill="none" stroke="${color}" stroke-width="${strokeWidth}"/><path d="M19 10V11C19 15.4183 15.4183 19 11 19C6.58172 19 3 15.4183 3 11V10" fill="none" stroke="${color}" stroke-width="${strokeWidth}" stroke-linecap="round"/><path d="M11 19V22" fill="none" stroke="${color}" stroke-width="${strokeWidth}" stroke-linecap="round"/><path d="M8 22H14" fill="none" stroke="${color}" stroke-width="${strokeWidth}" stroke-linecap="round"/>`,
-		
-		camera: `<path d="M23 19C23 19.5304 22.7893 20.0391 22.4142 20.4142C22.0391 20.7893 21.5304 21 21 21H3C2.46957 21 1.96086 20.7893 1.58579 20.4142C1.21071 20.0391 1 19.5304 1 19V8C1 7.46957 1.21071 6.96086 1.58579 6.58579C1.96086 6.21071 2.46957 6 3 6H7L9 3H15L17 6H21C21.5304 6 22.0391 6.21071 22.4142 6.58579C22.7893 6.96086 23 7.46957 23 8V19Z" fill="none" stroke="${color}" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="13" r="4" fill="none" stroke="${color}" stroke-width="${strokeWidth}"/>`,
-		
-		bolt: `<path d="M13 2L3 14H12L11 22L21 10H12L13 2Z" fill="none" stroke="${color}" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round"/>`,
-		
-		check: `<path d="M20 6L9 17L4 12" fill="none" stroke="${color}" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round"/>`,
-		
-		settings: `<circle cx="12" cy="12" r="3" fill="none" stroke="${color}" stroke-width="${strokeWidth}"/><path d="M19.4 15C19.2669 15.3016 19.2272 15.6362 19.286 15.9606C19.3448 16.2849 19.4995 16.584 19.73 16.82L19.79 16.88C19.976 17.0657 20.1235 17.2863 20.2241 17.5291C20.3248 17.7719 20.3766 18.0322 20.3766 18.295C20.3766 18.5578 20.3248 18.8181 20.2241 19.0609C20.1235 19.3037 19.976 19.5243 19.79 19.71C19.6043 19.896 19.3837 20.0435 19.1409 20.1441C18.8981 20.2448 18.6378 20.2966 18.375 20.2966C18.1122 20.2966 17.8519 20.2448 17.6091 20.1441C17.3663 20.0435 17.1457 19.896 16.96 19.71L16.9 19.65C16.664 19.4195 16.3649 19.2648 16.0406 19.206C15.7162 19.1472 15.3816 19.1869 15.08 19.32C14.7842 19.4467 14.532 19.6572 14.3553 19.9255C14.1786 20.1937 14.0856 20.5082 14.088 20.83V21C14.088 21.5304 13.8773 22.0391 13.5022 22.4142C13.1271 22.7893 12.6184 23 12.088 23C11.5576 23 11.0489 22.7893 10.6738 22.4142C10.2987 22.0391 10.088 21.5304 10.088 21V20.91C10.0906 20.5789 9.98954 20.255 9.79754 19.9817C9.60553 19.7083 9.33143 19.4985 9.012 19.38C8.71037 19.2469 8.37575 19.2072 8.05142 19.266C7.7271 19.3248 7.428 19.4795 7.192 19.71L7.132 19.77C6.94626 19.956 6.72568 20.1035 6.48288 20.2041C6.24008 20.3048 5.97978 20.3566 5.717 20.3566C5.45422 20.3566 5.19392 20.3048 4.95112 20.2041C4.70832 20.1035 4.48774 19.956 4.302 19.77C4.116 19.5843 3.9685 19.3637 3.86786 19.1209C3.76722 18.8781 3.7154 18.6178 3.7154 18.355C3.7154 18.0922 3.76722 17.8319 3.86786 17.5891C3.9685 17.3463 4.116 17.1257 4.302 16.94L4.362 16.88C4.59254 16.644 4.74719 16.3449 4.806 16.0206C4.86482 15.6962 4.82516 15.3616 4.692 15.06C4.56534 14.7642 4.35477 14.512 4.08654 14.3353C3.81832 14.1586 3.50383 14.0656 3.182 14.068H3C2.46957 14.068 1.96086 13.8573 1.58579 13.4822C1.21071 13.1071 1 12.5984 1 12.068C1 11.5376 1.21071 11.0289 1.58579 10.6538C1.96086 10.2787 2.46957 10.068 3 10.068H3.09C3.42113 10.0654 3.74503 9.96438 4.01837 9.77237C4.29171 9.58037 4.50149 9.30627 4.62 8.98684C4.75316 8.68521 4.79282 8.35059 4.734 8.02627C4.67519 7.70194 4.52054 7.40284 4.29 7.16684L4.23 7.10684C4.044 6.9211 3.8965 6.70052 3.79586 6.45772C3.69522 6.21492 3.6434 5.95462 3.6434 5.69184C3.6434 5.42906 3.69522 5.16876 3.79586 4.92596C3.8965 4.68316 4.044 4.46258 4.23 4.27684C4.41574 4.09084 4.63632 3.94334 4.87912 3.8427C5.12192 3.74206 5.38222 3.69024 5.645 3.69024C5.90778 3.69024 6.16808 3.74206 6.41088 3.8427C6.65368 3.94334 6.87426 4.09084 7.06 4.27684L7.12 4.33684C7.356 4.56738 7.6551 4.72203 7.97942 4.78084C8.30375 4.83966 8.63837 4.8 8.94 4.66684H9C9.29577 4.54018 9.54799 4.32961 9.72469 4.06138C9.90138 3.79316 9.99439 3.47867 9.992 3.15684V3C9.992 2.46957 10.2027 1.96086 10.5778 1.58579C10.9529 1.21071 11.4616 1 11.992 1C12.5224 1 13.0311 1.21071 13.4062 1.58579C13.7813 1.96086 13.992 2.46957 13.992 3V3.09C13.9894 3.42113 14.0905 3.74503 14.2825 4.01837C14.4745 4.29171 14.7486 4.50149 15.068 4.62C15.3696 4.75316 15.7043 4.79282 16.0286 4.734C16.3529 4.67519 16.652 4.52054 16.888 4.29L16.948 4.23C17.1337 4.044 17.3543 3.8965 17.5971 3.79586C17.8399 3.69522 18.1002 3.6434 18.363 3.6434C18.6258 3.6434 18.8861 3.69522 19.1289 3.79586C19.3717 3.8965 19.5923 4.044 19.778 4.23C19.964 4.41574 20.1115 4.63632 20.2121 4.87912C20.3128 5.12192 20.3646 5.38222 20.3646 5.645C20.3646 5.90778 20.3128 6.16808 20.2121 6.41088C20.1115 6.65368 19.964 6.87426 19.778 7.06L19.718 7.12C19.4875 7.356 19.3328 7.6551 19.274 7.97942C19.2152 8.30375 19.2548 8.63837 19.388 8.94V9C19.5147 9.29577 19.7252 9.54799 19.9935 9.72469C20.2617 9.90138 20.5762 9.99439 20.898 9.992H21C21.5304 9.992 22.0391 10.2027 22.4142 10.5778C22.7893 10.9529 23 11.4616 23 11.992C23 12.5224 22.7893 13.0311 22.4142 13.4062C22.0391 13.7813 21.5304 13.992 21 13.992H20.91C20.5789 13.9946 20.255 14.0955 19.9817 14.2875C19.7083 14.4795 19.4985 14.7536 19.38 15.073L19.4 15Z" fill="none" stroke="${color}" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round"/>`,
-		
-		warning: `<path d="M10.29 3.86L1.82 18C1.645 18.302 1.552 18.645 1.552 18.995C1.552 19.345 1.645 19.688 1.82 19.99C1.995 20.292 2.246 20.542 2.548 20.717C2.85 20.892 3.193 20.985 3.543 21H20.457C20.807 20.985 21.15 20.892 21.452 20.717C21.754 20.542 22.005 20.292 22.18 19.99C22.355 19.688 22.448 19.345 22.448 18.995C22.448 18.645 22.355 18.302 22.18 18L13.71 3.86C13.532 3.566 13.281 3.323 12.982 3.155C12.683 2.987 12.345 2.9 12.002 2.9C11.659 2.9 11.321 2.987 11.022 3.155C10.723 3.323 10.468 3.566 10.29 3.86Z" fill="none" stroke="${color}" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 9V13" fill="none" stroke="${color}" stroke-width="${strokeWidth}" stroke-linecap="round"/><path d="M12 17H12.01" fill="none" stroke="${color}" stroke-width="${strokeWidth}" stroke-linecap="round"/>`,
-		
-		play: `<polygon points="5 3 19 12 5 21 5 3" fill="none" stroke="${color}" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round"/>`,
-		
-		stop: `<rect x="3" y="3" width="18" height="18" rx="2" ry="2" fill="none" stroke="${color}" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round"/>`,
-		
-		close: `<path d="M18 6L6 18" fill="none" stroke="${color}" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 6L18 18" fill="none" stroke="${color}" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round"/>`,
-		
-		heart: `<path d="M20.84 4.61C20.3292 4.099 19.7228 3.69364 19.0553 3.41708C18.3879 3.14052 17.6725 2.99817 16.95 2.99817C16.2275 2.99817 15.5121 3.14052 14.8446 3.41708C14.1772 3.69364 13.5708 4.099 13.06 4.61L12 5.67L10.94 4.61C9.9083 3.57831 8.50903 2.99871 7.05 2.99871C5.59096 2.99871 4.19169 3.57831 3.16 4.61C2.1283 5.64169 1.54871 7.04097 1.54871 8.5C1.54871 9.95903 2.1283 11.3583 3.16 12.39L4.22 13.45L12 21.23L19.78 13.45L20.84 12.39C21.351 11.8792 21.7563 11.2728 22.0329 10.6053C22.3095 9.93789 22.4518 9.22248 22.4518 8.5C22.4518 7.77752 22.3095 7.06211 22.0329 6.39464C21.7563 5.72718 21.351 5.12075 20.84 4.61Z" fill="none" stroke="${color}" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round"/>`,
-		
-		bandage: `<rect x="3" y="3" width="18" height="18" rx="4" fill="none" stroke="${color}" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 12H8.01" fill="none" stroke="${color}" stroke-width="${strokeWidth*2}" stroke-linecap="round"/><path d="M12 12H12.01" fill="none" stroke="${color}" stroke-width="${strokeWidth*2}" stroke-linecap="round"/><path d="M16 12H16.01" fill="none" stroke="${color}" stroke-width="${strokeWidth*2}" stroke-linecap="round"/><path d="M8 16H8.01" fill="none" stroke="${color}" stroke-width="${strokeWidth*2}" stroke-linecap="round"/><path d="M12 16H12.01" fill="none" stroke="${color}" stroke-width="${strokeWidth*2}" stroke-linecap="round"/><path d="M16 16H16.01" fill="none" stroke="${color}" stroke-width="${strokeWidth*2}" stroke-linecap="round"/>`,
-		
-		moon: `<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z" fill="none" stroke="${color}" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round"/>`,
-		
-		thermometer: `<path d="M14 14.76V3.5C14 2.67157 13.3284 2 12.5 2C11.6716 2 11 2.67157 11 3.5V14.76C9.8326 15.5432 9.07472 16.8226 9.00625 18.2149C8.93778 19.6072 9.56587 20.9489 10.6993 21.8348C11.8327 22.7207 13.3378 23.0538 14.7585 22.7404C16.1792 22.427 17.3612 21.503 17.978 20.2187C18.5948 18.9344 18.5762 17.4344 17.9273 16.1646C17.2784 14.8947 16.0741 14.0006 14.6467 13.7206" fill="none" stroke="${color}" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 18.5C12.8284 18.5 13.5 17.8284 13.5 17C13.5 16.1716 12.8284 15.5 12 15.5C11.1716 15.5 10.5 16.1716 10.5 17C10.5 17.8284 11.1716 18.5 12 18.5Z" fill="none" stroke="${color}" stroke-width="${strokeWidth}"/>`,
-		
-		wind: `<path d="M9.59 4.59A2 2 0 1 1 11 8H2" fill="none" stroke="${color}" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round"/><path d="M12.59 19.41A2 2 0 1 0 14 16H2" fill="none" stroke="${color}" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round"/><path d="M17.73 7.27A2.5 2.5 0 1 1 19.5 12H2" fill="none" stroke="${color}" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round"/>`,
-		
-		upload: `<path d="M21 15V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V15" fill="none" stroke="${color}" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round"/><path d="M17 8L12 3L7 8" fill="none" stroke="${color}" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 3V15" fill="none" stroke="${color}" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round"/>`,
-		
-		'arrow-right': `<path d="M5 12H19" fill="none" stroke="${color}" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 5L19 12L12 19" fill="none" stroke="${color}" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round"/>`,
-		
-		refresh: `<polyline points="23 4 23 10 17 10" fill="none" stroke="${color}" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round"/><polyline points="1 20 1 14 7 14" fill="none" stroke="${color}" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round"/><path d="M3.51 9C4.717 5.943 7.737 3.75 11.245 3.75C14.485 3.75 17.315 5.627 18.62 8.405" fill="none" stroke="${color}" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round"/><path d="M20.49 15.001C19.283 18.058 16.263 20.251 12.755 20.251C9.515 20.251 6.685 18.374 5.38 15.596" fill="none" stroke="${color}" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round"/>`,
-		
-		'info-circle': `<circle cx="12" cy="12" r="10" fill="none" stroke="${color}" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 16V12" fill="none" stroke="${color}" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 8H12.01" fill="none" stroke="${color}" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round"/>`,
-		
-		loader: `<path d="M12 2V6" fill="none" stroke="${color}" stroke-width="${strokeWidth}" stroke-linecap="round"/><path d="M12 18V22" fill="none" stroke="${color}" stroke-width="${strokeWidth}" stroke-linecap="round"/><path d="M4.93 4.93L7.76 7.76" fill="none" stroke="${color}" stroke-width="${strokeWidth}" stroke-linecap="round"/><path d="M16.24 16.24L19.07 19.07" fill="none" stroke="${color}" stroke-width="${strokeWidth}" stroke-linecap="round"/><path d="M2 12H6" fill="none" stroke="${color}" stroke-width="${strokeWidth}" stroke-linecap="round"/><path d="M18 12H22" fill="none" stroke="${color}" stroke-width="${strokeWidth}" stroke-linecap="round"/><path d="M4.93 19.07L7.76 16.24" fill="none" stroke="${color}" stroke-width="${strokeWidth}" stroke-linecap="round"/><path d="M16.24 7.76L19.07 4.93" fill="none" stroke="${color}" stroke-width="${strokeWidth}" stroke-linecap="round"/>`,
-		
-		'flip-camera': `<path d="M23 19C23 19.5304 22.7893 20.0391 22.4142 20.4142C22.0391 20.7893 21.5304 21 21 21H3C2.46957 21 1.96086 20.7893 1.58579 20.4142C1.21071 20.0391 1 19.5304 1 19V8C1 7.46957 1.21071 6.96086 1.58579 6.58579C1.96086 6.21071 2.46957 6 3 6H7L9 3H15L17 6H21C21.5304 6 22.0391 6.21071 22.4142 6.58579C22.7893 6.96086 23 7.46957 23 8V19Z" fill="none" stroke="${color}" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round"/><path d="M16 3L21 3L21 8" fill="none" stroke="${color}" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 21L3 21L3 16" fill="none" stroke="${color}" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="13" r="4" fill="none" stroke="${color}" stroke-width="${strokeWidth}"/>`,
-		
-		sun: `<circle cx="12" cy="12" r="5" fill="none" stroke="${color}" stroke-width="${strokeWidth}"/><path d="M12 1V3" fill="none" stroke="${color}" stroke-width="${strokeWidth}" stroke-linecap="round"/><path d="M12 21V23" fill="none" stroke="${color}" stroke-width="${strokeWidth}" stroke-linecap="round"/><path d="M4.22 4.22L5.64 5.64" fill="none" stroke="${color}" stroke-width="${strokeWidth}" stroke-linecap="round"/><path d="M18.36 18.36L19.78 19.78" fill="none" stroke="${color}" stroke-width="${strokeWidth}" stroke-linecap="round"/><path d="M1 12H3" fill="none" stroke="${color}" stroke-width="${strokeWidth}" stroke-linecap="round"/><path d="M21 12H23" fill="none" stroke="${color}" stroke-width="${strokeWidth}" stroke-linecap="round"/><path d="M4.22 19.78L5.64 18.36" fill="none" stroke="${color}" stroke-width="${strokeWidth}" stroke-linecap="round"/><path d="M18.36 5.64L19.78 4.22" fill="none" stroke="${color}" stroke-width="${strokeWidth}" stroke-linecap="round"/>`,
+		mic: `<path d="M12 2a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/><path d="M19 10a7 7 0 0 1-14 0"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="8" y1="22" x2="16" y2="22"/>`,
 
-		star: `<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" fill="none" stroke="${color}" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round"/>`,
+		stop: `<rect x="5" y="5" width="14" height="14" rx="2"/>`,
 
-		sparkles: `<path d="M12 3L12 6" fill="none" stroke="${color}" stroke-width="${strokeWidth}" stroke-linecap="round"/><path d="M12 18L12 21" fill="none" stroke="${color}" stroke-width="${strokeWidth}" stroke-linecap="round"/><path d="M3 12L6 12" fill="none" stroke="${color}" stroke-width="${strokeWidth}" stroke-linecap="round"/><path d="M18 12L21 12" fill="none" stroke="${color}" stroke-width="${strokeWidth}" stroke-linecap="round"/><path d="M5.64 5.64L7.76 7.76" fill="none" stroke="${color}" stroke-width="${strokeWidth}" stroke-linecap="round"/><path d="M16.24 16.24L18.36 18.36" fill="none" stroke="${color}" stroke-width="${strokeWidth}" stroke-linecap="round"/><path d="M5.64 18.36L7.76 16.24" fill="none" stroke="${color}" stroke-width="${strokeWidth}" stroke-linecap="round"/><path d="M16.24 7.76L18.36 5.64" fill="none" stroke="${color}" stroke-width="${strokeWidth}" stroke-linecap="round"/><path d="M12 7L13.545 10.137L17 10.636L14.5 13.075L15.09 16.51L12 14.888L8.91 16.51L9.5 13.075L7 10.636L10.455 10.137L12 7Z" fill="none" stroke="${color}" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round"/>`,
+		play: `<polygon points="6,4 20,12 6,20"/>`,
 
-		kangaroo: `<path d="M18 8C18 5 15 3 12 3C9 3 6 5 6 8V15C6 17 8 19 10 19H11L10 22H14L13 19C14 19 16 17.5 17 15.5L20 18V14L17.5 12.5" fill="none" stroke="${color}" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round"/><ellipse cx="9" cy="11" rx="1.5" ry="2" fill="none" stroke="${color}" stroke-width="${strokeWidth}"/><ellipse cx="15" cy="8" rx="1.5" ry="1" fill="none" stroke="${color}" stroke-width="${strokeWidth}"/><path d="M18 6C20 4 22 4 22 6" fill="none" stroke="${color}" stroke-width="${strokeWidth}" stroke-linecap="round"/>`,
+		pause: `<line x1="8" y1="5" x2="8" y2="19"/><line x1="16" y1="5" x2="16" y2="19"/>`,
 
-		search: `<circle cx="11" cy="11" r="8" fill="none" stroke="${color}" stroke-width="${strokeWidth}"/><path d="M21 21L16.65 16.65" fill="none" stroke="${color}" stroke-width="${strokeWidth}" stroke-linecap="round"/>`
+		camera: `<path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/>`,
+
+		upload: `<polyline points="16,16 12,12 8,16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/>`,
+
+		download: `<polyline points="8,17 12,21 16,17"/><line x1="12" y1="21" x2="12" y2="9"/><path d="M20.88 18.09A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.29"/>`,
+
+		refresh: `<polyline points="23,4 23,11 16,11"/><polyline points="1,20 1,13 8,13"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 11M1 13l4.64 5.36A9 9 0 0 0 20.49 15"/>`,
+
+		check: `<polyline points="20,6 9,17 4,12"/>`,
+
+		close: `<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>`,
+
+		info: `<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>`,
+
+		warning: `<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>`,
+
+		search: `<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>`,
+
+		settings: `<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>`,
+
+		moon: `<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>`,
+
+		sun: `<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>`,
+
+		star: `<polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/>`,
+
+		heart: `<path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>`,
+
+		bolt: `<polygon points="13,2 3,14 12,14 11,22 21,10 12,10"/>`,
+
+		wind: `<path d="M9.59 4.59A2 2 0 1 1 11 8H2"/><path d="M12.59 19.41A2 2 0 1 0 14 16H2"/><path d="M6.59 11.41A2 2 0 1 1 8 15H2"/>`,
+
+		music: `<path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>`,
+
+		volume: `<polygon points="11,5 6,9 2,9 2,15 6,15 11,19"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>`,
+
+		'volume-off': `<polygon points="11,5 6,9 2,9 2,15 6,15 11,19"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/>`,
+
+		'skip-back': `<polygon points="19,20 9,12 19,4"/><line x1="5" y1="19" x2="5" y2="5"/>`,
+
+		'skip-forward': `<polygon points="5,4 15,12 5,20"/><line x1="19" y1="5" x2="19" y2="19"/>`,
+
+		repeat: `<polyline points="17,1 21,5 17,9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7,23 3,19 7,15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>`,
+
+		shuffle: `<polyline points="16,3 21,3 21,8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21,16 21,21 16,21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/>`,
+
+		'arrow-left': `<line x1="19" y1="12" x2="5" y2="12"/><polyline points="12,19 5,12 12,5"/>`,
+
+		'arrow-right': `<line x1="5" y1="12" x2="19" y2="12"/><polyline points="12,5 19,12 12,19"/>`,
+
+		'flip-camera': `<path d="M11 19H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"/><path d="M13 5h7a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-5"/><circle cx="12" cy="12" r="3"/><line x1="12" y1="2" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="22"/><polyline points="9,2 12,5 15,2"/>`,
+
+		sparkles: `<path d="M12 3L13.09 8.26L18 9L13.09 9.74L12 15L10.91 9.74L6 9L10.91 8.26L12 3Z"/><path d="M5 3L5.5 5.5L8 6L5.5 6.5L5 9L4.5 6.5L2 6L4.5 5.5L5 3Z"/><path d="M19 13L19.5 15.5L22 16L19.5 16.5L19 19L18.5 16.5L16 16L18.5 15.5L19 13Z"/>`,
+
+		loader: `<line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"/><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"/>`,
+
+		baby: `<circle cx="12" cy="7" r="4"/><path d="M12 11c-4.42 0-8 1.79-8 4v1h16v-1c0-2.21-3.58-4-8-4z"/>`,
+
+		wave: `<path d="M2 12c1.5-3 3-4.5 4.5-4.5S9 9 10.5 9 13 7.5 14.5 7.5 17 9 18.5 9 21 7.5 22 6"/>`,
+
+		drop: `<path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/>`,
+
+		kangaroo: `<ellipse cx="12" cy="16" rx="4.5" ry="5"/><ellipse cx="12" cy="8" rx="3" ry="3.5"/><path d="M8.5 13.5 Q6 15 6 18"/><path d="M15.5 13.5 Q18 17 17 20"/><ellipse cx="9" cy="7.5" rx="1.5" ry="2" transform="rotate(-20 9 7.5)"/><ellipse cx="15" cy="7.5" rx="1.5" ry="2" transform="rotate(20 15 7.5)"/><circle cx="10.5" cy="7.5" r=".4" fill="currentColor" stroke="none"/><circle cx="13.5" cy="7.5" r=".4" fill="currentColor" stroke="none"/>`,
+
+		bottle: `<path d="M9 2h6v3.5a2 2 0 0 1-.59 1.41L13 8.5v1h-2v-1L9.59 6.91A2 2 0 0 1 9 5.5V2z"/><path d="M7 9h10v11a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V9z"/><line x1="7" y1="13" x2="17" y2="13"/>`,
+
+		bandage: `<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" opacity=".3"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>`,
+
+		thermometer: `<path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/>`,
+
+		'info-circle': `<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>`,
 	};
-	
-	$: svgContent = icons[name] || '';
-	$: viewBox = name === 'loader' ? '0 0 24 24' : '0 0 24 24';
 </script>
 
-{#if svgContent}
+{#if icons[name]}
 	<svg
 		width={size}
 		height={size}
-		viewBox={viewBox}
+		viewBox="0 0 24 24"
 		fill="none"
-		xmlns="http://www.w3.org/2000/svg"
-		class=""
-		style=""
+		stroke={color}
+		stroke-width="2"
+		stroke-linecap="round"
+		stroke-linejoin="round"
+		aria-hidden="true"
+		{style}
 	>
-		{@html svgContent}
+		{@html icons[name]}
 	</svg>
 {:else}
-	<span style="font-size:{size}px">{name}</span>
+	<svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" {style}>
+		<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+	</svg>
 {/if}
