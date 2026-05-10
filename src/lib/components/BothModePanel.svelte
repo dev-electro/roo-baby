@@ -11,7 +11,7 @@
 	const MAX=10;
 
 	/* ── Camera state ── */
-	let vEl, cEl;
+	let vEl = $state(undefined), cEl = $state(undefined);
 	let imgOk=$state(false), camOn=$state(false), imgFall=$state(false);
 	let facing=$state('user'), camBusy=$state(false), camAsk=$state(false);
 	let preview=$state(''), camDenied=$state(false);
@@ -203,8 +203,8 @@
 					<svg viewBox="0 0 120 140" class="c-oval" aria-hidden="true">
 						<ellipse cx="60" cy="70" rx="42" ry="54" fill="rgba(110,231,183,.06)" stroke="var(--mint)" stroke-width="1.5" stroke-dasharray="5 4"/>
 					</svg>
-					<button class="c-flip" onclick={cFlip}><Icon name="flip-camera" size={14} color="#fff" /></button>
-					<button class="c-snap" onclick={cCapture}></button>
+					<button class="c-flip" onclick={cFlip} aria-label="Flip camera"><Icon name="flip-camera" size={14} color="#fff" /></button>
+					<button class="c-snap" onclick={cCapture} aria-label="Take photo"></button>
 				</div>
 				<label class="lk"><Icon name="upload" size={12} color="currentColor" /> Upload instead<input type="file" accept="image/*" onchange={cUpload} class="c-hidden"/></label>
 			{/if}

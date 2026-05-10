@@ -19,7 +19,7 @@ export function getApiUrl() {
 	return customApiUrl;
 }
 
-export async function analyze({ mode, audio, image, spectrogram, audioFeatures, userNotes }) {
+export async function analyze({ mode, audio, image, spectrogram, audioFeatures, userNotes, twoStage = true }) {
 	const formData = new FormData();
 
 	if (mode !== 'image' && spectrogram) {
@@ -36,6 +36,10 @@ export async function analyze({ mode, audio, image, spectrogram, audioFeatures, 
 
 	if (userNotes) {
 		formData.append('user_notes', userNotes);
+	}
+
+	if (twoStage && mode !== 'image') {
+		formData.append('two_stage', 'true');
 	}
 
 	formData.append('mode', mode);

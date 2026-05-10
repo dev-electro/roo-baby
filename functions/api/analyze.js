@@ -1,42 +1,48 @@
-// Cloudflare Pages Function — dual-provider proxy
-// Primary: Google Gemini API (direct, higher rate limits)
-// Fallback: OpenRouter API (free endpoints)
-// Sends spectrogram images + face photos + reference atlas to Gemma 4 models
+// Cloudflare Pages Function — multi-provider proxy
+// Provider priority: Google Gemini → OpenRouter → Cloudflare Workers AI
+// All API keys and model names configured via environment variables.
 
 const GEMINI_BASE = 'https://generativelanguage.googleapis.com/v1beta';
 const OPENROUTER_BASE = 'https://openrouter.ai/api/v1';
 
-const PROMPTS = {
-	audio: `You are ROO, a precise baby cry classification expert.
+// ─── PROMPTS ──────────────────────────────────────────────────────────
+
+const PROMPT_DETECT = `Analyze this spectrogram from a baby recording.
+Answer one question only: Is there a baby cry signal present?
+
+A baby cry shows:
+- Structured rhythmic patterns (ON-OFF-ON-OFF)
+- Concentrated energy bands in 200-1000 Hz range
+- Organized spectral structure
+
+Noise shows:
+- Random speckled texture everywhere
+- Diffuse energy without structure
+- No rhythm or clear onset/offset patterns
+
+Noise is NORMAL and EXPECTED. Look past it for underlying structured signal.
+
+Respond ONLY with valid JSON:
+{"cry_present": true, "confidence": 85, "reasoning": "Brief what you see"}`;
+
+const PROMPT_CLASSIFY_AUDIO = `You are ROO, a precise baby cry classification expert.
 Your job is to identify the type of baby cry, even in noisy recordings.
 
 CRITICAL RULE: NEVER return UNKNOWN due to noise.
 Background noise is EXPECTED and NORMAL in real recordings.
 If a baby cry is present, classify it — regardless of noise level.
-Only return UNKNOWN if there is genuinely NO baby cry at all (pure silence or pure non-cry noise).
+Only return UNKNOWN if there is genuinely NO baby cry at all.
 
----
+The first image is a REFERENCE ATLAS showing clean baby cry spectrograms for each category.
+The second image is the USER'S spectrogram — a real recording that may contain background noise.
 
-USER PROMPT STRUCTURE:
-
-"Analyze this baby cry recording.
-
-REFERENCE SPECTROGRAMS (labeled by type):
-[Send all reference images here with labels]
-
-USER RECORDING SPECTROGRAM:
-[Send user spectrogram last]
-
-AUDIO MEASUREMENTS (from signal processing):
+AUDIO MEASUREMENTS:
 {{AUDIO_FEATURES}}
 
-{{USER_NOTES}}
-
-ANALYSIS INSTRUCTIONS:
+ANALYSIS STEPS:
 
 Step 1 — Confirm cry presence:
-Is there a baby cry signal in the user spectrogram?
-Look for: structured patterns, rhythmic elements, concentrated energy in bands.
+Is there a baby cry signal? Look for structured patterns, rhythmic elements, concentrated energy bands.
 Noise is random and chaotic. A cry has STRUCTURE even when noisy.
 
 Step 2 — Ignore the noise layer:
@@ -66,83 +72,67 @@ BURPING pattern: Short sharp bursts with gaps. Irregular timing.
   Multiple brief high-energy spikes. Straining signature.
 
 Step 4 — Compare to references:
-Which reference (clean OR noisy variant) most closely matches
-the STRUCTURAL PATTERN of the user's spectrogram?
+Which reference in the atlas most closely matches the STRUCTURAL PATTERN of the user's spectrogram?
+Focus on rhythm and frequency distribution, not noise level.
 
 Step 5 — Assign confidence:
 90-100%: Pattern very clear despite noise
 70-89%:  Pattern identifiable but partially obscured
 50-69%:  Pattern suggested but noise is heavy
-Below 50%: Output UNKNOWN only — cry too obscured to classify
+Below 50%: Return UNKNOWN — cry too obscured to classify reliably
+{{USER_NOTES}}
 
-Respond ONLY in this JSON format, no other text:
-{
-  "category": "HUNGER",
-  "confidence": 78,
-  "severity": "MEDIUM",
-  "noise_level": "HIGH",
-  "cry_detected": true,
-  "pattern_matched": "rhythmic on-off bands in mid frequency range",
-  "reasoning": "Despite background noise, regular rhythmic structure at 400-600Hz is visible, matching hunger pattern",
-  "parent_action": "Baby needs feeding. Try breastfeeding or bottle now.",
-  "response_sound": "heartbeat",
-  "pre_cry": false,
-  "pre_cry_message": null
-}
+Respond ONLY in this exact JSON format — no other text:
+{"category":"HUNGER","confidence":78,"severity":"MEDIUM","noise_level":"HIGH","cry_detected":true,"pattern_matched":"rhythmic on-off bands in mid frequency range","reasoning":"Despite background noise, regular rhythmic structure at 400-600Hz visible, matching hunger reference pattern","parent_action":"Baby needs feeding. Try breastfeeding or bottle now.","response_sound":"heartbeat"}
 
-severity options: LOW | MEDIUM | HIGH | CRITICAL
-noise_level options: CLEAN | LOW | MODERATE | HIGH
-response_sound options: heartbeat | whitenoise | lullaby | shush`,
+severity: LOW | MEDIUM | HIGH | CRITICAL
+noise_level: CLEAN | LOW | MODERATE | HIGH
+response_sound: heartbeat | whitenoise | lullaby | shush`;
 
-	image: `You are ROO, the world's best baby cry analyst. Analyze this photo.
+const PROMPT_IMAGE = `Analyze this photo of a person.
 
-FIRST: Is the person in this photo a BABY (age 0-3 years)?
+FIRST: Is this person a BABY (age 0-3 years)?
 BABY features: round face, chubby cheeks, small/flat nose, fine/sparse hair, smooth skin, large head-to-body ratio, short neck.
-ADULT/OLDER CHILD features: facial hair, defined jawline, wrinkles, makeup, mature bone structure, longer face.
+ADULT/OLDER CHILD features: facial hair, defined jawline, wrinkles, makeup, mature bone structure.
 
-If this IS a baby/infant/toddler (0-3 years) → Set is_adult to false. Analyze the baby's expression seriously:
-
-VISUAL CUES:
+If this IS a baby/infant/toddler (0-3 years) → Set is_adult to false. Analyze seriously:
 - HUNGER: rooting reflex, hands moving to mouth, lip smacking → feed
-- PAIN: scrunched face, eyes shut tight, redness → soothe immediately
+- PAIN: scrunched face, eyes shut tight, redness → soothe
 - TIRED: droopy eyes, glassy stare, eye rubbing → help sleep
 - DISCOMFORT: arched back, legs drawn up, fidgeting → adjust position
 - BURPING: squirming, brief back arching → burp
-
-If this is an ADULT or OLDER CHILD (4+ years) → Set is_adult to true. Still analyze the face EXACTLY as above (we want to show the funny result!), but make the reasoning playful — imagine if this adult were a giant baby. Keep the category, confidence, severity, and parent_action as you would for a baby (it's part of the joke!).
 {{USER_NOTES}}
-Respond with ONLY valid JSON (include is_adult AND adult_message if adult):
-{"category":"HUNGER","confidence":78,"severity":"MEDIUM","reasoning":"Rooting reflex visible with hands moving toward mouth area","parent_action":"Feed soon","response_sound":"heartbeat","pre_cry":true,"pre_cry_message":"Baby may be getting hungry soon","is_adult":false,"adult_message":null}
-For adults: {"category":"TIRED","confidence":65,"severity":"MEDIUM","reasoning":"Droopy adult eyes detected — clearly hasn't slept in days. Classic parent exhaustion pattern.","parent_action":"Hand the baby to your partner and take a nap","response_sound":"lullaby","pre_cry":false,"pre_cry_message":null,"is_adult":true,"adult_message":"We see you're testing ROO on yourself! The results are totally wrong — ROO is designed for babies 0-3 years only. Try it on your little one for real insights! 🍼"}
-severity: LOW|MEDIUM|HIGH|CRITICAL  sound: heartbeat|whitenoise|lullaby|shush`,
 
-	both: `You are ROO, the world's best baby cry analyst. CROSS-REFERENCE both the spectrogram AND the face photo for the highest accuracy diagnosis.
+If this is an ADULT or OLDER CHILD (4+ years) → Set is_adult to true. Still analyze the face EXACTLY as above but make the reasoning playful — imagine this adult as a giant baby.
+Respond ONLY with valid JSON:
+{"category":"HUNGER","confidence":78,"severity":"MEDIUM","reasoning":"Rooting reflex visible with hands moving toward mouth","parent_action":"Feed soon","response_sound":"heartbeat","pre_cry":true,"pre_cry_message":"Baby may be getting hungry soon","is_adult":false,"adult_message":null}
+For adults: include is_adult:true and adult_message like "We see you're testing ROO on yourself! The results are totally wrong — ROO is for babies 0-3 years only."`;
+
+const PROMPT_BOTH = `You are ROO, a precise baby cry classification expert.
+CROSS-REFERENCE both the spectrogram AND face photo for highest accuracy.
 
 FIRST: Is the face photo a BABY (age 0-3 years)?
 BABY: round face, chubby cheeks, small nose, fine hair, large head-to-body ratio.
 ADULT/OLDER CHILD: facial hair, defined jawline, wrinkles, makeup, mature bone structure.
 
-If the face IS a baby (0-3 years) → Set is_adult to false. Proceed with serious cross-reference analysis.
-If the face is an ADULT or OLDER CHILD (4+ years) → Set is_adult to true. Still do the FULL cross-reference analysis for fun (spectrogram + face), but make the reasoning playful — imagine this adult as a giant baby. Keep real category/confidence/severity based on what you see.
+If BABY → Set is_adult to false. Proceed with serious cross-reference.
+If ADULT/OLDER (4+) → Set is_adult to true. Still do FULL analysis for fun, but make reasoning playful.
 
-AUDIO MEASUREMENTS (from signal processing):
+The first image is a REFERENCE ATLAS of baby cry spectrograms.
+The second image is the USER'S spectrogram.
+The third image is the face photo.
+
+AUDIO MEASUREMENTS:
 {{AUDIO_FEATURES}}
 
-⚠️ AUDIO EDGE-CASE CHECKS (check these next):
-- If WARNINGS include SILENCE/NOISE/DISTORTION/MUSIC → the audio is unreliable. Still cross-reference with the face, but note audio issues and reduce confidence by 40-60%.
-- If the spectrogram is dark/empty AND WARNINGS confirm silence → the audio adds nothing. Rely on face analysis only, set confidence lower.
-- If autocorrelation < 0.2 → pitch data is unreliable. Don't trust dominant frequency.
-- If multiple sources detected → a mixed signal. Lower confidence significantly.
-- Only if WARNINGS say "No edge case detected" → audio data is reliable for cross-reference.
+CRITICAL RULE: NEVER return UNKNOWN due to noise. Noise is EXPECTED.
 
-The first image is a REFERENCE ATLAS. The second image is the USER'S spectrogram. The third image is the face.
-
-SPECTROGRAM READING: X=time, Y=freq (Hz), brightness=intensity (dark=silent, bright=loud)
-- HUNGER: rhythmic bands 400-600Hz, gradual buildup
-- PAIN: bright spikes 600-800Hz, silence gaps
-- TIRED: dim smears 300-450Hz, fading
-- DISCOMFORT: steady glow 400-500Hz, sustained
-- BURPING: short bursts, descending pitch
+SPECTROGRAM PATTERNS:
+- HUNGER: rhythmic bands 400-600Hz, metronome ON-OFF
+- PAIN: sudden wide-frequency spikes, urgent onset
+- TIRED: fading lower-frequency bands, whiny
+- DISCOMFORT: steady mid-frequency, continuous
+- BURPING: short sharp bursts, irregular
 
 FACIAL CUES:
 - HUNGER: rooting, hands to mouth, lip smacking
@@ -150,18 +140,20 @@ FACIAL CUES:
 - TIRED: droopy eyes, glassy stare, rubbing
 - DISCOMFORT: arched back, legs up, fidgeting
 - BURPING: squirming, brief arching
-
-STEP 1: Check WARNINGS for audio quality issues.
-STEP 2: Read audio measurements — dominant freq, peak freqs, rhythm.
-STEP 3: Compare spectrogram against reference atlas.
-STEP 4: Analyze facial expression and body language.
-STEP 5: Cross-reference all signals. Higher confidence when they converge AND no edge cases.
 {{USER_NOTES}}
-Respond with ONLY valid JSON:
-{"category":"HUNGER","confidence":91,"severity":"HIGH","reasoning":"Dominant 450Hz + rhythmic onset 75% + rooting reflex — all three signals converge on hunger","parent_action":"Feed immediately","response_sound":"heartbeat","pre_cry":false,"pre_cry_message":null,"is_adult":false,"adult_message":null}
-For adults: include is_adult:true and a funny adult_message like "We see you're testing ROO on yourself! These results are nonsense — ROO is for babies. Try it on your little one!"
-severity: LOW|MEDIUM|HIGH|CRITICAL  sound: heartbeat|whitenoise|lullaby|shush`
-};
+
+STEPS:
+1. Read audio measurements
+2. Compare spectrogram to reference atlas (ignore noise, match structure)
+3. Analyze facial expression
+4. Cross-reference all signals for final classification
+5. Higher confidence when audio + visual signals converge
+
+Respond ONLY in JSON:
+{"category":"HUNGER","confidence":91,"severity":"HIGH","noise_level":"LOW","cry_detected":true,"pattern_matched":"rhythmic on-off bands in mid frequency","reasoning":"Dominant 450Hz + rhythmic onset 75% + rooting reflex — all three signals converge on hunger","parent_action":"Feed immediately","response_sound":"heartbeat","pre_cry":false,"pre_cry_message":null,"is_adult":false,"adult_message":null}
+For adults: include is_adult:true and adult_message.`;
+
+// ─── HELPERS ──────────────────────────────────────────────────────────
 
 function jsonRes(data, status = 200) {
 	return new Response(JSON.stringify(data), {
@@ -190,10 +182,19 @@ async function blobToBase64(blob) {
 	return btoa(binary);
 }
 
-async function blobToBase64Raw(blob) {
-	const buf = await blob.arrayBuffer();
-	return new Uint8Array(buf);
+function parseJSON(text) {
+	if (!text) return null;
+	const raw = text.replace(/```(?:json)?\s*/gi, '').replace(/\s*```/gi, '').trim();
+	try { return JSON.parse(raw); } catch {}
+	const s = raw.indexOf('{');
+	const e = raw.lastIndexOf('}');
+	if (s >= 0 && e > s) {
+		try { return JSON.parse(raw.slice(s, e + 1)); } catch {}
+	}
+	return null;
 }
+
+// ─── ATLAS CACHE ──────────────────────────────────────────────────────
 
 let atlasBase64Cache = null;
 let atlasMimeCache = null;
@@ -217,109 +218,217 @@ async function getAtlasBase64(siteUrl) {
 	return null;
 }
 
-// ── Google Gemini API ──
-async function callGemini(apiKey, model, contents, retries = 2) {
-	for (let attempt = 0; attempt <= retries; attempt++) {
-		const res = await fetch(`${GEMINI_BASE}/models/${model}:generateContent?key=${apiKey}`, {
-			method: 'POST',
-			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({
-				contents: [{ role: 'user', parts: contents }],
-				generationConfig: {
-					maxOutputTokens: 400,
-					temperature: 0.1,
-					responseMimeType: 'application/json'
-				}
-			})
-		});
+// ─── PROVIDER 1: Google Gemini ───────────────────────────────────────
 
-		if (res.status === 429 && attempt < retries) {
-			const delay = 2000 * Math.pow(2, attempt);
-			await new Promise(r => setTimeout(r, delay));
-			continue;
-		}
-
-		if (!res.ok) {
-			const err = await res.text();
-			throw new Error(`Gemini ${res.status}: ${err.slice(0, 300)}`);
-		}
-
-		return res.json();
-	}
-}
-
-// ── OpenRouter API ──
-async function callOpenRouter(apiKey, model, messages, retries = 2, siteUrl = 'https://roo-baby.pages.dev') {
-	for (let attempt = 0; attempt <= retries; attempt++) {
-		const res = await fetch(`${OPENROUTER_BASE}/chat/completions`, {
-			method: 'POST',
-			headers: {
-				'Authorization': `Bearer ${apiKey}`,
-				'Content-Type': 'application/json',
-				'HTTP-Referer': siteUrl,
-				'X-Title': 'ROO Baby Cry Analyzer'
-			},
-			body: JSON.stringify({
-				model,
-				messages,
-				max_tokens: 400,
+async function callGemini(apiKey, model, contents) {
+	const res = await fetch(`${GEMINI_BASE}/models/${model}:generateContent?key=${apiKey}`, {
+		method: 'POST',
+		headers: { 'Content-Type': 'application/json' },
+		body: JSON.stringify({
+			contents: [{ role: 'user', parts: contents }],
+			generationConfig: {
+				maxOutputTokens: 400,
 				temperature: 0.1,
-				response_format: { type: 'json_object' }
-			})
-		});
+				responseMimeType: 'application/json'
+			}
+		})
+	});
 
-		if (res.status === 429 && attempt < retries) {
-			const delay = 2000 * Math.pow(2, attempt);
-			await new Promise(r => setTimeout(r, delay));
-			continue;
-		}
-
-		if (!res.ok) {
-			const err = await res.text();
-			throw new Error(`OpenRouter ${res.status}: ${err.slice(0, 300)}`);
-		}
-
-		return res.json();
+	if (!res.ok) {
+		const err = await res.text();
+		throw new Error(`Gemini ${res.status}: ${err.slice(0, 200)}`);
 	}
-}
 
-function parseJSON(text) {
-	if (!text) return null;
-	const raw = text.replace(/```(?:json)?\s*/gi, '').replace(/\s*```/gi, '').trim();
-	try { return JSON.parse(raw); } catch {}
-	const s = raw.indexOf('{');
-	const e = raw.lastIndexOf('}');
-	if (s >= 0 && e > s) {
-		try { return JSON.parse(raw.slice(s, e + 1)); } catch {}
-	}
-	return null;
-}
-
-function extractGeminiText(data) {
+	const data = await res.json();
 	const parts = data?.candidates?.[0]?.content?.parts;
-	if (!parts) return '';
+	if (!parts) throw new Error('Gemini returned no content');
 	return parts.map(p => p.text || '').join('');
 }
 
-export async function onRequest(context) {
-	const { request, env } = context;
+// ─── PROVIDER 2: OpenRouter ──────────────────────────────────────────
+
+async function callOpenRouter(apiKey, model, messages, siteUrl) {
+	const res = await fetch(`${OPENROUTER_BASE}/chat/completions`, {
+		method: 'POST',
+		headers: {
+			'Authorization': `Bearer ${apiKey}`,
+			'Content-Type': 'application/json',
+			'HTTP-Referer': siteUrl,
+			'X-Title': 'ROO Baby Cry Analyzer'
+		},
+		body: JSON.stringify({
+			model,
+			messages,
+			max_tokens: 400,
+			temperature: 0.1,
+			response_format: { type: 'json_object' }
+		})
+	});
+
+	if (!res.ok) {
+		const err = await res.text();
+		throw new Error(`OpenRouter ${res.status}: ${err.slice(0, 200)}`);
+	}
+
+	const data = await res.json();
+	return data?.choices?.[0]?.message?.content || '';
+}
+
+// ─── UNIFIED PROVIDER DISPATCH ───────────────────────────────────────
+// Provider model priority:
+//   Gemini:      gemma-4-31b-it → gemma-4-26b-a4b-it
+//   OpenRouter:  google/gemma-4-31b-it:free → google/gemma-4-26b-a4b-it:free
+
+function buildChatMessages(images, promptText) {
+	const content = [];
+	for (const img of images) {
+		content.push({
+			type: 'image_url',
+			image_url: { url: `data:${img.mime};base64,${img.b64}` }
+		});
+	}
+	content.push({ type: 'text', text: promptText });
+	return [{ role: 'user', content }];
+}
+
+async function callAI({ promptText, images, geminiKey, openrouterKey, siteUrl }, retries = 2) {
+	let lastError;
+
+	const delays = [1000, 2000, 4000];
+
+	// ── Gemini (both models: 31b first, then 26b) ──
+	if (geminiKey) {
+		for (const model of ['gemma-4-31b-it', 'gemma-4-26b-a4b-it']) {
+			for (let attempt = 0; attempt <= retries; attempt++) {
+				try {
+					const parts = [];
+					for (const img of images) {
+						parts.push({ inlineData: { mimeType: img.mime, data: img.b64 } });
+					}
+					parts.push({ text: promptText });
+					const text = await callGemini(geminiKey, model, parts);
+					const parsed = parseJSON(text);
+					if (parsed && (parsed.category || parsed.cry_present !== undefined)) {
+						return { result: parsed, provider: 'gemini', model, text };
+					}
+					throw new Error(`Gemini invalid JSON: ${(text || '').slice(0, 150)}`);
+				} catch (err) {
+					lastError = err;
+					if (err.message.includes('429') && attempt < retries) {
+						await new Promise(r => setTimeout(r, delays[attempt]));
+						continue;
+					}
+					break;
+				}
+			}
+		}
+	}
+
+	// ── OpenRouter (both free endpoints: 31b then 26b) ──
+	if (openrouterKey) {
+		for (const model of ['google/gemma-4-31b-it:free', 'google/gemma-4-26b-a4b-it:free']) {
+			for (let attempt = 0; attempt <= retries; attempt++) {
+				try {
+					const messages = buildChatMessages(images, promptText);
+					const text = await callOpenRouter(openrouterKey, model, messages, siteUrl);
+					const parsed = parseJSON(text);
+					if (parsed && (parsed.category || parsed.cry_present !== undefined)) {
+						return { result: parsed, provider: 'openrouter', model, text };
+					}
+					throw new Error(`OpenRouter invalid JSON: ${(text || '').slice(0, 150)}`);
+				} catch (err) {
+					lastError = err;
+					if (err.message.includes('429') && attempt < retries) {
+						await new Promise(r => setTimeout(r, delays[attempt]));
+						continue;
+					}
+					break;
+				}
+			}
+		}
+	}
+
+	throw lastError || new Error('All providers exhausted — check API keys');
+}
+
+// ─── PROMPT BUILDER ──────────────────────────────────────────────────
+
+function buildPromptText(basePrompt, audioFeatures, userNotes) {
+	let text = basePrompt;
+
+	if (audioFeatures) {
+		const edgeFlags = [];
+		if (audioFeatures.isSilent) edgeFlags.push('SILENCE DETECTED');
+		if (audioFeatures.isClipping) edgeFlags.push('CLIPPING/DISTORTION');
+		if (audioFeatures.isNoise) edgeFlags.push('LIKELY AMBIENT NOISE');
+		if (audioFeatures.isOutsideCryRange) edgeFlags.push('FREQ OUTSIDE CRY RANGE');
+		if (audioFeatures.hasMultipleSources) edgeFlags.push('MULTIPLE SOUND SOURCES');
+		if (audioFeatures.isMusicLike) edgeFlags.push('MUSIC/TV-LIKE AUDIO');
+		if (audioFeatures.isLowQualitySignal) edgeFlags.push('LOW QUALITY SIGNAL');
+
+		const featureStr = `- Duration: ${audioFeatures.duration ?? '?'}s
+- Dominant frequency: ${audioFeatures.dominantFreqHz ?? '?'} Hz
+- Peak frequencies: ${(audioFeatures.peakFreqHz ?? []).join(', ')} Hz
+- Energy (RMS): ${audioFeatures.rmsEnergy ?? '?'}
+- Zero-crossing rate: ${audioFeatures.zeroCrossRate ?? '?'}/s
+- Silence ratio: ${(audioFeatures.silenceRatio ?? 0) * 100}%
+- Onset ratio: ${(audioFeatures.onsetRatio ?? 0) * 100}% energy in first half
+- Autocorrelation strength: ${audioFeatures.autoCorrStrength ?? '?'} (how "pitched")
+- Clipping ratio: ${(audioFeatures.clippingRatio ?? 0) * 100}%
+- Spectral centroid: ${audioFeatures.spectralCentroid ?? '?'} Hz
+- Cry-range peak ratio: ${(audioFeatures.cryPeakRatio ?? 0) * 100}% peaks in 200-1000Hz
+- Signal notes: ${edgeFlags.length > 0 ? edgeFlags.join('; ') : 'Clean signal — likely a real baby cry'}`;
+		text = text.replace('{{AUDIO_FEATURES}}', featureStr);
+	} else {
+		text = text.replace('{{AUDIO_FEATURES}}', '(Audio measurements unavailable — rely on visual spectrogram analysis)');
+	}
+
+	if (userNotes) {
+		text = text.replace('{{USER_NOTES}}', `\nPARENT'S OBSERVATIONS:\n"${userNotes}"\n`);
+	} else {
+		text = text.replace('{{USER_NOTES}}', '');
+	}
+
+	return text;
+}
+
+function buildUnknownResult(reasoning, provider, model) {
+	return {
+		category: 'UNKNOWN',
+		confidence: 0,
+		severity: 'NONE',
+		noise_level: 'HIGH',
+		cry_detected: false,
+		pattern_matched: null,
+		reasoning: reasoning || 'No baby cry detected in recording',
+		parent_action: 'No cry detected. Please record again closer to baby.',
+		response_sound: 'whitenoise',
+		pre_cry: false,
+		pre_cry_message: null,
+		is_adult: false,
+		adult_message: null,
+		_meta: { provider, model, timestamp: new Date().toISOString(), stages: 1 }
+	};
+}
+
+// ─── MAIN HANDLER ────────────────────────────────────────────────────
+
+export async function onRequest({ request, env }) {
 	const geminiKey = env.GEMINI_API_KEY;
 	const openrouterKey = env.OPENROUTER_API_KEY;
-	const geminiSingle = env.GEMINI_MODEL_SINGLE || 'gemma-4-26b-a4b-it';
-	const geminiBoth = env.GEMINI_MODEL_BOTH || 'gemma-4-31b-it';
-	const modelSingle = env.MODEL_SINGLE || 'google/gemma-4-26b-a4b-it:free';
-	const modelBoth = env.MODEL_BOTH || 'google/gemma-4-31b-it:free';
-	const modelFallback = env.MODEL_FALLBACK || 'google/gemma-4-31b-it:free';
+	const geminiModel = env.GEMINI_MODEL || env.GEMINI_MODEL_BOTH || env.GEMINI_MODEL_SINGLE || 'gemma-4-31b-it';
+	const openrouterModel = env.OPENROUTER_MODEL || env.MODEL_BOTH || env.MODEL_SINGLE || 'google/gemma-4-31b-it:free';
 	const siteUrl = env.SITE_URL || 'https://roo-baby.pages.dev';
 
 	if (!geminiKey && !openrouterKey) {
-		return jsonRes({ error: 'Either GEMINI_API_KEY or OPENROUTER_API_KEY must be set.' }, 500);
+		return jsonRes({ error: 'Set GEMINI_API_KEY and/or OPENROUTER_API_KEY in env.' }, 500);
 	}
 	if (request.method !== 'POST') return jsonRes({ error: 'Use POST.' }, 405);
 
 	try {
 		const form = await request.formData();
 		const mode = form.get('mode') || 'audio';
+		const twoStage = form.get('two_stage') === 'true';
 		const spectrogramBlob = form.get('spectrogram');
 		const imageBlob = form.get('image');
 		const audioFeaturesStr = form.get('audio_features');
@@ -331,141 +440,117 @@ export async function onRequest(context) {
 		}
 
 		if (!spectrogramBlob?.size && !imageBlob?.size) {
-			return jsonRes({ error: 'No spectrogram or image provided. Please record audio first.' }, 400);
+			return jsonRes({ error: 'No spectrogram or image provided.' }, 400);
 		}
 
-		let promptText = PROMPTS[mode];
-		if (audioFeatures) {
-			const edgeFlags = [];
-			if (audioFeatures.isSilent) edgeFlags.push('⚠️ SILENCE DETECTED');
-			if (audioFeatures.isClipping) edgeFlags.push('⚠️ CLIPPING/DISTORTION');
-			if (audioFeatures.isNoise) edgeFlags.push('⚠️ LIKELY AMBIENT NOISE (not a cry)');
-			if (audioFeatures.isOutsideCryRange) edgeFlags.push('⚠️ FREQ OUTSIDE CRY RANGE');
-			if (audioFeatures.hasMultipleSources) edgeFlags.push('⚠️ MULTIPLE SOUND SOURCES');
-			if (audioFeatures.isMusicLike) edgeFlags.push('⚠️ MUSIC/TV-LIKE AUDIO');
-			if (audioFeatures.isLowQualitySignal) edgeFlags.push('⚠️ LOW QUALITY SIGNAL');
+		const providerOpts = { geminiKey, openrouterKey, siteUrl };
 
-			const featureStr = `- Duration: ${audioFeatures.duration ?? '?'}s
-- Dominant frequency: ${audioFeatures.dominantFreqHz ?? '?'} Hz
-- Peak frequencies: ${(audioFeatures.peakFreqHz ?? []).join(', ')} Hz
-- Energy (RMS): ${audioFeatures.rmsEnergy ?? '?'}
-- Zero-crossing rate: ${audioFeatures.zeroCrossRate ?? '?'}/s
-- Silence ratio: ${(audioFeatures.silenceRatio ?? 0) * 100}%
-- Onset ratio: ${(audioFeatures.onsetRatio ?? 0) * 100}% energy in first half
-- Autocorrelation strength: ${audioFeatures.autoCorrStrength ?? '?'} (how "pitched" the sound is)
-- Clipping ratio: ${(audioFeatures.clippingRatio ?? 0) * 100}%
-- Spectral centroid: ${audioFeatures.spectralCentroid ?? '?'} Hz (sound brightness)
-- Cry-range peak ratio: ${(audioFeatures.cryPeakRatio ?? 0) * 100}% peaks in 200-1000Hz
-- WARNINGS: ${edgeFlags.length > 0 ? edgeFlags.join('; ') : 'No edge case detected — likely a real baby cry'}`;
-			promptText = promptText.replace('{{AUDIO_FEATURES}}', featureStr);
-		} else {
-			promptText = promptText.replace('{{AUDIO_FEATURES}}', '(Audio measurements unavailable — rely on visual spectrogram analysis)');
-		}
+		// ─── TWO-STAGE MODE ──────────────────────────────────────────
 
-		if (userNotes) {
-			promptText = promptText.replace('{{USER_NOTES}}', `\nPARENT'S OBSERVATIONS (provided by the user — incorporate this context):\n"${userNotes}"\n`);
-		} else {
-			promptText = promptText.replace('{{USER_NOTES}}', '');
-		}
+		if (twoStage && (mode === 'audio' || mode === 'both') && spectrogramBlob?.size > 0) {
+			// Stage 1 — Detection
+			const specB64 = await blobToBase64(spectrogramBlob);
+			const detectImages = [{ b64: specB64, mime: spectrogramBlob.type || 'image/png' }];
 
-		// Build image payloads
-		const images = [];
-		if ((mode === 'audio' || mode === 'both') && spectrogramBlob?.size) {
-			const atlas = await getAtlasBase64(siteUrl);
-			if (atlas) {
-				images.push({ b64: atlas.b64, mime: atlas.mime });
+			let detectResult;
+			try {
+				detectResult = await callAI({ ...providerOpts, promptText: PROMPT_DETECT, images: detectImages });
+			} catch (err) {
+				return jsonRes({ error: 'Detection stage failed: ' + err.message }, 500);
 			}
+
+			const detection = detectResult.result;
+
+			if (!detection.cry_present || (detection.confidence || 0) < 40) {
+				return jsonRes(buildUnknownResult(
+					detection.reasoning || 'No baby cry detected in recording',
+					detectResult.provider,
+					detectResult.model
+				));
+			}
+
+			// Stage 2 — Classification
+			let classifyPrompt;
+			if (mode === 'both') {
+				classifyPrompt = PROMPT_BOTH;
+			} else {
+				classifyPrompt = PROMPT_CLASSIFY_AUDIO;
+			}
+			const promptText = buildPromptText(classifyPrompt, audioFeatures, userNotes);
+
+			const classifyImages = [];
+			if (mode === 'audio' || mode === 'both') {
+				const atlas = await getAtlasBase64(siteUrl);
+				if (atlas) classifyImages.push({ b64: atlas.b64, mime: atlas.mime });
+			}
+			classifyImages.push({ b64: specB64, mime: spectrogramBlob.type || 'image/png' });
+			if (mode === 'both' && imageBlob?.size > 0) {
+				const imgB64 = await blobToBase64(imageBlob);
+				classifyImages.push({ b64: imgB64, mime: imageBlob.type || 'image/jpeg' });
+			}
+
+			let classifyResult;
+			try {
+				classifyResult = await callAI({ ...providerOpts, promptText, images: classifyImages });
+			} catch (err) {
+				return jsonRes({ error: 'Classification stage failed: ' + err.message }, 500);
+			}
+
+			const result = classifyResult.result;
+			result._meta = {
+				provider: classifyResult.provider,
+				model: classifyResult.model,
+				timestamp: new Date().toISOString(),
+				mode,
+				stages: 2,
+				stage1_provider: detectResult.provider,
+				stage1_model: detectResult.model,
+				stage1_cry_present: detection.cry_present,
+				stage1_confidence: detection.confidence,
+				atlas_used: !!atlasBase64Cache
+			};
+			return jsonRes(result);
 		}
 
+		// ─── SINGLE-STAGE MODE ──────────────────────────────────────
+
+		let promptBase;
+		if (mode === 'image') {
+			promptBase = PROMPT_IMAGE;
+		} else if (mode === 'both') {
+			promptBase = PROMPT_BOTH;
+		} else {
+			promptBase = PROMPT_CLASSIFY_AUDIO;
+		}
+
+		const promptText = buildPromptText(promptBase, audioFeatures, userNotes);
+
+		const images = [];
+		if ((mode === 'audio' || mode === 'both') && spectrogramBlob?.size > 0) {
+			const atlas = await getAtlasBase64(siteUrl);
+			if (atlas) images.push({ b64: atlas.b64, mime: atlas.mime });
+		}
 		if (spectrogramBlob?.size > 0) {
 			const specB64 = await blobToBase64(spectrogramBlob);
 			images.push({ b64: specB64, mime: spectrogramBlob.type || 'image/png' });
 		}
-
 		if (imageBlob?.size > 0) {
 			const imgB64 = await blobToBase64(imageBlob);
 			images.push({ b64: imgB64, mime: imageBlob.type || 'image/jpeg' });
 		}
 
-		// ── Try Gemini first (if key available), then fall back to OpenRouter ──
-		let lastError;
-		let result = null;
-		let usedProvider = null;
-		let usedModel = null;
-
-		// Provider 1: Google Gemini (direct API)
-		if (geminiKey) {
-			try {
-				const geminiModel = mode === 'both' ? geminiBoth : geminiSingle;
-				const parts = [];
-
-				for (const img of images) {
-					parts.push({ inlineData: { mimeType: img.mime, data: img.b64 } });
-				}
-				parts.push({ text: promptText });
-
-				const data = await callGemini(geminiKey, geminiModel, parts);
-				const rawText = extractGeminiText(data);
-				const parsed = parseJSON(rawText);
-				if (parsed && parsed.category) {
-					result = parsed;
-					usedProvider = 'gemini';
-					usedModel = geminiModel;
-				} else {
-					throw new Error(`Gemini returned invalid JSON: ${(rawText || '').slice(0, 200)}`);
-				}
-			} catch (err) {
-				lastError = err;
-			}
-		}
-
-		// Provider 2: OpenRouter (if Gemini failed or no key)
-		if (!result && openrouterKey) {
-			const openrouterModels = [mode === 'both' ? modelBoth : modelSingle];
-			if (modelFallback && modelFallback !== openrouterModels[0]) {
-				openrouterModels.push(modelFallback);
-			}
-
-			for (const m of openrouterModels) {
-				try {
-					const msgContent = [];
-					for (const img of images) {
-						msgContent.push({
-							type: 'image_url',
-							image_url: { url: `data:${img.mime};base64,${img.b64}` }
-						});
-					}
-					msgContent.push({ type: 'text', text: promptText });
-
-					const messages = [{ role: 'user', content: msgContent }];
-					const data = await callOpenRouter(openrouterKey, m, messages, 2, siteUrl);
-					const rawText = data?.choices?.[0]?.message?.content || '';
-					const parsed = parseJSON(rawText);
-					if (parsed && parsed.category) {
-						result = parsed;
-						usedProvider = 'openrouter';
-						usedModel = m;
-						break;
-					}
-					throw new Error(`OpenRouter model ${m} returned invalid JSON`);
-				} catch (err) {
-					lastError = err;
-				}
-			}
-		}
-
-		if (!result) {
-			throw lastError || new Error('No API keys configured');
-		}
+		const { result, provider, model } = await callAI({ ...providerOpts, promptText, images });
 
 		result._meta = {
-			provider: usedProvider,
-			model: usedModel,
+			provider,
+			model,
 			timestamp: new Date().toISOString(),
 			mode,
+			stages: 1,
 			atlas_used: !!atlasBase64Cache
 		};
 		return jsonRes(result);
+
 	} catch (e) {
 		return jsonRes({ error: e.message || 'Internal error' }, 500);
 	}

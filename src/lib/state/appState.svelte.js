@@ -58,6 +58,35 @@ export function createAppState() {
 	function clearError()  { error = null; }
 	function setSpectrogramFailed(v) { spectrogramFailed = v; }
 
+	async function processAudio(blob) {
+		isConvertingAudio = true;
+		spectrogramBlob = null;
+		spectrogramFailed = false;
+		const rid = resetId;
+		try {
+			const { processAudioBlob } = await import('$utils/audioProcessor.js');
+			const { processedBlob } = await processAudioBlob(blob);
+			if (resetId !== rid) return;
+			audioBlob = processedBlob;
+		} catch {
+			// Fall through — keep original blob, preprocessing is best-effort
+		} finally {
+			if (resetId === rid) isConvertingAudio = false;
+		}
+		try {
+			isGeneratingSpectrogram = true;
+			const { generateSpectrogram } = await import('$utils/spectrogramGenerator.js');
+			if (resetId !== rid) return;
+			const spec = await generateSpectrogram(audioBlob);
+			if (resetId !== rid) return;
+			spectrogramBlob = spec;
+		} catch {
+			if (resetId === rid) spectrogramFailed = true;
+		} finally {
+			if (resetId === rid) isGeneratingSpectrogram = false;
+		}
+	}
+
 	return {
 		get currentMode()              { return currentMode; },
 		set currentMode(v)             { currentMode = v; },
@@ -94,22 +123,7 @@ export function createAppState() {
 		setError,
 		clearError,
 		setSpectrogramFailed,
-		async processAudio(rawBlob) {
-			const { preprocessAudioBuffer, detectCrySegment, extractSegment, audioBufferToWav } = await import('$utils/audioProcessor.js');
-			try {
-				const rawArrayBuffer = await rawBlob.arrayBuffer();
-				const cleanBuffer = await preprocessAudioBuffer(rawArrayBuffer);
-				const segment = detectCrySegment(cleanBuffer);
-				const cryBuffer = extractSegment(cleanBuffer, segment.start, segment.end);
-				const cleanWavBlob = audioBufferToWav(cryBuffer);
-
-				this.audioBlob = cleanWavBlob;
-			} catch (e) {
-				console.error("Audio processing failed", e);
-				// Fallback to raw audio if processing fails
-				this.audioBlob = rawBlob;
-			}
-		}
+		processAudio,
 	};
 }
 

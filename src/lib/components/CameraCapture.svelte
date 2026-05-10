@@ -4,8 +4,8 @@
 	import { capturePhoto as trackPhoto } from '$utils/analytics.js';
 	import Icon from './Icon.svelte';
 
-	/** @type {HTMLVideoElement|undefined} */  let videoEl;
-	/** @type {HTMLCanvasElement|undefined} */ let canvasEl;
+	let videoEl = $state(undefined);
+	let canvasEl = $state(undefined);
 
 	let preview  = $state('');
 	let fallback = $state(false);

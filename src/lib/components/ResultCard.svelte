@@ -19,8 +19,7 @@
 	let m  = $derived(r ? (CAT_META[/** @type {string} */(r.category)] ?? CAT_META.UNKNOWN) : null);
 	let sv = $derived(r?.severity ?? 'NONE');
 
-	/** @type {HTMLElement|undefined} */
-	let cardEl;
+	let cardEl = $state(undefined);
 	$effect(() => {
 		if (r && cardEl) { setTimeout(() => cardEl?.scrollIntoView({ behavior:'smooth', block:'nearest' }), 80); }
 	});
@@ -130,7 +129,7 @@
 		background: var(--surface); border: 1px solid rgba(255,255,255,.08);
 		display: flex; align-items: center; justify-content: center;
 	}
-	[data-theme="light"] .rc-icon { border-color: rgba(0,0,0,.06); }
+
 	.rc-head-text { flex: 1; }
 	.rc-label { font-size: .65rem; font-weight: 700; color: var(--text-2); letter-spacing: .04em; }
 	.rc-cat   { font-family:'Instrument Serif',serif; font-size: 1.6rem; font-weight: 400; color: var(--cat-c); line-height: 1.1; margin-top: 3px; }

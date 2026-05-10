@@ -19,7 +19,7 @@
 
 {#if appState.showSettings}
 <div class="ov animate-fade" onclick={close} role="button" tabindex="0" onkeydown={e => e.key==='Escape' && close()}>
-	<div class="pn animate-up" onclick={e => e.stopPropagation()} role="dialog" aria-modal="true">
+	<div class="pn animate-up" onclick={e => e.stopPropagation()} onkeydown={e => e.stopPropagation()} role="dialog" aria-modal="true" tabindex="0">
 		<div class="pn-h">
 			<div class="pn-h-brand">
 				<Icon name="settings" size={16} color="var(--lavender)" />
@@ -43,6 +43,7 @@
 						onclick={() => { appState.autoPlaySounds = !appState.autoPlaySounds; try{localStorage.setItem('roo-autoplay',appState.autoPlaySounds)}catch{} }}
 						role="switch"
 						aria-checked={appState.autoPlaySounds}
+						aria-label="Auto-play soothing sounds"
 					>
 						<div class="toggle-thumb"></div>
 					</button>
