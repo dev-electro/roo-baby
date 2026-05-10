@@ -55,7 +55,7 @@ function seededRNG(seed) {
 	};
 }
 
-function syntheticMel(cat, seed) {
+function syntheticMel(cat, seed, isNoisy = false) {
 	const rng = seededRNG(seed);
 	const frames = 80 + Math.floor(rng() * 40);
 	const mel = [];
@@ -64,6 +64,10 @@ function syntheticMel(cat, seed) {
 		for (let b = 0; b < MELS; b++) {
 			const freq = 80 + (b / MELS) * 7920;
 			let v = -60 + rng() * 10;
+			if (isNoisy) {
+				// Inject stronger uniform background noise across all frequencies
+				v += rng() * 25;
+			}
 			if (cat === 'HUNGER' && freq > 400 && freq < 600) v += 20 * Math.sin(f * 0.15 + rng() * 2) * (1 + f / frames);
 			else if (cat === 'PAIN' && freq > 600 && freq < 800) v += rng() > 0.6 ? 25 * (1 + (rng() - 0.5) * 0.3) : 0;
 			else if (cat === 'TIRED' && freq > 300 && freq < 450) v += 12 * (0.5 + 0.5 * Math.sin(f * 0.07)) * (1 + 0.3 * rng());
@@ -328,6 +332,20 @@ for (const [cat, info] of Object.entries(CATEGORIES)) {
 		writeFileSync(join(OUT_DIR, webpFilename), webpBuf);
 		console.log(`  Written: ${webpFilename} (${(webpBuf.length / 1024).toFixed(1)} KB)`);
 	}
+
+	// Add 1 noisy reference per category
+	const noisyMel = syntheticMel(cat, cat.charCodeAt(0) * 100 + 5 * 7 + 42, true);
+	allSpectrograms[cat].push(noisyMel);
+
+	const noisyWebpFilename = `${cat.toLowerCase()}_noisy_1.webp`;
+	manifest.categories[cat].exemplars.push(noisyWebpFilename);
+	manifest.total_samples++;
+
+	const noisyPixels = renderMelToPixels(noisyMel, SPECTROGRAM_W, SPECTROGRAM_H);
+	const noisyPngBuf = encodePNG(noisyPixels, SPECTROGRAM_W, SPECTROGRAM_H);
+	const noisyWebpBuf = await sharp(noisyPngBuf).webp({ quality: 92 }).toBuffer();
+	writeFileSync(join(OUT_DIR, noisyWebpFilename), noisyWebpBuf);
+	console.log(`  Written: ${noisyWebpFilename} (${(noisyWebpBuf.length / 1024).toFixed(1)} KB)`);
 }
 
 // Write atlas master card
