@@ -1,0 +1,6 @@
+CATEGORICAL DISTRIBUTIONS (Based on 3,643 samples):
+- HUNGER (n=1240): Freq 422-483Hz (med 454), RMS 0.037-0.053, Silence <15%, High Onset (0.648)
+- PAIN (n=850): Freq 690-766Hz (med 729), RMS 0.082-0.109, Silence >30% (bursty), Low Onset (0.453)
+- TIRED (n=620): Freq 353-401Hz (med 378), RMS 0.029-0.041, Silence ~18%, Mid Onset (0.542)
+- DISCOMFORT (n=540): Freq 450-504Hz (med 477), RMS 0.046-0.064, Silence ~22%, Mid Onset (0.499)
+- BURPING (n=393): Freq 620-730Hz (med 680), RMS 0.069-0.101, Silence >30% (bursty), High Onset (0.752)

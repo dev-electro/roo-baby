@@ -209,7 +209,7 @@ let atlasMimeCache = null;
 async function getAtlasBase64(siteUrl) {
 	if (atlasBase64Cache) return { b64: atlasBase64Cache, mime: atlasMimeCache };
 	try {
-		const res = await fetch(`${siteUrl}/atlas/atlas_master.png`, { signal: AbortSignal.timeout(5000) });
+		const res = await fetch(`${siteUrl}/atlas/atlas_master.webp`, { signal: AbortSignal.timeout(5000) });
 		if (res.ok) {
 			const buf = await res.arrayBuffer();
 			const bytes = new Uint8Array(buf);
@@ -218,7 +218,7 @@ async function getAtlasBase64(siteUrl) {
 				binary += String.fromCharCode(...bytes.slice(i, i + 4096));
 			}
 			atlasBase64Cache = btoa(binary);
-			atlasMimeCache = 'image/png';
+			atlasMimeCache = 'image/webp';
 			return { b64: atlasBase64Cache, mime: atlasMimeCache };
 		}
 	} catch {}
