@@ -33,7 +33,7 @@ Background noise is EXPECTED and NORMAL in real recordings.
 If a baby cry is present, classify it — regardless of noise level.
 Only return UNKNOWN if there is genuinely NO baby cry at all.
 
-The first image is a REFERENCE ATLAS showing clean baby cry spectrograms for each category.
+The first image is a REFERENCE ATLAS showing both CLEAN and NOISY baby cry spectrograms for each category.
 The second image is the USER'S spectrogram — a real recording that may contain background noise.
 
 AUDIO MEASUREMENTS:
@@ -50,29 +50,36 @@ Noise appears as: uniform speckled texture, random bright dots, diffuse energy e
 Baby cry appears as: concentrated bands, rhythmic structure, organized patterns.
 Mentally remove the noise texture. Focus on the underlying structured signal.
 
-Step 3 — Match the CRY PATTERN (not overall appearance):
+Step 3 — Match the CRY PATTERN (Dunstan Baby Language & Acoustic Cues):
 
-HUNGER pattern: Regular repeating bright bands with gaps between them.
-  Rhythm: ON-OFF-ON-OFF like a metronome. Frequency: mid-range bands.
+HUNGER pattern ("NEH"): Rhythmic onset, tongue pushed to roof of mouth.
+  Phonetic: Starts with "N" sound.
+  Spectrogram: Regular repeating bright bands with gaps (metronome ON-OFF).
+  Frequency: Concentrated mid-range bands (400-600Hz).
   Even noisy hunger cries show this rhythmic structure.
 
-PAIN pattern: Sudden high-energy explosion across WIDE frequency range.
-  Onset: immediate full brightness. No gradual buildup.
-  High frequencies strongly activated. Urgency visible even through noise.
+PAIN/LOWER GAS pattern ("EAIR"): Urgent, intense, long-duration.
+  Phonetic: Deep "Eairh" sound from lower abdomen.
+  Spectrogram: Sudden high-energy explosion across WIDE frequency range.
+  Onset: Immediate full brightness. High frequencies (600-800Hz+) strongly activated.
 
-TIRED pattern: Irregular, fading bands concentrated in LOWER frequencies.
-  Energy DECREASES toward end of each cry episode.
-  Whiny, low energy signature — noise often masks it partially.
+TIRED/SLEEPY pattern ("OWH"): Breathiness, yawning reflex.
+  Phonetic: Oval mouth shape, "Owh" sound like a yawn.
+  Spectrogram: Irregular, fading bands in LOWER frequencies (300-450Hz).
+  Energy: Decreases toward end of each cry episode; whiny signature.
 
-DISCOMFORT pattern: Continuous medium-energy signal. No clear ON-OFF rhythm.
-  Steady, persistent mid-frequency activation.
-  Less structured than hunger, less intense than pain.
+DISCOMFORT pattern ("HEH"): Response to skin sensitivity/physical sensation.
+  Phonetic: Breathiness, starts with "H" sound.
+  Spectrogram: Continuous medium-energy signal. No clear ON-OFF rhythm.
+  Frequency: Steady mid-frequency activation (400-500Hz).
 
-BURPING pattern: Short sharp bursts with gaps. Irregular timing.
-  Multiple brief high-energy spikes. Straining signature.
+BURP/UPPER GAS pattern ("EH"): Short, sharp, repetitive bursts.
+  Phonetic: "Eh-Eh-Eh" sound, trying to release air from chest.
+  Spectrogram: Short sharp bursts with gaps. Irregular timing.
+  Frequency: Multiple brief high-energy spikes (500-900Hz).
 
 Step 4 — Compare to references:
-Which reference in the atlas most closely matches the STRUCTURAL PATTERN of the user's spectrogram?
+Which reference in the atlas (look at both clean and noisy examples) most closely matches the STRUCTURAL PATTERN of the user's spectrogram?
 Focus on rhythm and frequency distribution, not noise level.
 
 Step 5 — Assign confidence:
@@ -105,7 +112,7 @@ If this IS a baby/infant/toddler (0-3 years) → Set is_adult to false. Analyze 
 
 If this is an ADULT or OLDER CHILD (4+ years) → Set is_adult to true. Still analyze the face EXACTLY as above but make the reasoning playful — imagine this adult as a giant baby.
 Respond ONLY with valid JSON:
-{"category":"HUNGER","confidence":78,"severity":"MEDIUM","reasoning":"Rooting reflex visible with hands moving toward mouth","parent_action":"Feed soon","response_sound":"heartbeat","pre_cry":true,"pre_cry_message":"Baby may be getting hungry soon","is_adult":false,"adult_message":null}
+{"category":"HUNGER","confidence":78,"severity":"MEDIUM","noise_level":"CLEAN","cry_detected":true,"pattern_matched":"facial cues: rooting/smacking","reasoning":"Rooting reflex visible with hands moving toward mouth","parent_action":"Feed soon","response_sound":"heartbeat","pre_cry":true,"pre_cry_message":"Baby may be getting hungry soon","is_adult":false,"adult_message":null}
 For adults: include is_adult:true and adult_message like "We see you're testing ROO on yourself! The results are totally wrong — ROO is for babies 0-3 years only."`;
 
 const PROMPT_BOTH = `You are ROO, a precise baby cry classification expert.
@@ -118,7 +125,7 @@ ADULT/OLDER CHILD: facial hair, defined jawline, wrinkles, makeup, mature bone s
 If BABY → Set is_adult to false. Proceed with serious cross-reference.
 If ADULT/OLDER (4+) → Set is_adult to true. Still do FULL analysis for fun, but make reasoning playful.
 
-The first image is a REFERENCE ATLAS of baby cry spectrograms.
+The first image is a REFERENCE ATLAS showing both CLEAN and NOISY baby cry spectrograms.
 The second image is the USER'S spectrogram.
 The third image is the face photo.
 
@@ -150,7 +157,7 @@ STEPS:
 5. Higher confidence when audio + visual signals converge
 
 Respond ONLY in JSON:
-{"category":"HUNGER","confidence":91,"severity":"HIGH","noise_level":"LOW","cry_detected":true,"pattern_matched":"rhythmic on-off bands in mid frequency","reasoning":"Dominant 450Hz + rhythmic onset 75% + rooting reflex — all three signals converge on hunger","parent_action":"Feed immediately","response_sound":"heartbeat","pre_cry":false,"pre_cry_message":null,"is_adult":false,"adult_message":null}
+{"category":"HUNGER","confidence":91,"severity":"HIGH","noise_level":"LOW","cry_detected":true,"pattern_matched":"rhythmic on-off bands in mid frequency + facial cues","reasoning":"Dominant 450Hz + rhythmic onset 75% + rooting reflex — all three signals converge on hunger","parent_action":"Feed immediately","response_sound":"heartbeat","pre_cry":false,"pre_cry_message":null,"is_adult":false,"adult_message":null}
 For adults: include is_adult:true and adult_message.`;
 
 // ─── HELPERS ──────────────────────────────────────────────────────────
@@ -202,7 +209,7 @@ let atlasMimeCache = null;
 async function getAtlasBase64(siteUrl) {
 	if (atlasBase64Cache) return { b64: atlasBase64Cache, mime: atlasMimeCache };
 	try {
-		const res = await fetch(`${siteUrl}/atlas/atlas_master.webp`, { signal: AbortSignal.timeout(5000) });
+		const res = await fetch(`${siteUrl}/atlas/atlas_master.png`, { signal: AbortSignal.timeout(5000) });
 		if (res.ok) {
 			const buf = await res.arrayBuffer();
 			const bytes = new Uint8Array(buf);
@@ -211,7 +218,7 @@ async function getAtlasBase64(siteUrl) {
 				binary += String.fromCharCode(...bytes.slice(i, i + 4096));
 			}
 			atlasBase64Cache = btoa(binary);
-			atlasMimeCache = 'image/webp';
+			atlasMimeCache = 'image/png';
 			return { b64: atlasBase64Cache, mime: atlasMimeCache };
 		}
 	} catch {}
@@ -461,7 +468,7 @@ export async function onRequest({ request, env }) {
 
 			const detection = detectResult.result;
 
-			if (!detection.cry_present || (detection.confidence || 0) < 40) {
+			if (mode !== 'both' && (!detection.cry_present || (detection.confidence || 0) < 40)) {
 				return jsonRes(buildUnknownResult(
 					detection.reasoning || 'No baby cry detected in recording',
 					detectResult.provider,
@@ -473,6 +480,9 @@ export async function onRequest({ request, env }) {
 			let classifyPrompt;
 			if (mode === 'both') {
 				classifyPrompt = PROMPT_BOTH;
+				if (!detection.cry_present) {
+					classifyPrompt += "\nNOTE: Audio detection was inconclusive. Please prioritize facial analysis, but still check the spectrogram for subtle patterns.";
+				}
 			} else {
 				classifyPrompt = PROMPT_CLASSIFY_AUDIO;
 			}

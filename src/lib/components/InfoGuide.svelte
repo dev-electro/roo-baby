@@ -297,6 +297,21 @@
 		border: 1px solid var(--accent-border);
 	}
 
+	/* Cry patterns grid */
+	.ig-patterns-grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
+	@media(min-width: 480px) { .ig-patterns-grid { grid-template-columns: 1fr 1fr; } }
+	.ig-p-card { padding: 14px; border-radius: var(--r-lg); border: 1px solid var(--border); background: var(--surface-2); }
+	.ig-p-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+	.ig-p-sound { font-family: 'Fraunces', serif; font-weight: 800; font-size: 1.1rem; color: var(--accent); }
+	.ig-p-cat { font-size: .65rem; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; color: var(--text-3); }
+	.ig-p-desc { font-size: .78rem; color: var(--text-2); line-height: 1.5; }
+	
+	.ig-p-card.hunger { border-left: 4px solid var(--cat-hunger); }
+	.ig-p-card.pain   { border-left: 4px solid var(--cat-pain); }
+	.ig-p-card.tired  { border-left: 4px solid var(--cat-tired); }
+	.ig-p-card.discomfort { border-left: 4px solid var(--cat-discomfort); }
+	.ig-p-card.burping { border-left: 4px solid var(--cat-burping); }
+
 	/* Using ROO tips */
 	.ig-tips { display: flex; flex-direction: column; gap: 6px; }
 	.ig-tip {
@@ -336,6 +351,26 @@
 		background: var(--surface-2); border: 1px solid var(--border);
 	}
 	.ig-issue-label { font-size: .75rem; font-weight: 800; color: var(--text); display: block; margin-bottom: 4px; }
+	.ig-issue-desc  { font-size: .78rem; color: var(--text-2); line-height: 1.6; }
+
+	/* Safety */
+	.ig-safety-card {
+		padding: 16px; border-radius: var(--r-lg);
+		background: var(--success-bg); border: 1px solid var(--success-border);
+	}
+	.ig-safety-card.warn { background: var(--error-bg); border-color: var(--error-border); }
+	.ig-safety-title { font-size: .88rem; font-weight: 800; color: var(--text); margin-bottom: 10px; }
+	.ig-safety-list  { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+	.ig-safety-list li {
+		font-size: .78rem; color: var(--text-2); line-height: 1.6;
+		padding-left: 14px; position: relative;
+	}
+	.ig-safety-list li::before {
+		content: '·'; position: absolute; left: 0; color: var(--text-3);
+	}
+	.ig-safety-list strong { color: var(--text); }
+</style>
+rem; font-weight: 800; color: var(--text); display: block; margin-bottom: 4px; }
 	.ig-issue-desc  { font-size: .78rem; color: var(--text-2); line-height: 1.6; }
 
 	/* Safety */

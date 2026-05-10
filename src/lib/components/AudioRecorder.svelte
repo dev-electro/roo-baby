@@ -202,5 +202,22 @@
 		animation:ping 2.2s ease-out infinite;
 	}
 	.ar-idle-cta  { font-size:1.05rem; font-weight:800; color:var(--text); }
-	.ar-idle-sub  { font-size:.75rem; color:var(--text-3); }
-</style>
+	.ar-idle-sub  { font-size:.75rem; color:var(--text-3); margin-top: 8px; }
+
+	.ar-or { display:flex; align-items:center; width:60%; gap:12px; margin: 4px 0; }
+	.ar-or::before, .ar-or::after { content:''; flex:1; height:1px; background:var(--border); }
+	.ar-or span { font-size:.65rem; font-weight:800; color:var(--text-3); letter-spacing:.05em; }
+
+	.ar-file-input { position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; height:100%; }
+
+	.btn-secondary {
+		position: relative;
+		display: flex; align-items: center; gap: 8px;
+		padding: 10px 20px; border-radius: var(--r-pill);
+		font-size: .85rem; font-weight: 700;
+		background: var(--surface-2); color: var(--text-2);
+		border: 1px solid var(--border);
+		cursor: pointer; transition: all .15s;
+	}
+	.btn-secondary:hover { border-color: var(--accent); color: var(--text); background: var(--surface-3); }
+	</style>

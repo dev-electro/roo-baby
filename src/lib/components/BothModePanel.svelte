@@ -8,7 +8,7 @@
 	/* ── Audio state ── */
 	let aChunks=[], aStream=null, aRec=null, aTimer=null;
 	let aElapsed=$state(0), aRecOn=$state(false);
-	const MAX=10;
+	const MAX=30;
 
 	/* ── Camera state ── */
 	let vEl = $state(undefined), cEl = $state(undefined);
@@ -25,33 +25,46 @@
 			aRec.onstop = async()=>{
 				const rid=appState.resetId;
 				const raw=new Blob(aChunks,{type:aRec.mimeType});
-				if(isSupportedAudioFormat(raw.type)){appState.audioBlob=raw}
-				else{
-					appState.isConvertingAudio=true;
-					try{ const wav=await convertToWav(raw); if(appState.resetId!==rid)return; appState.audioBlob=wav; }
-					catch{ appState.setError('Conversion failed') }
-					finally{ appState.isConvertingAudio=false }
-				}
-
-				if (appState.audioBlob) {
-					await appState.processAudio(appState.audioBlob);
-				}
-
-				aStream.getTracks().forEach(t=>t.stop()); aStream=null;
-				if(appState.audioBlob && appState.resetId===rid){
-					appState.isGeneratingSpectrogram=true;
-					try{ const sg=await generateSpectrogram(appState.audioBlob); if(appState.resetId!==rid)return; appState.spectrogramBlob=sg; appState.setSpectrogramFailed(false); }
-					catch{ appState.spectrogramBlob=null; appState.setSpectrogramFailed(true); }
-					finally{ appState.isGeneratingSpectrogram=false }
-				}
+				await handleAudioInput(raw, rid);
 			};
 			aRec.start(); aRecOn=true; appState.isRecording=true; aElapsed=0;
 			aTimer=setInterval(()=>{aElapsed++;if(aElapsed>=MAX)aStop()},1000);
 		} catch{ appState.setError('Microphone needed') }
 	}
+
+	async function handleAudioInput(blob, rid) {
+		if(isSupportedAudioFormat(blob.type)){appState.audioBlob=blob}
+		else{
+			appState.isConvertingAudio=true;
+			try{ const wav=await convertToWav(blob); if(appState.resetId!==rid)return; appState.audioBlob=wav; }
+			catch{ appState.setError('Conversion failed') }
+			finally{ appState.isConvertingAudio=false }
+		}
+
+		if (appState.audioBlob) {
+			await appState.processAudio(appState.audioBlob);
+		}
+
+		if(aStream) { aStream.getTracks().forEach(t=>t.stop()); aStream=null; }
+		
+		if(appState.audioBlob && appState.resetId===rid){
+			appState.isGeneratingSpectrogram=true;
+			try{ const sg=await generateSpectrogram(appState.audioBlob); if(appState.resetId!==rid)return; appState.spectrogramBlob=sg; appState.setSpectrogramFailed(false); }
+			catch{ appState.spectrogramBlob=null; appState.setSpectrogramFailed(true); }
+			finally{ appState.isGeneratingSpectrogram=false }
+		}
+	}
+
+	function aUpload(e) {
+		const f = e.target.files?.[0];
+		if (f) {
+			handleAudioInput(f, appState.resetId);
+		}
+	}
+
 	function aStop(){ if(aRec?.state==='recording')aRec.stop(); clearInterval(aTimer); aRecOn=false; appState.isRecording=false; }
 	function aTog(){ aRecOn?aStop():aStart(); }
-	function aReset(){ appState.audioBlob=null; appState.spectrogramBlob=null; appState.setSpectrogramFailed(false); }
+	function aReset(){ appState.audioBlob=null; appState.spectrogramBlob=null; appState.setSpectrogramFailed(false); aElapsed=0; }
 
 	/* ──────────── Camera ──────────── */
 	function cReq(){ camAsk=true; cStart(); }
@@ -59,7 +72,7 @@
 		if(camOn||camBusy)return; if(imgOk||appState.imageBlob)return;
 		camBusy=true; camDenied=false; cStop();
 		try{
-			const s=await navigator.mediaDevices.getUserMedia({video:{facingMode:facing,width:{ideal:640},height:{ideal:480}}});
+			const s=await navigator.mediaDevices.getUserMedia({video:{facingMode:facing,width:{ideal:1280},height:{ideal:960}}});
 			appState.cameraStream=s; camOn=true; camBusy=false;
 			if(vEl){vEl.srcObject=s;try{await vEl.play()}catch{}}
 		}catch(err){
@@ -72,7 +85,7 @@
 	function cCapture(){
 		if(!vEl||!cEl)return;
 		const rid=appState.resetId;
-		cEl.width=vEl.videoWidth||640; cEl.height=vEl.videoHeight||480;
+		cEl.width=vEl.videoWidth||1280; cEl.height=vEl.videoHeight||960;
 		cEl.getContext('2d').drawImage(vEl,0,0);
 		cEl.toBlob(b=>{
 			if(b&&appState.resetId===rid){
@@ -82,11 +95,11 @@
 		},'image/jpeg',.9)
 	}
 	function cUpload(e){
-		const f=e.target.files[0];
+		const f=e.target.files?.[0];
 		if(f){
 			if(preview)URL.revokeObjectURL(preview);
 			preview=URL.createObjectURL(f); appState.imageBlob=f; imgOk=true;
-			imgFall=false; camDenied=false; // Bug fix: reset states
+			imgFall=false; camDenied=false;
 			cStop();
 		}
 	}
@@ -100,223 +113,297 @@
 		if(preview)URL.revokeObjectURL(preview);
 	});
 
-	let aBarCount=12;
+	let aBarCount=16;
 </script>
 
 <div class="both">
 	<!-- Step indicator -->
-	{#if !appState.audioBlob || !appState.imageBlob}
-		<div class="flow">
-			<div class="flow-step" class:done={!!appState.audioBlob} class:active={!appState.audioBlob}>
-				<div class="flow-num">{appState.audioBlob ? '✓' : '1'}</div>
-				<span>Record cry</span>
-			</div>
-			<div class="flow-line" class:done={!!appState.audioBlob}></div>
-			<div class="flow-step" class:done={!!appState.imageBlob} class:active={!!appState.audioBlob && !appState.imageBlob}>
-				<div class="flow-num">{appState.imageBlob ? '✓' : '2'}</div>
-				<span>Capture face</span>
-			</div>
+	<div class="flow">
+		<div class="flow-step" class:done={!!appState.audioBlob} class:active={!appState.audioBlob}>
+			<div class="flow-num">{appState.audioBlob ? '✓' : '1'}</div>
+			<span>Record cry</span>
 		</div>
-	{/if}
+		<div class="flow-line" class:done={!!appState.audioBlob}></div>
+		<div class="flow-step" class:done={!!appState.imageBlob} class:active={!!appState.audioBlob && !appState.imageBlob}>
+			<div class="flow-num">{appState.imageBlob ? '✓' : '2'}</div>
+			<span>Capture face</span>
+		</div>
+	</div>
 
-	<!-- Dual panels -->
+	<!-- Dual panels - Sequential flow -->
 	<div class="panels">
-		<!-- Audio panel -->
-		<div class="panel">
-			<div class="p-label"><Icon name="mic" size={14} color="var(--lavender)" /> Audio</div>
-			{#if appState.audioBlob && !aRecOn}
-				<div class="done animate-in">
-					<div class="done-check"><Icon name="check" size={16} color="var(--mint)" /></div>
-					<div class="done-t">Recorded</div>
-					{#if appState.isGeneratingSpectrogram}
-						<div class="done-s">Processing…</div>
-					{:else if appState.spectrogramFailed}
-						<div class="done-s warn">⚠️ Spectrogram skipped</div>
-					{/if}
-					<button class="btn-xs" onclick={aReset}><Icon name="refresh" size={12} color="currentColor" /> Redo</button>
+		{#if !appState.audioBlob || aRecOn}
+			<!-- Step 1: Audio -->
+			<div class="panel animate-in">
+				<div class="p-header">
+					<div class="p-label"><Icon name="mic" size={16} color="var(--lavender)" /> Step 1: Audio Input</div>
+					<p class="p-desc">Record or upload the baby's cry for spectrogram analysis</p>
 				</div>
-			{:else}
+				
 				<div class="a-wrap">
 					<button class="a-btn" class:rec={aRecOn} onclick={aTog}>
-						<Icon name={aRecOn?'stop':'mic'} size={20} color="#fff" />
+						<Icon name={aRecOn?'stop':'mic'} size={32} color="#fff" />
 					</button>
+					
 					{#if aRecOn}
-						<div class="a-timer">0:{aElapsed.toString().padStart(2,'0')}</div>
-						<div class="a-prog"><div class="a-prog-f" style="width:{(aElapsed/MAX)*100}%"></div></div>
+						<div class="a-status">
+							<div class="a-timer">0:{aElapsed.toString().padStart(2,'0')}</div>
+							<div class="a-prog"><div class="a-prog-f" style="width:{(aElapsed/MAX)*100}%"></div></div>
+						</div>
 						<div class="a-wave">
 							{#each Array(aBarCount) as _,i}<div class="a-bar" style="animation-delay:{i*.07}s"></div>{/each}
 						</div>
 					{:else}
-						<div class="a-hint">Tap to record</div>
+						<div class="a-actions">
+							<p class="a-hint">Tap to record live cry</p>
+							<div class="a-or"><span>OR</span></div>
+							<label class="btn-secondary">
+								<Icon name="upload" size={16} color="currentColor" />
+								Upload audio file
+								<input type="file" accept="audio/*" onchange={aUpload} class="c-hidden" />
+							</label>
+						</div>
 					{/if}
 				</div>
-			{/if}
-		</div>
+			</div>
+		{:else}
+			<!-- Step 2: Photo -->
+			<div class="panel animate-in">
+				<div class="p-header">
+					<div class="p-label"><Icon name="camera" size={16} color="var(--mint)" /> Step 2: Visual Input</div>
+					<p class="p-desc">Capture or upload a photo of the baby's face for emotional cues</p>
+				</div>
 
-		<div class="divider"></div>
-
-		<!-- Camera panel -->
-		<div class="panel">
-			<div class="p-label"><Icon name="camera" size={14} color="var(--mint)" /> Face</div>
-
-			{#if imgOk && appState.imageBlob}
-				<div class="done animate-in">
-					{#if preview}<div class="thumb"><img src={preview} alt="" /></div>{/if}
-					<div class="done-t">Captured</div>
-					<div class="act-row">
-						<button class="btn-xs" onclick={cRetake}><Icon name="refresh" size={12} color="currentColor" /></button>
-						<label class="btn-xs"><Icon name="upload" size={12} color="currentColor" /><input type="file" accept="image/*" onchange={cUpload} class="c-hidden"/></label>
+				{#if imgOk && appState.imageBlob}
+					<div class="done-preview">
+						{#if preview}<img src={preview} alt="Captured face" class="thumb-lg" />{/if}
+						<div class="done-info">
+							<div class="done-badge"><Icon name="check" size={14} color="var(--mint)" /> Captured</div>
+							<div class="act-row">
+								<button class="btn-xs" onclick={cRetake}><Icon name="refresh" size={12} color="currentColor" /> Retake</button>
+								<label class="btn-xs">
+									<Icon name="upload" size={12} color="currentColor" /> Replace
+									<input type="file" accept="image/*" onchange={cUpload} class="c-hidden"/>
+								</label>
+							</div>
+						</div>
 					</div>
-				</div>
-
-			{:else if camDenied}
-				<div class="cam-denied animate-up">
-					<div class="denied-icon">📷</div>
-					<p class="denied-t">Camera blocked</p>
-					<label class="btn-xs btn-lav">
-						<Icon name="upload" size={12} color="currentColor" /> Upload
-						<input type="file" accept="image/*" onchange={cUpload} class="c-hidden"/>
-					</label>
-				</div>
-
-			{:else if imgFall}
-				<div class="fall">
-					<label class="fall-label">
-						<Icon name="upload" size={16} color="var(--lavender)" />
-						<span>Upload photo</span>
-						<input type="file" accept="image/*" onchange={cUpload} class="c-hidden"/>
-					</label>
-					<button class="btn-xs" onclick={()=>{imgFall=false;cReq()}}><Icon name="camera" size={12} color="currentColor" /> Try camera</button>
-				</div>
-
-			{:else if !camAsk}
-				<div class="c-ask">
-					<div class="c-ask-icon"><Icon name="camera" size={20} color="var(--mint)" /></div>
-					<button class="btn-big" onclick={cReq}>Enable Camera</button>
-					<label class="lk"><Icon name="upload" size={12} color="currentColor" /> Upload<input type="file" accept="image/*" onchange={cUpload} class="c-hidden"/></label>
-				</div>
-
-			{:else}
-				<div class="c-view">
-					{#if camBusy}<div class="c-skeleton shimmer-bg"></div>{/if}
-					<video bind:this={vEl} autoplay playsinline muted class="c-video" class:mirror={facing==='user'}></video>
-					<svg viewBox="0 0 120 140" class="c-oval" aria-hidden="true">
-						<ellipse cx="60" cy="70" rx="42" ry="54" fill="rgba(110,231,183,.06)" stroke="var(--mint)" stroke-width="1.5" stroke-dasharray="5 4"/>
-					</svg>
-					<button class="c-flip" onclick={cFlip} aria-label="Flip camera"><Icon name="flip-camera" size={14} color="#fff" /></button>
-					<button class="c-snap" onclick={cCapture} aria-label="Take photo"></button>
-				</div>
-				<label class="lk"><Icon name="upload" size={12} color="currentColor" /> Upload instead<input type="file" accept="image/*" onchange={cUpload} class="c-hidden"/></label>
-			{/if}
-		</div>
+				{:else if camDenied}
+					<div class="cam-denied">
+						<div class="denied-icon"><Icon name="warning" size={32} color="var(--error)" /></div>
+						<p class="denied-t">Camera access blocked</p>
+						<p class="denied-sub">Please allow camera or upload a photo</p>
+						<div class="act-row">
+							<button class="btn-secondary" onclick={() => { camDenied = false; cReq(); }}>Try again</button>
+							<label class="btn-primary">
+								<Icon name="upload" size={16} color="currentColor" /> Upload photo
+								<input type="file" accept="image/*" onchange={cUpload} class="c-hidden"/>
+							</label>
+						</div>
+					</div>
+				{:else if imgFall}
+					<div class="fall">
+						<label class="fall-label">
+							<Icon name="upload" size={32} color="var(--lavender)" />
+							<span class="fall-t">Upload baby's photo</span>
+							<span class="fall-s">Clear, well-lit photo of the face</span>
+							<input type="file" accept="image/*" onchange={cUpload} class="c-hidden"/>
+						</label>
+						<button class="btn-ghost" onclick={()=>{imgFall=false;cReq()}}>
+							<Icon name="camera" size={14} color="currentColor" /> Use camera instead
+						</button>
+					</div>
+				{:else if !camAsk}
+					<div class="c-ask">
+						<div class="c-ask-icon"><Icon name="camera" size={32} color="var(--mint)" /></div>
+						<button class="btn-big" onclick={cReq}>Open Camera</button>
+						<div class="a-or"><span>OR</span></div>
+						<label class="btn-secondary">
+							<Icon name="upload" size={16} color="currentColor" />
+							Upload photo
+							<input type="file" accept="image/*" onchange={cUpload} class="c-hidden"/>
+						</label>
+					</div>
+				{:else}
+					<div class="c-view-container">
+						<div class="c-view">
+							{#if camBusy}<div class="c-skeleton shimmer-bg"></div>{/if}
+							<video bind:this={vEl} autoplay playsinline muted class="c-video" class:mirror={facing==='user'}></video>
+							<div class="c-overlay">
+								<svg viewBox="0 0 120 140" class="c-oval" aria-hidden="true">
+									<ellipse cx="60" cy="70" rx="42" ry="54" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="1.5" stroke-dasharray="5 4"/>
+								</svg>
+								<p class="c-guide-t">Center baby's face</p>
+							</div>
+							<button class="c-flip" onclick={cFlip} aria-label="Flip camera"><Icon name="flip-camera" size={18} color="#fff" /></button>
+							<button class="c-snap" onclick={cCapture} aria-label="Take photo">
+								<div class="c-snap-i"></div>
+							</button>
+						</div>
+						<label class="lk-upload">
+							<Icon name="upload" size={14} color="currentColor" /> Upload instead
+							<input type="file" accept="image/*" onchange={cUpload} class="c-hidden"/>
+						</label>
+					</div>
+				{/if}
+				
+				<button class="btn-back" onclick={aReset}>
+					<Icon name="arrow-left" size={14} color="currentColor" />
+					Back to Step 1 (Audio)
+				</button>
+			</div>
+		{/if}
 	</div>
 </div>
 <canvas bind:this={cEl} style="display:none"></canvas>
 
 <style>
-	.both { display:flex; flex-direction:column; gap:12px; padding:16px 14px; width:100%; }
+	.both { display:flex; flex-direction:column; gap:20px; padding:20px; width:100%; max-width:500px; margin:0 auto; }
 
 	/* Flow stepper */
-	.flow { display:flex; align-items:center; justify-content:center; gap:0; padding:4px 0; }
-	.flow-step { display:flex; align-items:center; gap:6px; font-size:.72rem; font-weight:700; color:var(--text-dim); transition:color .2s; }
-	.flow-step.active { color:var(--lavender); }
+	.flow { display:flex; align-items:center; justify-content:center; padding:10px 0; }
+	.flow-step { display:flex; flex-direction:column; align-items:center; gap:8px; font-size:.75rem; font-weight:700; color:var(--text-dim); transition:all .3s; }
+	.flow-step.active { color:var(--lavender); transform: scale(1.05); }
 	.flow-step.done   { color:var(--mint); }
 	.flow-num {
-		width:24px; height:24px; border-radius:50%;
+		width:32px; height:32px; border-radius:50%;
 		display:flex; align-items:center; justify-content:center;
-		font-size:.6rem; font-weight:800; background:var(--border);
-		transition:background .2s, color .2s;
+		font-size:.85rem; font-weight:800; background:var(--surface-3);
+		border: 1px solid var(--border);
+		transition:all .3s;
 	}
-	.flow-step.active .flow-num { background:var(--lav-soft); color:var(--lavender); }
-	.flow-step.done   .flow-num { background:var(--mint-soft); color:var(--mint); }
-	.flow-line { flex:1; max-width:40px; height:1px; background:var(--border); margin:0 10px; transition:background .3s; }
+	.flow-step.active .flow-num { background:var(--lavender); color:#fff; border-color:var(--lavender); box-shadow:0 0 15px var(--lav-glow); }
+	.flow-step.done   .flow-num { background:var(--mint); color:#fff; border-color:var(--mint); }
+	.flow-line { flex:1; max-width:60px; height:2px; background:var(--border); margin:0 15px; margin-top: -20px; border-radius:1px; }
 	.flow-line.done { background:var(--mint); }
 
 	/* Panels */
-	.panels { display:flex; gap:12px; align-items:stretch; }
-	.panel  { flex:1; display:flex; flex-direction:column; align-items:center; gap:10px; min-width:0; }
-	.p-label { font-size:.65rem; font-weight:800; letter-spacing:.07em; text-transform:uppercase; color:var(--text-soft); display:flex; align-items:center; gap:4px; }
-	.divider { width:1px; background:var(--border); flex-shrink:0; }
+	.panels { width:100%; min-height:380px; display:flex; flex-direction:column; }
+	.panel { 
+		width:100%; display:flex; flex-direction:column; gap:24px; 
+		background:var(--surface-2); padding:24px; border-radius:var(--r-xl);
+		border: 1px solid var(--border); box-shadow: var(--shadow-sm);
+	}
+	.p-header { display:flex; flex-direction:column; gap:6px; }
+	.p-label { font-size:.9rem; font-weight:800; color:var(--text); display:flex; align-items:center; gap:8px; }
+	.p-desc { font-size:.8rem; color:var(--text-2); line-height:1.4; }
 
 	/* Audio */
-	.a-wrap  { display:flex; flex-direction:column; align-items:center; gap:8px; }
-	.a-btn   {
-		width:64px; height:64px; border-radius:50%;
-		background:linear-gradient(145deg,var(--lavender),var(--indigo));
-		box-shadow:0 4px 20px var(--lav-glow);
+	.a-wrap { display:flex; flex-direction:column; align-items:center; gap:20px; padding:10px 0; }
+	.a-btn {
+		width:88px; height:88px; border-radius:50%;
+		background:linear-gradient(135deg, var(--lavender), var(--indigo));
+		box-shadow:0 10px 30px var(--lav-glow);
 		display:flex; align-items:center; justify-content:center;
-		transition:transform .15s;
+		transition:all .2s; border:none; cursor:pointer;
 	}
-	.a-btn:hover { transform:scale(1.06); }
-	.a-btn:active { transform:scale(.94); }
+	.a-btn:hover { transform:scale(1.08); filter:brightness(1.1); }
+	.a-btn:active { transform:scale(.92); }
 	.a-btn.rec {
-		background:linear-gradient(145deg,var(--blush),#D03050);
-		box-shadow:0 4px 20px var(--blush-glow);
-		animation:breathe 1.1s ease-in-out infinite;
+		background:linear-gradient(135deg, #FF4B6E, #D03050);
+		box-shadow:0 10px 30px var(--blush-glow);
+		animation:pulse-red 1.5s infinite;
 	}
-	.a-timer { font-family:'Fraunces',serif; font-size:1rem; color:var(--blush); font-weight:700; }
-	.a-prog  { width:56px; height:2px; background:var(--border); border-radius:1px; overflow:hidden; }
-	.a-prog-f { height:100%; background:var(--blush); border-radius:1px; transition:width .3s linear; }
-	.a-hint  { font-size:.7rem; color:var(--text-soft); font-weight:700; text-align:center; }
-	.a-wave  { display:flex; align-items:flex-end; gap:2px; height:36px; }
-	.a-bar   { width:3px; border-radius:100px; background:linear-gradient(180deg,var(--lavender),var(--mint)); animation:wave .8s ease-in-out infinite; transform-origin:bottom; min-height:3px; }
-
-	/* Done */
-	.done { display:flex; flex-direction:column; align-items:center; gap:5px; }
-	.done-check { width:36px; height:36px; border-radius:50%; background:var(--mint-soft); border:1.5px solid var(--mint); display:flex; align-items:center; justify-content:center; }
-	.done-t { font-size:.78rem; font-weight:800; color:var(--text); }
-	.done-s { font-size:.65rem; color:var(--text-soft); }
-	.done-s.warn { color:var(--amber); }
-	.act-row { display:flex; gap:4px; }
-	.thumb { width:80px; border-radius:var(--r-sm); overflow:hidden; border:1.5px solid var(--mint); }
-	.thumb img { width:100%; display:block; }
-
-	/* Buttons */
-	.btn-xs {
-		padding:5px 12px; border-radius:var(--r-pill); font-size:.65rem; font-weight:700;
-		color:var(--text-soft); border:1px solid var(--border); background:var(--surface);
-		display:inline-flex; align-items:center; gap:3px; cursor:pointer; position:relative; transition:all .15s;
+	@keyframes pulse-red { 
+		0% { box-shadow: 0 0 0 0 rgba(255,75,110,0.4); }
+		70% { box-shadow: 0 0 0 20px rgba(255,75,110,0); }
+		100% { box-shadow: 0 0 0 0 rgba(255,75,110,0); }
 	}
-	.btn-xs:hover { border-color:var(--lavender); color:var(--text); }
-	.btn-lav { border-color:var(--lavender); color:var(--lavender); background:var(--lav-soft); }
+
+	.a-status { display:flex; flex-direction:column; align-items:center; gap:8px; width:100%; }
+	.a-timer { font-family:'Fraunces',serif; font-size:1.4rem; color:var(--error); font-weight:800; letter-spacing:1px; }
+	.a-prog { width:120px; height:4px; background:var(--border); border-radius:2px; overflow:hidden; }
+	.a-prog-f { height:100%; background:var(--error); transition:width .3s linear; }
+	.a-actions { display:flex; flex-direction:column; align-items:center; gap:16px; width:100%; }
+	.a-hint { font-size:.85rem; color:var(--text-2); font-weight:600; }
+	.a-or { display:flex; align-items:center; width:100%; gap:12px; }
+	.a-or::before, .a-or::after { content:''; flex:1; height:1px; background:var(--border); }
+	.a-or span { font-size:.65rem; font-weight:800; color:var(--text-3); letter-spacing:.05em; }
+
+	.a-wave { display:flex; align-items:center; gap:3px; height:40px; }
+	.a-bar { width:4px; border-radius:2px; background:var(--lavender); animation:wave-anim .8s ease-in-out infinite; transform-origin:center; min-height:4px; }
+	@keyframes wave-anim { 0%, 100% { height:4px; } 50% { height:36px; } }
+
+	/* Photo */
+	.done-preview { display:flex; flex-direction:column; gap:16px; align-items:center; width:100%; }
+	.thumb-lg { width:100%; max-height:240px; object-fit:cover; border-radius:var(--r-lg); border:2px solid var(--mint); }
+	.done-info { display:flex; flex-direction:column; align-items:center; gap:12px; width:100%; }
+	.done-badge { display:flex; align-items:center; gap:6px; font-size:.85rem; font-weight:800; color:var(--mint); }
+	.act-row { display:flex; gap:10px; flex-wrap:wrap; justify-content:center; }
+
+	.c-ask { display:flex; flex-direction:column; align-items:center; gap:16px; padding:10px 0; }
+	.c-ask-icon { width:72px; height:72px; border-radius:var(--r-xl); background:var(--mint-soft); display:flex; align-items:center; justify-content:center; }
 	.btn-big {
-		padding:9px 20px; border-radius:var(--r-pill); font-size:.8rem; font-weight:800;
-		background:linear-gradient(135deg,var(--lavender),var(--indigo)); color:#fff;
-		box-shadow:0 3px 14px var(--lav-glow); transition:transform .15s;
+		padding:14px 32px; border-radius:var(--r-pill); font-size:.95rem; font-weight:800;
+		background:linear-gradient(135deg, var(--mint), var(--lavender)); color:#fff;
+		box-shadow:0 8px 24px var(--mint-glow); border:none; cursor:pointer; transition:transform .2s;
 	}
-	.btn-big:hover { transform:translateY(-1px); }
-	.lk { font-size:.65rem; color:var(--text-soft); cursor:pointer; position:relative; transition:color .15s; display:flex; align-items:center; gap:3px; }
-	.lk:hover { color:var(--text); }
+	.btn-big:hover { transform:translateY(-2px); filter:brightness(1.05); }
 
-	/* Camera */
-	.c-ask { display:flex; flex-direction:column; align-items:center; gap:6px; text-align:center; }
-	.c-ask-icon { width:40px; height:40px; border-radius:var(--r-sm); background:var(--mint-soft); display:flex; align-items:center; justify-content:center; margin-bottom:2px; }
-	.c-view { position:relative; width:100%; aspect-ratio:4/3; max-height:42vh; border-radius:var(--r-md); overflow:hidden; background:var(--border); }
-	.c-skeleton { position:absolute; inset:0; z-index:2; }
+	.c-view-container { display:flex; flex-direction:column; gap:12px; width:100%; }
+	.c-view { position:relative; width:100%; aspect-ratio:3/4; border-radius:var(--r-lg); overflow:hidden; background:#000; box-shadow:var(--shadow-md); }
 	.c-video { width:100%; height:100%; object-fit:cover; }
 	.c-video.mirror { transform:scaleX(-1); }
-	.c-oval { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
-	.c-flip { position:absolute; top:8px; right:8px; z-index:3; width:32px; height:32px; border-radius:50%; background:rgba(0,0,0,.5); backdrop-filter:blur(6px); display:flex; align-items:center; justify-content:center; }
-	.c-snap { position:absolute; bottom:10px; left:50%; transform:translateX(-50%); z-index:3; width:44px; height:44px; border-radius:50%; background:linear-gradient(135deg,var(--mint),var(--lavender)); box-shadow:0 3px 16px var(--mint-glow); border:2px solid rgba(255,255,255,.25); transition:transform .12s; }
-	.c-snap:active { transform:translateX(-50%) scale(.9); }
+	.c-overlay { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; pointer-events:none; }
+	.c-oval { width:70%; opacity:.5; }
+	.c-guide-t { color:rgba(255,255,255,0.6); font-size:.7rem; font-weight:700; margin-top:10px; }
+	.c-flip { position:absolute; top:12px; right:12px; width:44px; height:44px; border-radius:50%; background:rgba(0,0,0,0.5); backdrop-filter:blur(10px); display:flex; align-items:center; justify-content:center; border:none; cursor:pointer; }
+	.c-snap { position:absolute; bottom:20px; left:50%; transform:translateX(-50%); width:68px; height:68px; border-radius:50%; background:rgba(255,255,255,0.2); backdrop-filter:blur(5px); border:4px solid #fff; display:flex; align-items:center; justify-content:center; cursor:pointer; }
+	.c-snap-i { width:52px; height:52px; border-radius:50%; background:#fff; transition:transform .1s; }
+	.c-snap:active .c-snap-i { transform:scale(0.85); }
 
-	/* Fall / denied */
-	.fall { display:flex; flex-direction:column; align-items:center; gap:8px; width:100%; }
+	.lk-upload { font-size:.8rem; color:var(--text-2); cursor:pointer; display:flex; align-items:center; gap:6px; justify-content:center; font-weight:700; margin-top:4px; }
+	.lk-upload:hover { color:var(--lavender); }
+
+	/* General components */
+	.btn-secondary {
+		padding:12px 24px; border-radius:var(--r-pill); font-size:.85rem; font-weight:700;
+		background:var(--surface-3); color:var(--text-2); border:1px solid var(--border);
+		cursor:pointer; transition:all .2s; display:inline-flex; align-items:center; gap:8px;
+	}
+	.btn-secondary:hover { background:var(--surface-4); border-color:var(--lavender); color:var(--text); }
+	
+	.btn-primary {
+		padding:12px 24px; border-radius:var(--r-pill); font-size:.85rem; font-weight:700;
+		background:var(--lavender); color:#fff; border:none;
+		cursor:pointer; transition:all .2s; display:inline-flex; align-items:center; gap:8px;
+	}
+
+	.btn-xs {
+		padding:6px 14px; border-radius:var(--r-md); font-size:.75rem; font-weight:700;
+		color:var(--text-2); border:1px solid var(--border); background:var(--surface-3);
+		cursor:pointer; display:inline-flex; align-items:center; gap:6px;
+	}
+	
+	.btn-ghost {
+		background:none; border:none; padding:8px; font-size:.75rem; font-weight:700;
+		color:var(--text-3); cursor:pointer; text-decoration:underline;
+	}
+
+	.btn-back {
+		margin-top:auto; padding:12px; border:none; background:none;
+		font-size:.8rem; font-weight:700; color:var(--text-3);
+		display:flex; align-items:center; justify-content:center; gap:8px;
+		cursor:pointer; transition:color .2s;
+	}
+	.btn-back:hover { color:var(--lavender); }
+
+	.c-hidden { position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; height:100%; }
+	
+	.fall { display:flex; flex-direction:column; align-items:center; gap:16px; width:100%; }
 	.fall-label {
-		display:flex; flex-direction:column; align-items:center; gap:4px;
-		padding:18px; border:1.5px dashed var(--border); border-radius:var(--r-md);
-		cursor:pointer; font-size:.72rem; color:var(--text-soft); position:relative;
-		transition:border-color .15s, background .15s; width:100%; text-align:center;
+		width:100%; padding:40px 20px; border:2px dashed var(--border); border-radius:var(--r-xl);
+		display:flex; flex-direction:column; align-items:center; gap:12px; cursor:pointer;
+		transition:all .2s;
 	}
 	.fall-label:hover { border-color:var(--lavender); background:var(--lav-soft); }
-	.cam-denied { display:flex; flex-direction:column; align-items:center; gap:6px; text-align:center; }
-	.denied-icon { font-size:1.8rem; }
-	.denied-t { font-size:.72rem; color:var(--blush); font-weight:700; }
+	.fall-t { font-size:1rem; font-weight:800; color:var(--text); }
+	.fall-s { font-size:.75rem; color:var(--text-2); }
 
-	.c-hidden { position:absolute; inset:0; opacity:0; cursor:pointer; }
+	.cam-denied { display:flex; flex-direction:column; align-items:center; gap:12px; text-align:center; padding:20px; }
+	.denied-t { font-size:1.1rem; font-weight:800; color:var(--text); }
+	.denied-sub { font-size:.85rem; color:var(--text-2); }
 
-	@media(max-width:400px){
-		.panels { flex-direction:column; }
-		.divider { width:100%; height:1px; }
-	}
+	.shimmer-bg { background:linear-gradient(90deg, #111 25%, #222 50%, #111 75%); background-size:200% 100%; animation:shimmer 1.5s infinite; }
+	@keyframes shimmer { 0% { background-position:200% 0; } 100% { background-position:-200% 0; } }
 </style>

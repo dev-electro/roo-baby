@@ -144,8 +144,12 @@
 	.rc-conf-note  { display: flex; align-items: center; gap: 5px; font-size: .68rem; color: var(--text-2); }
 
 	/* Sections */
-	.rc-section { padding: 14px 20px; border-bottom: 1px solid var(--border); display: flex; flex-direction: column; gap: 6px; }
+	.rc-section { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; flex-direction: column; gap: 4px; }
 	.rc-body    { font-size: .88rem; color: var(--text-2); line-height: 1.6; }
+
+	.rc-meta-grid { display: grid; grid-template-columns: 1fr 1.5fr; gap: 12px; }
+	.rc-meta-item { display: flex; flex-direction: column; gap: 4px; }
+	.rc-meta-val  { font-size: .75rem; font-weight: 800; color: var(--text); text-transform: uppercase; }
 
 	/* Action */
 	.rc-action {
@@ -163,6 +167,15 @@
 	}
 	.rc-alert.warn { background: var(--warning-bg); color: var(--warning); }
 	.rc-alert.info { background: var(--info-bg);    color: var(--info); }
+	.rc-alert p { flex: 1; }
+
+	/* Disclaimer */
+	.rc-disclaimer {
+		display: flex; align-items: center; gap: 5px;
+		padding: 10px 20px;
+		font-size: .62rem; color: var(--text-3); line-height: 1.5;
+	}
+</style>-alert.info { background: var(--info-bg);    color: var(--info); }
 	.rc-alert p { flex: 1; }
 
 	/* Disclaimer */

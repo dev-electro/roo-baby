@@ -4,63 +4,62 @@
       "description": "Rhythmic \"neh\" pattern, 400-600Hz, gradual buildup",
       "color": "rgb(255,123,92)",
       "exemplars": [
-        "hunger_01.webp",
-        "hunger_02.webp",
-        "hunger_03.webp",
-        "hunger_04.webp",
-        "hunger_05.webp",
-        "hunger_noisy_1.webp"
+        "hunger_1.png",
+        "hunger_2.png",
+        "hunger_3.png",
+        "hunger_4.png",
+        "hunger_5.png",
+        "hunger_noisy.png"
       ]
     },
     "PAIN": {
       "description": "Sudden sharp spikes, 600-800Hz, silence gaps",
       "color": "rgb(255,77,109)",
       "exemplars": [
-        "pain_01.webp",
-        "pain_02.webp",
-        "pain_03.webp",
-        "pain_04.webp",
-        "pain_05.webp",
-        "pain_noisy_1.webp"
+        "pain_1.png",
+        "pain_2.png",
+        "pain_3.png",
+        "pain_4.png",
+        "pain_5.png",
+        "pain_noisy.png"
       ]
     },
     "TIRED": {
       "description": "Whiny nasal, 300-450Hz, irregular fading",
       "color": "rgb(123,140,222)",
       "exemplars": [
-        "tired_01.webp",
-        "tired_02.webp",
-        "tired_03.webp",
-        "tired_04.webp",
-        "tired_05.webp",
-        "tired_noisy_1.webp"
+        "tired_1.png",
+        "tired_2.png",
+        "tired_3.png",
+        "tired_4.png",
+        "tired_5.png",
+        "tired_noisy.png"
       ]
     },
     "DISCOMFORT": {
       "description": "Sustained mid-range, 400-500Hz, grunting",
       "color": "rgb(255,179,71)",
       "exemplars": [
-        "discomfort_01.webp",
-        "discomfort_02.webp",
-        "discomfort_03.webp",
-        "discomfort_04.webp",
-        "discomfort_05.webp",
-        "discomfort_noisy_1.webp"
+        "discomfort_1.png",
+        "discomfort_2.png",
+        "discomfort_3.png",
+        "discomfort_4.png",
+        "discomfort_5.png",
+        "discomfort_noisy.png"
       ]
     },
     "BURPING": {
       "description": "Short isolated bursts, descending pitch",
       "color": "rgb(82,217,193)",
       "exemplars": [
-        "burping_01.webp",
-        "burping_02.webp",
-        "burping_03.webp",
-        "burping_04.webp",
-        "burping_05.webp",
-        "burping_noisy_1.webp"
+        "burping_1.png",
+        "burping_2.png",
+        "burping_3.png",
+        "burping_4.png",
+        "burping_5.png",
+        "burping_noisy.png"
       ]
     }
   },
-  "total_samples": 30,
-  "placeholder": true
+  "total_samples": 25
 }

@@ -4,16 +4,16 @@
  * Falls back to regular Canvas if OffscreenCanvas is unavailable.
  */
 
-const SPECTROGRAM_WIDTH = 512;
-const SPECTROGRAM_HEIGHT = 256;
-const LABEL_MARGIN_LEFT = 36;
-const LABEL_MARGIN_BOTTOM = 18;
+const SPECTROGRAM_WIDTH = 1024;
+const SPECTROGRAM_HEIGHT = 512;
+const LABEL_MARGIN_LEFT = 48;
+const LABEL_MARGIN_BOTTOM = 24;
 const SPECTROGRAM_PLOT_W = SPECTROGRAM_WIDTH - LABEL_MARGIN_LEFT;
 const SPECTROGRAM_PLOT_H = SPECTROGRAM_HEIGHT - LABEL_MARGIN_BOTTOM;
-const MEL_BANDS = 128;
+const MEL_BANDS = 256;
 const SAMPLE_RATE = 16000;
-const FFT_SIZE = 2048;
-const HOP_SIZE = 512;
+const FFT_SIZE = 4096;
+const HOP_SIZE = 256;
 
 async function decodeAudio(blob) {
 	const arrayBuffer = await blob.arrayBuffer();

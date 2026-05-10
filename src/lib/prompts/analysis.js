@@ -22,26 +22,37 @@ Noise appears as: uniform speckled texture, random bright dots, diffuse energy e
 Baby cry appears as: concentrated bands, rhythmic structure, organized patterns.
 Mentally remove the noise texture. Focus on the underlying structured signal.
 
-Step 3 — Match the CRY PATTERN (not overall appearance):
+Step 3 — Match the CRY PATTERN (Dunstan Baby Language & Acoustic Cues):
 
-HUNGER pattern: Regular repeating bright bands with gaps between them.
-  Rhythm: ON-OFF-ON-OFF like a metronome. Frequency: mid-range bands.
-  Even noisy hunger cries show this rhythmic structure.
+HUNGER pattern ("NEH"): Rhythmic onset, tongue pushed to roof of mouth.
+  Phonetic: Starts with "N" sound.
+  Spectrogram: Regular repeating bright bands with gaps (metronome ON-OFF).
+  Frequency: Concentrated mid-range bands (400-600Hz).
+  Behavior: Rooting reflex, lip smacking, hands to mouth.
 
-PAIN pattern: Sudden high-energy explosion across WIDE frequency range.
-  Onset: immediate full brightness. No gradual buildup.
-  High frequencies strongly activated. Urgency visible even through noise.
+PAIN/LOWER GAS pattern ("EAIR"): Urgent, intense, long-duration.
+  Phonetic: Deep "Eairh" sound from lower abdomen.
+  Spectrogram: Sudden high-energy explosion across WIDE frequency range.
+  Onset: Immediate full brightness. High frequencies strongly activated.
+  Behavior: Scrunched face, eyes shut tight, legs drawn up to tummy, arched back.
 
-TIRED pattern: Irregular, fading bands concentrated in LOWER frequencies.
-  Energy DECREASES toward end of each cry episode.
-  Whiny, low energy signature — noise often masks it partially.
+TIRED/SLEEPY pattern ("OWH"): Breathiness, yawning reflex.
+  Phonetic: Oval mouth shape, "Owh" sound like a yawn.
+  Spectrogram: Irregular, fading bands in LOWER frequencies (300-450Hz).
+  Energy: Decreases toward end of each cry episode; whiny signature.
+  Behavior: Droopy eyes, glassy stare, eye rubbing, yawning.
 
-DISCOMFORT pattern: Continuous medium-energy signal. No clear ON-OFF rhythm.
-  Steady, persistent mid-frequency activation.
-  Less structured than hunger, less intense than pain.
+DISCOMFORT pattern ("HEH"): Response to skin sensitivity/physical sensation.
+  Phonetic: Breathiness, starts with "H" sound.
+  Spectrogram: Continuous medium-energy signal. No clear ON-OFF rhythm.
+  Frequency: Steady mid-frequency activation (400-500Hz).
+  Behavior: Fidgeting, squirming, reacting to cold/wetness.
 
-BURPING pattern: Short sharp bursts with gaps. Irregular timing.
-  Multiple brief high-energy spikes. Straining signature.`;
+BURP/UPPER GAS pattern ("EH"): Short, sharp, repetitive bursts.
+  Phonetic: "Eh-Eh-Eh" sound, trying to release air from chest.
+  Spectrogram: Short sharp bursts with gaps. Irregular timing.
+  Frequency: Multiple brief high-energy spikes (500-900Hz).
+  Behavior: Straining, brief back arching, vertical torso movement.`;
 
 export const VISUAL_SIGNATURES = `
 VISUAL SIGNALS (if image provided):

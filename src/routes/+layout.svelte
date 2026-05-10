@@ -7,12 +7,12 @@
 
 	let { children } = $props();
 
-	let theme = $state('dark');
+	let theme = $state('light');
 
 	// Read saved theme ASAP — before first render where possible
 	$effect.root(() => {
 		try {
-			const saved = localStorage.getItem('roo-theme') || 'dark';
+			const saved = localStorage.getItem('roo-theme') || 'light';
 			theme = saved;
 			document.documentElement.setAttribute('data-theme', saved);
 		} catch {}

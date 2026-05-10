@@ -45,7 +45,7 @@
 				try { feat = await extractAudioFeatures(appState.audioBlob); } catch {}
 			}
 			if (appState.resetId !== rid) return;
-			if (feat?.isProblematic) {
+			if (feat?.isProblematic && appState.currentMode !== 'both') {
 				let reason = 'Audio quality too low for reliable analysis.';
 				let action = 'Re-record in a quiet environment.';
 				if (feat.isSilent)          { reason = 'No cry detected — mostly silence.'; action = 'Hold phone near your baby and try again.'; }
