@@ -94,6 +94,22 @@ export function createAppState() {
 		setError,
 		clearError,
 		setSpectrogramFailed,
+		async processAudio(rawBlob) {
+			const { preprocessAudioBuffer, detectCrySegment, extractSegment, audioBufferToWav } = await import('$utils/audioProcessor.js');
+			try {
+				const rawArrayBuffer = await rawBlob.arrayBuffer();
+				const cleanBuffer = await preprocessAudioBuffer(rawArrayBuffer);
+				const segment = detectCrySegment(cleanBuffer);
+				const cryBuffer = extractSegment(cleanBuffer, segment.start, segment.end);
+				const cleanWavBlob = audioBufferToWav(cryBuffer);
+
+				this.audioBlob = cleanWavBlob;
+			} catch (e) {
+				console.error("Audio processing failed", e);
+				// Fallback to raw audio if processing fails
+				this.audioBlob = rawBlob;
+			}
+		}
 	};
 }
 

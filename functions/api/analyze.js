@@ -7,45 +7,92 @@ const GEMINI_BASE = 'https://generativelanguage.googleapis.com/v1beta';
 const OPENROUTER_BASE = 'https://openrouter.ai/api/v1';
 
 const PROMPTS = {
-	audio: `You are ROO, the world's best baby cry analyst. Analyze this spectrogram of a baby's cry.
+	audio: `You are ROO, a precise baby cry classification expert.
+Your job is to identify the type of baby cry, even in noisy recordings.
+
+CRITICAL RULE: NEVER return UNKNOWN due to noise.
+Background noise is EXPECTED and NORMAL in real recordings.
+If a baby cry is present, classify it — regardless of noise level.
+Only return UNKNOWN if there is genuinely NO baby cry at all (pure silence or pure non-cry noise).
+
+---
+
+USER PROMPT STRUCTURE:
+
+"Analyze this baby cry recording.
+
+REFERENCE SPECTROGRAMS (labeled by type):
+[Send all reference images here with labels]
+
+USER RECORDING SPECTROGRAM:
+[Send user spectrogram last]
 
 AUDIO MEASUREMENTS (from signal processing):
 {{AUDIO_FEATURES}}
 
-⚠️ CRITICAL EDGE-CASE CHECKS — do these FIRST:
-
-1. SILENCE: If silence ratio > 80% AND RMS < 0.002 AND autocorrelation < 0.2 → NO cry. Return UNKNOWN/0%.
-2. NOISE (static/fan/hum): If autocorrelation < 0.2 AND spectral spread > 800Hz AND peaks are scattered outside 200-1000Hz → ambient noise, NOT a cry. Return UNKNOWN.
-3. CLIPPING: If clipping ratio > 5% → audio is distorted, analysis unreliable. Note this and lower confidence.
-4. MUSIC/TV: If harmonic ratio > 0.6 AND multiple harmonic peaks → NOT a baby cry. Return UNKNOWN.
-5. MULTIPLE SOURCES: If cry-range peak ratio < 50% AND many spectral peaks → overlapping sounds. Lower confidence significantly.
-6. OUTSIDE CRY RANGE: If dominant frequency < 200Hz or > 1000Hz → likely not a baby cry. Return UNKNOWN or low confidence.
-7. LOW QUALITY: If autocorrelation < 0.2 → pitch is unreliable. Lower confidence by 30%+.
-
-ONLY if the WARNINGS say "No edge case detected — likely a real baby cry" should you analyze with normal confidence.
-
-SPECTROGRAM READING GUIDE:
-- X-axis: time (seconds), Y-axis: frequency (Hz)
-- Color: bright = loud, dark = silent
-- A real baby cry shows: visible bright bands in 200-1000Hz, rhythmic gaps, clear onset/offset patterns
-- A dark/empty spectrogram = silence or near-silence → return UNKNOWN
-
-BABY CRY CATEGORIES:
-- HUNGER: rhythmic vertical bands 400-600Hz, gradual buildup, 0.5-1s intervals
-- PAIN: sudden bright spikes 600-800Hz with dark gaps, urgent pattern
-- TIRED: dim smears 300-450Hz, fading in/out, whiny quality
-- DISCOMFORT: steady glow 400-500Hz, sustained, grunting
-- BURPING: short isolated bursts, pitch descending each burst
-
-The first image is a REFERENCE ATLAS. The second is the USER'S spectrogram.
 {{USER_NOTES}}
-STEP 1: Check WARNINGS first — if any edge case is flagged, respond accordingly (UNKNOWN or low confidence).
-STEP 2: Only if the signal looks like a real cry, compare against reference atlas.
-STEP 3: Match dominant frequency and rhythm pattern to the most likely category.
 
-Respond with ONLY valid JSON:
-{"category":"HUNGER","confidence":85,"severity":"MEDIUM","reasoning":"Dominant 450Hz with rhythmic onset, no edge cases detected","parent_action":"Feed the baby now","response_sound":"heartbeat","pre_cry":false,"pre_cry_message":null}
-severity: LOW|MEDIUM|HIGH|CRITICAL  sound: heartbeat|whitenoise|lullaby|shush`,
+ANALYSIS INSTRUCTIONS:
+
+Step 1 — Confirm cry presence:
+Is there a baby cry signal in the user spectrogram?
+Look for: structured patterns, rhythmic elements, concentrated energy in bands.
+Noise is random and chaotic. A cry has STRUCTURE even when noisy.
+
+Step 2 — Ignore the noise layer:
+Noise appears as: uniform speckled texture, random bright dots, diffuse energy everywhere.
+Baby cry appears as: concentrated bands, rhythmic structure, organized patterns.
+Mentally remove the noise texture. Focus on the underlying structured signal.
+
+Step 3 — Match the CRY PATTERN (not overall appearance):
+
+HUNGER pattern: Regular repeating bright bands with gaps between them.
+  Rhythm: ON-OFF-ON-OFF like a metronome. Frequency: mid-range bands.
+  Even noisy hunger cries show this rhythmic structure.
+
+PAIN pattern: Sudden high-energy explosion across WIDE frequency range.
+  Onset: immediate full brightness. No gradual buildup.
+  High frequencies strongly activated. Urgency visible even through noise.
+
+TIRED pattern: Irregular, fading bands concentrated in LOWER frequencies.
+  Energy DECREASES toward end of each cry episode.
+  Whiny, low energy signature — noise often masks it partially.
+
+DISCOMFORT pattern: Continuous medium-energy signal. No clear ON-OFF rhythm.
+  Steady, persistent mid-frequency activation.
+  Less structured than hunger, less intense than pain.
+
+BURPING pattern: Short sharp bursts with gaps. Irregular timing.
+  Multiple brief high-energy spikes. Straining signature.
+
+Step 4 — Compare to references:
+Which reference (clean OR noisy variant) most closely matches
+the STRUCTURAL PATTERN of the user's spectrogram?
+
+Step 5 — Assign confidence:
+90-100%: Pattern very clear despite noise
+70-89%:  Pattern identifiable but partially obscured
+50-69%:  Pattern suggested but noise is heavy
+Below 50%: Output UNKNOWN only — cry too obscured to classify
+
+Respond ONLY in this JSON format, no other text:
+{
+  "category": "HUNGER",
+  "confidence": 78,
+  "severity": "MEDIUM",
+  "noise_level": "HIGH",
+  "cry_detected": true,
+  "pattern_matched": "rhythmic on-off bands in mid frequency range",
+  "reasoning": "Despite background noise, regular rhythmic structure at 400-600Hz is visible, matching hunger pattern",
+  "parent_action": "Baby needs feeding. Try breastfeeding or bottle now.",
+  "response_sound": "heartbeat",
+  "pre_cry": false,
+  "pre_cry_message": null
+}
+
+severity options: LOW | MEDIUM | HIGH | CRITICAL
+noise_level options: CLEAN | LOW | MODERATE | HIGH
+response_sound options: heartbeat | whitenoise | lullaby | shush`,
 
 	image: `You are ROO, the world's best baby cry analyst. Analyze this photo.
 

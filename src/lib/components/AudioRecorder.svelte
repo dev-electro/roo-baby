@@ -21,10 +21,10 @@
 		chunks = [];
 		recorder = new MediaRecorder(stream);
 		recorder.ondataavailable = e => chunks.push(e.data);
-		recorder.onstop = () => {
+		recorder.onstop = async () => {
 			const blob = new Blob(chunks, { type:'audio/webm' });
-			appState.audioBlob = blob;
-			appState.processAudio(blob);
+			await appState.processAudio(blob);
+			import("$utils/spectrogramGenerator.js").then(m=>m.generateSpectrogram(appState.audioBlob).then(sg=>{appState.spectrogramBlob=sg;appState.setSpectrogramFailed(false);appState.isGeneratingSpectrogram=false;}).catch(()=>{appState.spectrogramBlob=null;appState.setSpectrogramFailed(true);appState.isGeneratingSpectrogram=false;}));appState.isGeneratingSpectrogram=true;
 			stream?.getTracks().forEach(t => t.stop()); stream = null;
 		};
 		recorder.start(); secs = 0; recording = true;

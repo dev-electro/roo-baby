@@ -32,6 +32,11 @@
 					catch{ appState.setError('Conversion failed') }
 					finally{ appState.isConvertingAudio=false }
 				}
+
+				if (appState.audioBlob) {
+					await appState.processAudio(appState.audioBlob);
+				}
+
 				aStream.getTracks().forEach(t=>t.stop()); aStream=null;
 				if(appState.audioBlob && appState.resetId===rid){
 					appState.isGeneratingSpectrogram=true;
