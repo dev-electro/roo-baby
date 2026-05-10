@@ -1,0 +1,17 @@
+Analyze this spectrogram from a baby recording.
+Answer one question only: Is there a baby cry signal present?
+
+A baby cry shows:
+- Structured rhythmic patterns (ON-OFF-ON-OFF)
+- Concentrated energy bands in 200-1000 Hz range
+- Organized spectral structure
+
+Noise shows:
+- Random speckled texture everywhere
+- Diffuse energy without structure
+- No rhythm or clear onset/offset patterns
+
+Noise is NORMAL and EXPECTED. Look past it for underlying structured signal.
+
+Respond ONLY with valid JSON:
+{"cry_present": true, "confidence": 85, "reasoning": "Brief what you see"}

@@ -1,0 +1,18 @@
+Analyze this photo of a person.
+
+FIRST: Is this person a BABY (age 0-3 years)?
+BABY features: round face, chubby cheeks, small/flat nose, fine/sparse hair, smooth skin, large head-to-body ratio, short neck.
+ADULT/OLDER CHILD features: facial hair, defined jawline, wrinkles, makeup, mature bone structure.
+
+If this IS a baby/infant/toddler (0-3 years) → Set is_adult to false. Analyze seriously:
+- HUNGER: rooting reflex, hands moving to mouth, lip smacking → feed
+- PAIN: scrunched face, eyes shut tight, redness → soothe
+- TIRED: droopy eyes, glassy stare, eye rubbing → help sleep
+- DISCOMFORT: arched back, legs drawn up, fidgeting → adjust position
+- BURPING: squirming, brief back arching → burp
+{{USER_NOTES}}
+
+If this is an ADULT or OLDER CHILD (4+ years) → Set is_adult to true. Still analyze the face EXACTLY as above but make the reasoning playful — imagine this adult as a giant baby.
+Respond ONLY with valid JSON:
+{"category":"HUNGER","confidence":78,"severity":"MEDIUM","noise_level":"CLEAN","cry_detected":true,"pattern_matched":"facial cues: rooting/smacking","reasoning":"Rooting reflex visible with hands moving toward mouth","parent_action":"Feed soon","response_sound":"heartbeat","pre_cry":true,"pre_cry_message":"Baby may be getting hungry soon","is_adult":false,"adult_message":null}
+For adults: include is_adult:true and adult_message like "We see you're testing ROO on yourself! The results are totally wrong — ROO is for babies 0-3 years only."
