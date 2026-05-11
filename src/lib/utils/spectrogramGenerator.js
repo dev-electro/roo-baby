@@ -105,7 +105,7 @@ function applyMelFilterbank(spectrum) {
 function hzToMel(hz) { return 2595 * Math.log10(1 + hz / 700); }
 function melToHz(mel) { return 700 * (Math.pow(10, mel / 2595) - 1); }
 
-function magmaColor(t) {
+function getMagmaRGB(t) {
 	const stops = [
 		[0.0, 0.001, 0.001, 0.014],
 		[0.14, 0.117, 0.067, 0.396],
@@ -116,8 +116,8 @@ function magmaColor(t) {
 		[0.86, 0.988, 0.976, 0.361],
 		[1.0, 0.987, 0.991, 0.750],
 	];
-	if (t <= 0) return `rgb(${Math.round(stops[0][1]*255)},${Math.round(stops[0][2]*255)},${Math.round(stops[0][3]*255)})`;
-	if (t >= 1) return `rgb(${Math.round(stops[7][1]*255)},${Math.round(stops[7][2]*255)},${Math.round(stops[7][3]*255)})`;
+	if (t <= 0) return [Math.round(stops[0][1]*255), Math.round(stops[0][2]*255), Math.round(stops[0][3]*255)];
+	if (t >= 1) return [Math.round(stops[7][1]*255), Math.round(stops[7][2]*255), Math.round(stops[7][3]*255)];
 
 	let lo = stops[0], hi = stops[stops.length - 1];
 	for (let i = 0; i < stops.length - 1; i++) {
@@ -128,9 +128,15 @@ function magmaColor(t) {
 		}
 	}
 	const f = (t - lo[0]) / (hi[0] - lo[0] || 1);
-	const r = Math.round((lo[1] + f * (hi[1] - lo[1])) * 255);
-	const g = Math.round((lo[2] + f * (hi[2] - lo[2])) * 255);
-	const b = Math.round((lo[3] + f * (hi[3] - lo[3])) * 255);
+	return [
+		Math.round((lo[1] + f * (hi[1] - lo[1])) * 255),
+		Math.round((lo[2] + f * (hi[2] - lo[2])) * 255),
+		Math.round((lo[3] + f * (hi[3] - lo[3])) * 255)
+	];
+}
+
+function magmaColor(t) {
+	const [r, g, b] = getMagmaRGB(t);
 	return `rgb(${r},${g},${b})`;
 }
 
@@ -178,22 +184,33 @@ function renderSpectrogramCanvas(magnitudes, numFrames) {
 	ctx.fillStyle = '#0a0a14';
 	ctx.fillRect(0, 0, SPECTROGRAM_WIDTH, SPECTROGRAM_HEIGHT);
 
-	const xScale = SPECTROGRAM_PLOT_W / numFrames;
-	const yScale = SPECTROGRAM_PLOT_H / MEL_BANDS;
+	// Create a small data canvas for the heatmap
+	const dataCanvas = document.createElement('canvas');
+	dataCanvas.width = numFrames;
+	dataCanvas.height = MEL_BANDS;
+	const dataCtx = dataCanvas.getContext('2d');
+	const imgData = dataCtx.createImageData(numFrames, MEL_BANDS);
 
 	for (let frame = 0; frame < numFrames; frame++) {
 		for (let bin = 0; bin < MEL_BANDS; bin++) {
 			const val = magnitudes[frame * MEL_BANDS + bin];
 			const normalized = Math.max(0, Math.min(1, (val - vMin) / (vMax - vMin)));
-			ctx.fillStyle = magmaColor(normalized);
-			ctx.fillRect(
-				LABEL_MARGIN_LEFT + Math.floor(frame * xScale),
-				SPECTROGRAM_PLOT_H - Math.floor((bin + 1) * yScale),
-				Math.ceil(xScale) + 1,
-				Math.ceil(yScale) + 1
-			);
+			const [r, g, b] = getMagmaRGB(normalized);
+			
+			// ImageData is top-to-bottom, mel bands are bottom-to-top
+			const y = MEL_BANDS - 1 - bin;
+			const idx = (y * numFrames + frame) * 4;
+			imgData.data[idx] = r;
+			imgData.data[idx + 1] = g;
+			imgData.data[idx + 2] = b;
+			imgData.data[idx + 3] = 255;
 		}
 	}
+	dataCtx.putImageData(imgData, 0, 0);
+
+	// Scale up to main canvas
+	ctx.imageSmoothingEnabled = false;
+	ctx.drawImage(dataCanvas, LABEL_MARGIN_LEFT, 0, SPECTROGRAM_PLOT_W, SPECTROGRAM_PLOT_H);
 
 	const duration = (numFrames * HOP_SIZE) / SAMPLE_RATE;
 	drawLabels(ctx, SPECTROGRAM_WIDTH, SPECTROGRAM_HEIGHT, SPECTROGRAM_PLOT_W, SPECTROGRAM_PLOT_H, LABEL_MARGIN_LEFT, 0, duration);
@@ -213,22 +230,30 @@ function renderSpectrogramOffscreen(magnitudes, numFrames) {
 	ctx.fillStyle = '#0a0a14';
 	ctx.fillRect(0, 0, SPECTROGRAM_WIDTH, SPECTROGRAM_HEIGHT);
 
-	const xScale = SPECTROGRAM_PLOT_W / numFrames;
-	const yScale = SPECTROGRAM_PLOT_H / MEL_BANDS;
+	// Create a small data canvas for the heatmap
+	const dataCanvas = new OffscreenCanvas(numFrames, MEL_BANDS);
+	const dataCtx = dataCanvas.getContext('2d');
+	const imgData = dataCtx.createImageData(numFrames, MEL_BANDS);
 
 	for (let frame = 0; frame < numFrames; frame++) {
 		for (let bin = 0; bin < MEL_BANDS; bin++) {
 			const val = magnitudes[frame * MEL_BANDS + bin];
 			const normalized = Math.max(0, Math.min(1, (val - vMin) / (vMax - vMin)));
-			ctx.fillStyle = magmaColor(normalized);
-			ctx.fillRect(
-				LABEL_MARGIN_LEFT + Math.floor(frame * xScale),
-				SPECTROGRAM_PLOT_H - Math.floor((bin + 1) * yScale),
-				Math.ceil(xScale) + 1,
-				Math.ceil(yScale) + 1
-			);
+			const [r, g, b] = getMagmaRGB(normalized);
+			
+			const y = MEL_BANDS - 1 - bin;
+			const idx = (y * numFrames + frame) * 4;
+			imgData.data[idx] = r;
+			imgData.data[idx + 1] = g;
+			imgData.data[idx + 2] = b;
+			imgData.data[idx + 3] = 255;
 		}
 	}
+	dataCtx.putImageData(imgData, 0, 0);
+
+	// Scale up to main canvas
+	ctx.imageSmoothingEnabled = false;
+	ctx.drawImage(dataCanvas, LABEL_MARGIN_LEFT, 0, SPECTROGRAM_PLOT_W, SPECTROGRAM_PLOT_H);
 
 	const duration = (numFrames * HOP_SIZE) / SAMPLE_RATE;
 	drawLabels(ctx, SPECTROGRAM_WIDTH, SPECTROGRAM_HEIGHT, SPECTROGRAM_PLOT_W, SPECTROGRAM_PLOT_H, LABEL_MARGIN_LEFT, 0, duration);
