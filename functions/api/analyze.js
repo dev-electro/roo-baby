@@ -264,7 +264,9 @@ function buildUnknownResult(reasoning) {
 export async function onRequest({ request, env }) {
 	const geminiKey = env.GEMINI_API_KEY;
 	const openrouterKey = env.OPENROUTER_API_KEY;
-	const siteUrl = env.SITE_URL || 'https://roo-baby.pages.dev';
+	
+	const url = new URL(request.url);
+	const siteUrl = env.SITE_URL || url.origin;
 
 	if (!geminiKey && !openrouterKey) return jsonRes({ error: 'Missing API keys' }, 500);
 	if (request.method !== 'POST') return jsonRes({ error: 'Use POST' }, 405);
@@ -289,10 +291,12 @@ export async function onRequest({ request, env }) {
 		// Stage 1 Detection (if requested or in audio/both mode)
 		if (twoStage && (mode === 'audio' || mode === 'both') && spectrogramBlob?.size > 0) {
 			const detectPrompt = await getPrompt(siteUrl, 'detect.txt');
+			if (!detectPrompt) throw new Error('Detection prompt missing');
+			
 			const specB64 = await blobToBase64(spectrogramBlob);
-			const { result: detection } = await callAI({ ...providerOpts, promptText: detectPrompt, images: [{ b64: specB64, mime: spectrogramBlob.type }] });
+			const { result: detection } = await callAI({ ...providerOpts, promptText: detectPrompt, images: [{ b64: specB64, mime: spectrogramBlob.type || 'image/png' }] });
 
-			if (mode !== 'both' && (!detection.cry_present || detection.confidence < 40)) {
+			if (mode !== 'both' && (!detection.cry_present || (detection.confidence || 0) < 40)) {
 				return jsonRes(buildUnknownResult(detection.reasoning));
 			}
 		}
@@ -303,6 +307,8 @@ export async function onRequest({ request, env }) {
 		if (mode === 'both') promptFile = 'classify_both.txt';
 
 		let promptBase = await getPrompt(siteUrl, promptFile);
+		if (!promptBase) throw new Error(`Analysis prompt missing: ${promptFile}`);
+		
 		const promptText = buildPromptText(promptBase, audioFeatures, audioStats, userNotes);
 
 		const images = [];
@@ -312,11 +318,11 @@ export async function onRequest({ request, env }) {
 		}
 		if (spectrogramBlob?.size > 0) {
 			const b64 = await blobToBase64(spectrogramBlob);
-			images.push({ b64, mime: spectrogramBlob.type });
+			images.push({ b64, mime: spectrogramBlob.type || 'image/png' });
 		}
 		if (imageBlob?.size > 0) {
 			const b64 = await blobToBase64(imageBlob);
-			images.push({ b64, mime: imageBlob.type });
+			images.push({ b64, mime: imageBlob.type || 'image/jpeg' });
 		}
 
 		const { result, provider, model } = await callAI({ ...providerOpts, promptText, images });
@@ -324,6 +330,7 @@ export async function onRequest({ request, env }) {
 		return jsonRes(result);
 
 	} catch (e) {
+		console.error('Request error:', e);
 		return jsonRes({ error: e.message || 'Internal error' }, 500);
 	}
 }
