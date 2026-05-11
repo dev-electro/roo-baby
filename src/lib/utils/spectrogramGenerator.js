@@ -4,6 +4,8 @@
  * Falls back to regular Canvas if OffscreenCanvas is unavailable.
  */
 
+import { fft } from './fft.js';
+
 const SPECTROGRAM_WIDTH = 1024;
 const SPECTROGRAM_HEIGHT = 512;
 const LABEL_MARGIN_LEFT = 48;
@@ -53,7 +55,7 @@ function computeSpectrogram(samples) {
 		for (let i = 0; i < FFT_SIZE; i++) {
 			fftInput[i] = (offset + i < samples.length ? samples[offset + i] : 0) * window[i];
 		}
-		const spectrum = realFFT(fftInput);
+		const spectrum = fft(fftInput);
 		const melSpectrum = applyMelFilterbank(spectrum);
 		for (let bin = 0; bin < MEL_BANDS; bin++) {
 			magnitudes[frame * MEL_BANDS + bin] = melSpectrum[bin];
@@ -67,21 +69,6 @@ function hannWindow(size) {
 	const w = new Float32Array(size);
 	for (let i = 0; i < size; i++) w[i] = 0.5 * (1 - Math.cos(2 * Math.PI * i / (size - 1)));
 	return w;
-}
-
-function realFFT(input) {
-	const N = input.length;
-	const magnitudes = new Float32Array(N / 2 + 1);
-	for (let k = 0; k <= N / 2; k++) {
-		let re = 0, im = 0;
-		for (let n = 0; n < N; n++) {
-			const angle = 2 * Math.PI * k * n / N;
-			re += input[n] * Math.cos(angle);
-			im -= input[n] * Math.sin(angle);
-		}
-		magnitudes[k] = Math.sqrt(re * re + im * im);
-	}
-	return magnitudes;
 }
 
 function applyMelFilterbank(spectrum) {
