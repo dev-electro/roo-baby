@@ -2,6 +2,7 @@
 	import { appState } from '$state/appState.svelte.js';
 	import { convertToWav, isSupportedAudioFormat } from '$utils/audioEncoder.js';
 	import { generateSpectrogram } from '$utils/spectrogramGenerator.js';
+	import { downscaleImage } from '$utils/imageUtils.js';
 	import { onDestroy } from 'svelte';
 	import Icon from './Icon.svelte';
 
@@ -64,7 +65,7 @@
 
 	function aStop(){ if(aRec?.state==='recording')aRec.stop(); clearInterval(aTimer); aRecOn=false; appState.isRecording=false; }
 	function aTog(){ aRecOn?aStop():aStart(); }
-	function aReset(){ appState.audioBlob=null; appState.spectrogramBlob=null; appState.setSpectrogramFailed(false); aElapsed=0; }
+	function aReset(){ appState.bumpReset(); appState.audioBlob=null; appState.spectrogramBlob=null; appState.setSpectrogramFailed(false); aElapsed=0; }
 
 	/* ──────────── Camera ──────────── */
 	function cReq(){ camAsk=true; cStart(); }
@@ -87,23 +88,28 @@
 		const rid=appState.resetId;
 		cEl.width=vEl.videoWidth||1280; cEl.height=vEl.videoHeight||960;
 		cEl.getContext('2d').drawImage(vEl,0,0);
-		cEl.toBlob(b=>{
+		cEl.toBlob(async b=>{
 			if(b&&appState.resetId===rid){
+				const scaled = await downscaleImage(b);
+				if(appState.resetId!==rid) return;
 				if(preview)URL.revokeObjectURL(preview);
-				preview=URL.createObjectURL(b); appState.imageBlob=b; imgOk=true; cStop();
+				preview=URL.createObjectURL(scaled); appState.imageBlob=scaled; imgOk=true; cStop();
 			}
 		},'image/jpeg',.9)
 	}
-	function cUpload(e){
+	async function cUpload(e){
 		const f=e.target.files?.[0];
 		if(f){
+			const rid=appState.resetId;
+			const scaled = await downscaleImage(f);
+			if(appState.resetId!==rid) return;
 			if(preview)URL.revokeObjectURL(preview);
-			preview=URL.createObjectURL(f); appState.imageBlob=f; imgOk=true;
+			preview=URL.createObjectURL(scaled); appState.imageBlob=scaled; imgOk=true;
 			imgFall=false; camDenied=false;
 			cStop();
 		}
 	}
-	function cRetake(){ if(preview)URL.revokeObjectURL(preview); preview=''; appState.imageBlob=null; imgOk=false; camAsk=false; imgFall=false; camOn=false; camDenied=false; }
+	function cRetake(){ appState.bumpReset(); if(preview)URL.revokeObjectURL(preview); preview=''; appState.imageBlob=null; imgOk=false; camAsk=false; imgFall=false; camOn=false; camDenied=false; }
 	function cStop(){ if(appState.cameraStream){appState.cameraStream.getTracks().forEach(t=>t.stop());appState.cameraStream=null} camOn=false; }
 
 	onDestroy(()=>{

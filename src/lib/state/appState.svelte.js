@@ -54,33 +54,53 @@ export function createAppState() {
 		userNotes           = '';
 	}
 
+	function bumpReset() { resetId++; }
+
 	function setError(msg) { error = msg; }
 	function clearError()  { error = null; }
 	function setSpectrogramFailed(v) { spectrogramFailed = v; }
 
 	async function processAudio(blob) {
+		if (!blob || blob.size < 100) return;
+		
 		isConvertingAudio = true;
 		spectrogramBlob = null;
 		spectrogramFailed = false;
 		const rid = resetId;
+		
 		try {
+			// Basic duration check if possible via blob size or metadata
+			// For now, we'll assume the MediaRecorder/AudioProcessor handles the actual duration.
 			const { processAudioBlob } = await import('$utils/audioProcessor.js');
-			const { processedBlob } = await processAudioBlob(blob);
+			const { processedBlob, duration } = await processAudioBlob(blob);
+			
 			if (resetId !== rid) return;
+			
+			// Hard reject if < 0.5s (likely a tap/glitch)
+			if (duration && duration < 0.5) {
+				setError("Recording too short. Please try again.");
+				audioBlob = null; // Clear if invalid
+				return;
+			}
+			
 			audioBlob = processedBlob;
-		} catch {
-			// Fall through — keep original blob, preprocessing is best-effort
+		} catch (e) {
+			console.error("Audio processing failed:", e);
+			// Fall through — keep original blob if it's usable
 		} finally {
 			if (resetId === rid) isConvertingAudio = false;
 		}
+
+		if (resetId !== rid || !audioBlob) return;
+
 		try {
 			isGeneratingSpectrogram = true;
 			const { generateSpectrogram } = await import('$utils/spectrogramGenerator.js');
-			if (resetId !== rid) return;
 			const spec = await generateSpectrogram(audioBlob);
 			if (resetId !== rid) return;
 			spectrogramBlob = spec;
-		} catch {
+		} catch (e) {
+			console.error("Spectrogram generation failed:", e);
 			if (resetId === rid) spectrogramFailed = true;
 		} finally {
 			if (resetId === rid) isGeneratingSpectrogram = false;
@@ -101,6 +121,7 @@ export function createAppState() {
 		set isRecording(v)             { isRecording = v; },
 		get isAnalyzing()              { return isAnalyzing; },
 		set isAnalyzing(v)             { isAnalyzing = v; },
+		get getIsAnalyzing()           { return isAnalyzing; }, // For debug if needed
 		get isConvertingAudio()        { return isConvertingAudio; },
 		set isConvertingAudio(v)       { isConvertingAudio = v; },
 		get isGeneratingSpectrogram()  { return isGeneratingSpectrogram; },
@@ -120,6 +141,7 @@ export function createAppState() {
 		get isReady()                  { return isReady(); },
 		get hasAnyInput()              { return hasAnyInput(); },
 		reset,
+		bumpReset,
 		setError,
 		clearError,
 		setSpectrogramFailed,
