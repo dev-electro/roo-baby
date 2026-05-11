@@ -370,23 +370,3 @@
 	}
 	.ig-safety-list strong { color: var(--text); }
 </style>
-rem; font-weight: 800; color: var(--text); display: block; margin-bottom: 4px; }
-	.ig-issue-desc  { font-size: .78rem; color: var(--text-2); line-height: 1.6; }
-
-	/* Safety */
-	.ig-safety-card {
-		padding: 16px; border-radius: var(--r-lg);
-		background: var(--success-bg); border: 1px solid var(--success-border);
-	}
-	.ig-safety-card.warn { background: var(--error-bg); border-color: var(--error-border); }
-	.ig-safety-title { font-size: .88rem; font-weight: 800; color: var(--text); margin-bottom: 10px; }
-	.ig-safety-list  { list-style: none; display: flex; flex-direction: column; gap: 8px; }
-	.ig-safety-list li {
-		font-size: .78rem; color: var(--text-2); line-height: 1.6;
-		padding-left: 14px; position: relative;
-	}
-	.ig-safety-list li::before {
-		content: '·'; position: absolute; left: 0; color: var(--text-3);
-	}
-	.ig-safety-list strong { color: var(--text); }
-</style>

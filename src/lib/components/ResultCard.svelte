@@ -175,13 +175,4 @@
 		padding: 10px 20px;
 		font-size: .62rem; color: var(--text-3); line-height: 1.5;
 	}
-</style>-alert.info { background: var(--info-bg);    color: var(--info); }
-	.rc-alert p { flex: 1; }
-
-	/* Disclaimer */
-	.rc-disclaimer {
-		display: flex; align-items: center; gap: 5px;
-		padding: 10px 20px;
-		font-size: .62rem; color: var(--text-3); line-height: 1.5;
-	}
 </style>
