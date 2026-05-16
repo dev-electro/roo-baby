@@ -26,12 +26,13 @@ export function createAppState() {
 	let resetId                 = $state(0);
 	let userNotes               = $state('');
 
-	// isReady: spectrogram is optional when generation failed
+	// isReady: audio required for audio/both; image optional in both mode
 	const isReady = $derived(() => {
 		const hasAudio = !!audioBlob && (!!spectrogramBlob || spectrogramFailed);
 		if (currentMode === 'audio') return hasAudio;
 		if (currentMode === 'image') return !!imageBlob;
-		return hasAudio && !!imageBlob;
+		// both: audio required, image is optional bonus
+		return hasAudio;
 	});
 
 	const hasAnyInput = $derived(() => !!audioBlob || !!imageBlob);

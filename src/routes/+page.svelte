@@ -4,6 +4,7 @@
 	import ModeTabs from '$components/ModeTabs.svelte';
 	import AudioRecorder from '$components/AudioRecorder.svelte';
 	import CameraCapture from '$components/CameraCapture.svelte';
+	import BothModePanel from '$components/BothModePanel.svelte';
 	import AnalyzeButton from '$components/AnalyzeButton.svelte';
 	import ResultCard from '$components/ResultCard.svelte';
 	import InfoGuide from '$components/InfoGuide.svelte';
@@ -42,34 +43,30 @@
 	</div>
 </div>
 
-<!-- Audio input -->
-{#if appState.currentMode === 'audio' || appState.currentMode === 'both'}
+<!-- Audio-only mode -->
+{#if appState.currentMode === 'audio'}
 <div class="block block-audio">
 	<div class="block-head" style="border-color:var(--emerald-border)">
 		<div class="block-head-left">
-			<div class="step-dot emerald">
-				{appState.currentMode === 'both' ? '1' : '①'}
-			</div>
+			<div class="step-dot emerald">①</div>
 			<p class="block-title">Record the Cry</p>
 		</div>
 		{#if appState.audioBlob}
 			<span class="badge badge-success">✓ Captured</span>
 		{:else}
-			<span class="badge" style="border-color:var(--emerald-border); color:var(--emerald)">Tap mic</span>
+			<span class="badge" style="border-color:var(--emerald-border); color:var(--emerald)">Tap mic or upload</span>
 		{/if}
 	</div>
 	<AudioRecorder />
 </div>
 {/if}
 
-<!-- Camera input -->
-{#if appState.currentMode === 'image' || appState.currentMode === 'both'}
+<!-- Image-only mode -->
+{#if appState.currentMode === 'image'}
 <div class="block block-camera">
 	<div class="block-head" style="border-color:var(--sky-border)">
 		<div class="block-head-left">
-			<div class="step-dot sky">
-				{appState.currentMode === 'both' ? '2' : '①'}
-			</div>
+			<div class="step-dot sky">①</div>
 			<p class="block-title">Baby's Face</p>
 		</div>
 		{#if appState.imageBlob}
@@ -80,6 +77,11 @@
 	</div>
 	<CameraCapture />
 </div>
+{/if}
+
+<!-- Both mode — unified step panel -->
+{#if appState.currentMode === 'both'}
+<BothModePanel />
 {/if}
 
 <!-- Analyze CTA -->

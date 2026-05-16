@@ -408,12 +408,6 @@
 		image-rendering: pixelated;
 		background: #000;
 	}
-	.rc-spec-labels {
-		display: flex; justify-content: space-between;
-		font-size: .58rem; color: var(--text-3); font-weight: 700; letter-spacing: .02em;
-		padding: 0 2px;
-	}
-	.spec-label-center { color: var(--text-3); opacity: .6; }
 	.rc-spec-caption {
 		font-size: .72rem; color: var(--text-2); line-height: 1.55;
 		padding: 10px 12px; border-radius: var(--r-md);
