@@ -9,7 +9,10 @@
  */
 
 /* ⚠️ Replace with your R2 bucket URL or leave empty for synth-only */
-export const R2_BASE = '';
+import { env } from '$env/dynamic/public';
+
+// Default to the internal /audio route which proxies the Cloudflare R2 bucket.
+export const R2_BASE = env.PUBLIC_R2_BASE || '/audio';
 
 function url(path) {
 	if (!R2_BASE) return '';
