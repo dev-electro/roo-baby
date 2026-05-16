@@ -1,5 +1,6 @@
 <script>
 	import { appState } from '$state/appState.svelte.js';
+	import { convertToWav, isSupportedAudioFormat } from '$utils/audioEncoder.js';
 	import { onDestroy } from 'svelte';
 	import Icon from './Icon.svelte';
 
@@ -21,10 +22,18 @@
 		chunks = [];
 		recorder = new MediaRecorder(stream);
 		recorder.ondataavailable = e => chunks.push(e.data);
-		recorder.onstop = () => {
-			const blob = new Blob(chunks, { type:'audio/webm' });
+		recorder.onstop = async () => {
+			const raw = new Blob(chunks, { type: recorder?.mimeType || 'audio/webm' });
+			// Convert to WAV if needed (Safari/Firefox may produce unsupported formats)
+			let blob = raw;
+			if (!isSupportedAudioFormat(raw.type)) {
+				appState.isConvertingAudio = true;
+				try { blob = await convertToWav(raw); } catch { blob = raw; }
+				appState.isConvertingAudio = false;
+			}
 			appState.audioBlob = blob;
-			appState.processAudio(blob).catch(() => {});
+			// processAudio generates spectrogram + sets spectrogramFailed if it fails
+			await appState.processAudio(blob);
 			stream?.getTracks().forEach(t => t.stop()); stream = null;
 		};
 		recorder.start(); secs = 0; recording = true;

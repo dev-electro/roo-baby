@@ -4,8 +4,8 @@
 	import { capturePhoto as trackPhoto } from '$utils/analytics.js';
 	import Icon from './Icon.svelte';
 
-	let videoEl = $state(undefined);
-	let canvasEl = $state(undefined);
+	/** @type {HTMLVideoElement|undefined} */  let videoEl  = $state(undefined);
+	/** @type {HTMLCanvasElement|undefined} */ let canvasEl = $state(undefined);
 
 	let preview  = $state('');
 	let fallback = $state(false);
@@ -14,6 +14,24 @@
 	let busy     = $state(false);
 	let asked    = $state(false);
 	let denied   = $state(false);
+
+	// 🔑 Core fix: when resetId changes (mode switch or manual reset),
+	// stop any running camera stream and reset all local UI state
+	// so the component returns to the idle "Open Camera" screen.
+	$effect(() => {
+		const _rid = appState.resetId; // reactive dependency
+		// Only react to external resets (not our own internal operations)
+		return () => {
+			// Cleanup: stop stream when this effect re-runs (resetId changed)
+			if (active || busy) {
+				appState.cameraStream?.getTracks().forEach(t => t.stop());
+				appState.cameraStream = null;
+				active = false; busy = false;
+			}
+			if (preview) { URL.revokeObjectURL(preview); preview = ''; }
+			asked = false; fallback = false; denied = false;
+		};
+	});
 
 	function req() { asked = true; start(); }
 

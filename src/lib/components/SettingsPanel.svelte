@@ -18,8 +18,8 @@
 </script>
 
 {#if appState.showSettings}
-<div class="ov animate-fade" onclick={close} role="button" tabindex="0" onkeydown={e => e.key==='Escape' && close()}>
-	<div class="pn animate-up" onclick={e => e.stopPropagation()} onkeydown={e => e.stopPropagation()} role="dialog" aria-modal="true" tabindex="0">
+<div class="ov animate-fade" role="presentation" onclick={close} onkeydown={e => e.key==='Escape' && close()}>
+	<div class="pn animate-up" onclick={e => e.stopPropagation()} onkeydown={e => e.stopPropagation()} role="dialog" aria-modal="true" aria-label="Settings" tabindex="-1">
 		<div class="pn-h">
 			<div class="pn-h-brand">
 				<Icon name="settings" size={16} color="var(--lavender)" />

@@ -1,7 +1,6 @@
 <script>
 	import { appState } from '$state/appState.svelte.js';
 	import { convertToWav, isSupportedAudioFormat } from '$utils/audioEncoder.js';
-	import { generateSpectrogram } from '$utils/spectrogramGenerator.js';
 	import { downscaleImage } from '$utils/imageUtils.js';
 	import { onDestroy } from 'svelte';
 	import Icon from './Icon.svelte';
@@ -12,7 +11,7 @@
 	const MAX=30;
 
 	/* ── Camera state ── */
-	let vEl = $state(undefined), cEl = $state(undefined);
+	let vEl = $state(/** @type {HTMLVideoElement|undefined} */(undefined)), cEl = $state(/** @type {HTMLCanvasElement|undefined} */(undefined));
 	let imgOk=$state(false), camOn=$state(false), imgFall=$state(false);
 	let facing=$state('user'), camBusy=$state(false), camAsk=$state(false);
 	let preview=$state(''), camDenied=$state(false);
@@ -34,26 +33,17 @@
 	}
 
 	async function handleAudioInput(blob, rid) {
-		if(isSupportedAudioFormat(blob.type)){appState.audioBlob=blob}
-		else{
-			appState.isConvertingAudio=true;
-			try{ const wav=await convertToWav(blob); if(appState.resetId!==rid)return; appState.audioBlob=wav; }
-			catch{ appState.setError('Conversion failed') }
-			finally{ appState.isConvertingAudio=false }
+		let finalBlob = blob;
+		if (!isSupportedAudioFormat(blob.type)) {
+			appState.isConvertingAudio = true;
+			try { finalBlob = await convertToWav(blob); } catch { /* keep original */ }
+			finally { appState.isConvertingAudio = false; }
 		}
-
-		if (appState.audioBlob) {
-			await appState.processAudio(appState.audioBlob);
-		}
-
-		if(aStream) { aStream.getTracks().forEach(t=>t.stop()); aStream=null; }
-		
-		if(appState.audioBlob && appState.resetId===rid){
-			appState.isGeneratingSpectrogram=true;
-			try{ const sg=await generateSpectrogram(appState.audioBlob); if(appState.resetId!==rid)return; appState.spectrogramBlob=sg; appState.setSpectrogramFailed(false); }
-			catch{ appState.spectrogramBlob=null; appState.setSpectrogramFailed(true); }
-			finally{ appState.isGeneratingSpectrogram=false }
-		}
+		if (appState.resetId !== rid) return;
+		appState.audioBlob = finalBlob;
+		// processAudio handles spectrogram generation + spectrogramFailed flag
+		if (aStream) { aStream.getTracks().forEach(t => t.stop()); aStream = null; }
+		if (appState.resetId === rid) await appState.processAudio(finalBlob);
 	}
 
 	function aUpload(e) {

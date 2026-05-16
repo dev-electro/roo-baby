@@ -19,7 +19,7 @@
 	let m  = $derived(r ? (CAT_META[/** @type {string} */(r.category)] ?? CAT_META.UNKNOWN) : null);
 	let sv = $derived(r?.severity ?? 'NONE');
 
-	let cardEl = $state(undefined);
+	let cardEl = $state(/** @type {HTMLElement|undefined} */(undefined));
 	$effect(() => {
 		if (r && cardEl) { setTimeout(() => cardEl?.scrollIntoView({ behavior:'smooth', block:'nearest' }), 80); }
 	});

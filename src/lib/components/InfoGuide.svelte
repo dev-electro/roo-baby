@@ -42,8 +42,9 @@
 				class="ig-tab"
 				class:active={activeSection === s.id}
 				onclick={() => activeSection = s.id}
+				aria-label={s.label}
 			>
-				<span>{s.icon}</span>
+				<span aria-hidden="true">{s.icon}</span>
 				<span class="ig-tab-label">{s.label}</span>
 			</button>
 		{/each}
