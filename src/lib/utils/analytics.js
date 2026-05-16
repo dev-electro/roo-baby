@@ -36,3 +36,22 @@ export function trackError(mode, errorMessage) {
 		error_message: errorMessage
 	});
 }
+
+export function trackSoothe(trackId, category) {
+	trackEvent('soothe_started', {
+		track_id: trackId,
+		track_category: category
+	});
+}
+
+export function trackPermissionDenied(resource) {
+	trackEvent('permission_denied', {
+		resource_type: resource
+	});
+}
+
+export function trackResultAction(action) {
+	trackEvent('result_action_clicked', {
+		action_type: action
+	});
+}

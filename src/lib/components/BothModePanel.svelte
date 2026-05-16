@@ -2,7 +2,7 @@
 	import { appState } from '$state/appState.svelte.js';
 	import { convertToWav, isSupportedAudioFormat } from '$utils/audioEncoder.js';
 	import { downscaleImage } from '$utils/imageUtils.js';
-	import { trackInputCapture } from '$utils/analytics.js';
+	import { trackInputCapture, trackPermissionDenied } from '$utils/analytics.js';
 	import { onDestroy } from 'svelte';
 	import Icon from './Icon.svelte';
 
@@ -31,7 +31,7 @@
 			};
 			aRec.start(); aRecOn=true; appState.isRecording=true; aElapsed=0;
 			aTimer=setInterval(()=>{aElapsed++;if(aElapsed>=MAX)aStop()},1000);
-		} catch{ appState.setError('Microphone needed') }
+		} catch{ appState.setError('Microphone needed'); trackPermissionDenied('audio'); }
 	}
 
 	async function handleAudioInput(blob, rid) {
@@ -77,7 +77,7 @@
 			if(vEl){vEl.srcObject=s;try{await vEl.play()}catch{}}
 		}catch(err){
 			camBusy=false;
-			if(err?.name==='NotAllowedError') camDenied=true;
+			if(err?.name==='NotAllowedError') { camDenied=true; trackPermissionDenied('camera'); }
 			else imgFall=true;
 		}
 	}

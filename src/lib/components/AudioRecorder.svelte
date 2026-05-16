@@ -20,7 +20,7 @@
 	async function start() {
 		denied = false;
 		try { stream = await navigator.mediaDevices.getUserMedia({ audio:true }); }
-		catch { denied = true; return; }
+		catch { denied = true; trackPermissionDenied('audio'); return; }
 		chunks = [];
 		recorder = new MediaRecorder(stream);
 		recorder.ondataavailable = e => chunks.push(e.data);

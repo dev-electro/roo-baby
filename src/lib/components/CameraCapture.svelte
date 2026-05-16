@@ -1,7 +1,7 @@
 <script>
 	import { appState } from '$state/appState.svelte.js';
 	import { onDestroy } from 'svelte';
-	import { trackInputCapture } from '$utils/analytics.js';
+	import { trackInputCapture, trackPermissionDenied } from '$utils/analytics.js';
 	import Icon from './Icon.svelte';
 
 	/** @type {HTMLVideoElement|undefined} */  let videoEl  = $state(undefined);
@@ -48,7 +48,7 @@
 			if (videoEl) { videoEl.srcObject = s; try { await videoEl.play(); } catch {} }
 		} catch (/** @type {any} */ err) {
 			busy = false;
-			if (err?.name === 'NotAllowedError') denied = true;
+			if (err?.name === 'NotAllowedError') { denied = true; trackPermissionDenied('camera'); }
 			else fallback = true;
 		}
 	}

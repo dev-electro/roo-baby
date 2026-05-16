@@ -21,7 +21,7 @@
 
 	import { playResponse, halt as stopAll, unlock as ensureAudio, setVol, isPlaying } from '$utils/soundGenerator.js';
 	import { speak, stopSpeaking, unlockSpeech, isSpeaking } from '$utils/ttsEngine.js';
-	import { playSound as trackSound, playTTS as trackTTS } from '$utils/analytics.js';
+	import { trackEvent } from '$utils/analytics.js';
 
 	let msg = $derived(appState.result ? MSGS[appState.result.category] || MSGS.UNKNOWN : '');
 	let currentSound = $derived(appState.result?.response_sound || 'whitenoise');
@@ -32,7 +32,7 @@
 		unlockSpeech(); ensureAudio();
 		playingTTS = true;
 		speak(msg);
-		trackTTS(appState.result?.category || 'unknown');
+		trackEvent('response_tts_played', { category: appState.result?.category || 'unknown' });
 		// Bug fix: poll isSpeaking() to re-enable button
 		clearInterval(ttsTimer);
 		ttsTimer = setInterval(() => {
@@ -40,7 +40,7 @@
 		}, 300);
 	}
 
-	function playSound(name) { ensureAudio(); playResponse(name); trackSound(name, 'response'); }
+	function playSound(name) { ensureAudio(); playResponse(name); trackEvent('response_sound_played', { sound: name }); }
 
 	function handleStop() { stopAll(); stopSpeaking(); playingTTS = false; clearInterval(ttsTimer); }
 

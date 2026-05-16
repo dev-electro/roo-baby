@@ -1,6 +1,7 @@
 <script>
 	import { start, halt, setVol, getVol, unlock } from '$utils/soundGenerator.js';
 	import { categories as R2_CATEGORIES, synths as SYNTH_TRACKS } from '$lib/data/soothingTracks.js';
+	import { trackSoothe } from '$utils/analytics.js';
 	import Icon from './Icon.svelte';
 
 	/** @typedef {{ id: string, name: string, icon: string, color: string, cat: string, desc?: string, src?: string }} Track */
@@ -39,6 +40,7 @@
 		if (playing === t.id) { stopAll(); return; }
 		stopAll();
 		playing = t.id;
+		trackSoothe(t.id, t.cat);
 		if (t.cat === 'synth') {
 			playingType = 'synth';
 			unlock(); start(t.id);

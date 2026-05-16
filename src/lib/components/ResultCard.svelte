@@ -1,5 +1,6 @@
 <script>
 	import { appState } from '$state/appState.svelte.js';
+	import { trackResultAction } from '$utils/analytics.js';
 	import Icon from './Icon.svelte';
 
 	const CAT_META = {
@@ -221,6 +222,14 @@
 		<Icon name="sparkles" size={16} color={m.color} />
 		<p class="rc-action-text">{r.parent_action || m.advice}</p>
 	</div>
+	
+	<!-- Soothe promo CTA -->
+	<div class="rc-soothe-promo">
+		<a href="/soothe" class="rc-soothe-btn" onclick={() => trackResultAction('play_soothe')}>
+			<Icon name="music" size={16} color="#fff" />
+			Play Soothing Sounds
+		</a>
+	</div>
 
 	<!-- Spectrogram viewer -->
 	{#if spectrogramUrl}
@@ -378,6 +387,21 @@
 		background: var(--cat-bg);
 	}
 	.rc-action-text { font-size: .9rem; font-weight: 700; color: var(--text); line-height: 1.5; }
+
+	/* Soothe Promo */
+	.rc-soothe-promo {
+		padding: 16px 20px; border-bottom: 1px solid var(--border);
+		display: flex; justify-content: center;
+	}
+	.rc-soothe-btn {
+		display: flex; align-items: center; justify-content: center; gap: 10px;
+		width: 100%; height: 48px; border-radius: var(--r-md);
+		background: var(--amber); color: #fff; font-size: .95rem; font-weight: 800;
+		text-decoration: none; transition: background .15s, transform .1s;
+		box-shadow: 0 4px 12px var(--amber-glow, rgba(245,158,11,.2));
+	}
+	.rc-soothe-btn:hover { background: var(--amber-2, #d97706); transform: translateY(-1px); }
+	.rc-soothe-btn:active { transform: scale(.98); }
 
 	/* Spectrogram viewer */
 	.rc-spec-wrap { border-bottom: 1px solid var(--border); }

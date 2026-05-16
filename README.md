@@ -1,173 +1,106 @@
-# ROO — Baby Cry Analyzer 🍼
+# ROO — The Multimodal Baby Cry Analyzer 🍼
 
-**World's first multimodal baby cry analyzer + responder.**  
-Built for the [DEV x Gemma 4 Challenge](https://dev.to/challenges/gemma4).
+*This is a submission for the [Gemma 4 Challenge: Build with Gemma 4](https://dev.to/challenges/google-gemma-2026-05-06).*
 
----
-
-## Architecture (Dual Backend)
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                      ROO Frontend (SvelteKit PWA)                │
-│                    https://roo-baby.pages.dev                    │
-└──────────┬──────────────────────────────────┬───────────────────┘
-           │                                  │
-           ▼                                  ▼
-┌──────────────────────┐         ┌──────────────────────────────┐
-│  Cloud Pages Function│         │  Google Colab + ngrok        │
-│  (/api/analyze)      │         │  (FastAPI on T4 GPU)         │
-│                      │         │                              │
-│  Gemini 2.0 Flash    │         │  Gemma 4 E4B (8B params)    │
-│  ★ Fast demo         │         │  ★ True audio+vision model   │
-│  ★ No GPU needed     │         │  ★ Challenge-winning accuracy│
-│  ★ Always online     │         │  ★ 30s audio, multilingual   │
-└──────────────────────┘         └──────────────────────────────┘
-```
-
-**One frontend, two backends.** Toggle in Settings. Cloud for instant demo. Colab for real Gemma 4 E4B.
+**Live Demo:** [roo.risingranks.in](https://roo.risingranks.in) · [roo-baby.pages.dev](https://roo-baby.pages.dev)  
+*(Works on any modern mobile browser — try it with mic and camera enabled)*
 
 ---
 
-## Features
+## 🍼 The Problem
 
-- **Audio Analysis** — Record cries, WebM→WAV auto-conversion, instant AI analysis
-- **Image Analysis** — Capture baby face, detect distress signals before crying starts
-- **Best Mode (Both)** — Combined audio + vision, cross-referenced for highest accuracy
-- **Soothing Response** — Web Audio heartbeat, white noise, lullaby, shush
-- **TTS Comfort** — Gentle maternal voice speaks to baby
-- **PWA** — Install on mobile, offline cache, service worker
-- **Analysis History** — All results persisted in localStorage
-- **Dual Backend** — Pages Function for quick demo, Colab for true Gemma 4 E4B
+Every parent faces this at 3 AM: *your baby is crying and you have no idea why.*
+
+Existing apps (CryAnalyzer, ChatterBaby, AYA) rely on outdated CNN classifiers from 2019-2022. They frequently fail parents because they can *hear* a cry, but they cannot truly *understand* it. 
+
+**ROO does two things no existing app does:**
+1. **Analyzes** baby cries using both acoustic (audio) AND visual (face) signals together.
+2. **Responds back** to the baby with scientifically-matched soothing sounds and a maternal voice.
+
+## 🧠 How I Used Gemma 4
+
+### The Core Technical Insight: "Audio as Vision"
+
+Because public web-inference providers for Gemma 4's native-audio models aren't widely available yet, I took a different approach: **I made the model *see* the cry instead of hear it.**
+
+ROO uses the Web Audio API to convert the raw audio of a baby's cry into a **mel spectrogram** entirely on the client-side. A spectrogram is a 2D image where X = time, Y = frequency, and brightness = energy. 
+
+Every cry type has a visually distinct pattern:
+- **Hunger:** Regular repeating bands with gaps (rhythmic).
+- **Pain:** Sudden bright explosion across all frequencies.
+- **Tired:** Fading, irregular, concentrated in the lower frequency range.
+
+This image is then securely sent to **Gemma 4's Vision Model**. This isn't just a workaround—spectrogram-based audio classification is an industry-standard approach in audio ML research.
+
+**Result: Gemma 4's advanced visual reasoning applied to sound.**
+
+### Three Input Modes
+1. **🎙️ Audio Only:** Record cry → spectrogram → Gemma 4 vision → classification. *(Best for dark rooms at night).*
+2. **📸 Image Only:** Baby face photo → Gemma 4 vision → expression analysis. *(The surprise feature: **pre-cry detection**. Detects rooting reflex or lip-smacking before crying begins).*
+3. **⚡ Audio + Image (Best Mode):** Both inputs → Gemma 4 cross-references both signals. *(When acoustic patterns AND facial expressions agree, confidence jumps significantly).*
+
+### 🎶 ROO Responds Back
+
+After classifying the cry, ROO actively responds to the baby:
+
+| Cry Type | Sound Response | Voice Response |
+|---|---|---|
+| **Hunger** | 60 BPM heartbeat | *"Shh little one, food is coming…"* |
+| **Pain** | Womb white noise | *"It's okay baby, mama is here…"* |
+| **Tired** | Soft lullaby tones | *"Time to sleep, you're safe…"* |
+| **Discomfort**| Rhythmic shushing | *"Shh shh, getting comfortable…"* |
+
+*All responses are backed by infant psychology research.*
 
 ---
 
-## Quick Start (Cloud Demo)
+## 🛠 Tech Stack
 
-### 1. Deploy on Cloudflare Pages
+- **Frontend:** SvelteKit (Svelte 5 Runes)
+- **Deployment:** Cloudflare Pages (Static + Edge API Routes)
+- **AI Engine:** Gemma 4 Vision 
+- **Audio Processing:** MediaRecorder API → Local Mel Spectrogram Generation
+- **Visuals:** `getUserMedia` API
+- **Response:** Web Audio API (synthesized sounds/R2 streaming) + Web Speech API (TTS)
 
-| Setting | Value |
-|---------|-------|
-| Build command | `npm run build` |
-| Build output | `.svelte-kit/cloudflare` |
-| Env: `GEMINI_API_KEY` | From [aistudio.google.com/apikey](https://aistudio.google.com/app/apikey) |
+## 🚀 Quick Start (Local Development)
 
+### 1. Clone & Install
 ```bash
 git clone https://github.com/dev-electro/roo-baby.git
 cd roo-baby
 npm install
-npm run build
 ```
 
-Deploy via Cloudflare Dashboard → Pages → Connect Git → `dev-electro/roo-baby`.
+### 2. Environment Variables
+Create a `.env` file in the root directory:
+```env
+# Your AI API key (supports Gemini/OpenRouter endpoints)
+VITE_API_KEY=your_api_key_here
+```
 
-### 2. Verify
-
+### 3. Run Locally
 ```bash
-curl https://roo-baby.pages.dev/api/health
-# {"status":"ok","key_set":true,"model":"gemini-2.0-flash"}
+npm run dev
 ```
+Open `http://localhost:5173` in your browser. 
 
 ---
 
-## True Gemma 4 E4B (Colab GPU)
+## 🔒 Privacy First
 
-For the **real Gemma 4 E4B** with native audio analysis:
+ROO is designed for infants, so privacy is non-negotiable.
+- **No PII:** No accounts, names, or emails required.
+- **No Logging:** Audio recordings and photos are *never* saved or logged to a database.
+- **Transient Processing:** Audio is processed into a spectrogram locally. The spectrogram and downscaled photo are sent to the AI, analyzed, and immediately discarded.
 
-### 1. Open Google Colab
+## 🔮 What's Next?
 
-Copy the cells from `backend/colab_setup.sh` into a new Colab notebook with **T4 GPU** runtime.
-
-### 2. Get ngrok URL
-
-The Colab script auto-starts the server and prints:
-```
-🍼 ROO API URL: https://xxxx-xxxx.ngrok-free.app
-```
-
-### 3. Configure Frontend
-
-1. Open https://roo-baby.pages.dev
-2. Tap settings gear (bottom-right)
-3. Paste the ngrok URL
-4. Save → now using true Gemma 4 E4B
+- **V2:** Switch to native audio input via Gemma 4 E4B/E2B endpoints when available (no spectrogram needed).
+- **V3:** ROO learns YOUR baby's unique cry patterns over time.
+- **V4:** Baby Monitor Mode — passive listening and push notifications.
+- **V5:** Medical anomaly detection (e.g., jaundice or neurological indicators).
+- **V6:** Full on-device inference via LiteRT-LM (Zero internet required).
 
 ---
-
-## Backend API
-
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/health` | GET | Status check |
-| `/analyze/audio` | POST | Audio-only cry analysis |
-| `/analyze/image` | POST | Image-only face analysis |
-| `/analyze/both` | POST | Combined audio + image |
-| `/api/analyze` | POST | Pages Function (auto-detects mode) |
-
-### Response Format
-
-```json
-{
-  "category": "HUNGER",
-  "confidence": 91,
-  "severity": "HIGH",
-  "reasoning": "Both audio rhythm and visual rooting confirm hunger",
-  "parent_action": "Baby is hungry. Feed immediately.",
-  "response_sound": "heartbeat",
-  "pre_cry": false,
-  "pre_cry_message": null
-}
-```
-
----
-
-## Benchmark
-
-```bash
-cd backend
-python benchmark.py
-```
-
-Tests against [Donate a Cry corpus](https://github.com/gveres/donateacry-corpus) across 5 categories. Results saved to `benchmark_results.json`.
-
----
-
-## Project Structure
-
-```
-roo-baby/
-├── src/                    # SvelteKit frontend
-│   ├── routes/             # Pages + layout
-│   ├── lib/components/     # 11 Svelte 5 components
-│   ├── lib/utils/          # Audio, API, TTS, sounds, history
-│   └── lib/state/          # Svelte 5 runes state
-├── functions/api/          # Cloudflare Pages Functions
-│   ├── analyze.js          # Gemini API proxy
-│   └── health.js           # Deployment health
-├── backend/                # Colab Python backend
-│   ├── app.py              # FastAPI server
-│   ├── model.py            # Gemma 4 E4B loader
-│   ├── prompts.py          # Analysis prompt templates
-│   ├── benchmark.py        # Accuracy testing
-│   ├── requirements.txt    # Python deps
-│   └── colab_setup.sh      # One-click Colab setup
-├── static/                 # PWA assets
-├── svelte.config.js        # adapter-static
-└── README.md
-```
-
----
-
-## Model Comparison
-
-| Model | Audio | Image | Access | Best For |
-|-------|-------|-------|--------|----------|
-| **Gemma 4 E4B** | ✅ Native | ✅ | HuggingFace / Colab GPU | Challenge submission |
-| **Gemini 2.0 Flash** | ✅ | ✅ | Gemini API / Pages | Instant demo |
-| Gemma 4 26B A4B | ❌ | ✅ | Gemini API | Image-only |
-
-> Only **E2B** and **E4B** Gemma 4 variants support native audio. We deploy E4B via Colab for the challenge.
-
----
-
-*Built with love for tired parents everywhere. Powered by Gemma 4.*
+*Babies have been trying to communicate since the beginning of humanity. We finally have a model capable enough to start listening.*

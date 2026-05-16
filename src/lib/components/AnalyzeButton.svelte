@@ -5,7 +5,7 @@
 	import { playResponse, unlock as ensureAudio } from '$utils/soundGenerator.js';
 	import { speak, unlockSpeech } from '$utils/ttsEngine.js';
 	import { saveToHistory } from '$utils/historyStore.js';
-	import { analyzeCry as trackAnalyze, analyzeError as trackError } from '$utils/analytics.js';
+	import { trackAnalyze, trackError } from '$utils/analytics.js';
 	import Icon from './Icon.svelte';
 
 	const MSGS = {
