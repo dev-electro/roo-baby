@@ -345,13 +345,13 @@
 		position: relative; width: 100%;
 		/* Tall 3:4 ratio for portrait face capture */
 		aspect-ratio: 3/4;
-		min-height: 360px;
+		max-height: 78vw;
 		border-radius: var(--r-xl);
 		overflow: hidden;
 		background: #000;
 		animation: fade-in .25s ease both;
 	}
-	@media(min-width: 480px) { .cc-viewfinder { min-height: 460px; aspect-ratio: 3/5; } }
+	@media(min-width: 480px) { .cc-viewfinder { max-height: 420px; } }
 
 	/* Full-bleed mode — remove card body padding via parent */
 	.cc--live .cc-viewfinder { border-radius: var(--r-xl); }

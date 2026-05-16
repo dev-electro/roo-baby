@@ -29,6 +29,10 @@ export const categories = [
 			{ name: 'Hush Little Baby',     artist: 'Traditional',  url: url('/lullabies/hush.m4a') },
 			{ name: 'Rock-a-Bye Baby',      artist: 'Traditional',  url: url('/lullabies/rockabye.m4a') },
 			{ name: 'Clair de Lune',        artist: 'Debussy',      url: url('/lullabies/clairdelune.m4a') },
+			{ name: 'Schubert Lullaby',     artist: 'Classical',    url: url('/lullabies/schubert.m4a') },
+			{ name: 'Air on the G String',  artist: 'Bach',         url: url('/lullabies/bach.m4a') },
+			{ name: 'Moonlight Sonata',     artist: 'Beethoven',    url: url('/lullabies/beethoven.m4a') },
+			{ name: 'Nocturne in E-Flat',   artist: 'Chopin',       url: url('/lullabies/chopin.m4a') },
 		]
 	},
 	{

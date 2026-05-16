@@ -347,7 +347,8 @@
 	.btn-big:hover { transform:translateY(-2px); filter:brightness(1.05); }
 
 	.c-view-container { display:flex; flex-direction:column; gap:12px; width:100%; }
-	.c-view { position:relative; width:100%; aspect-ratio:3/4; border-radius:var(--r-lg); overflow:hidden; background:#000; box-shadow:var(--shadow-md); }
+	.c-view { position:relative; width:100%; aspect-ratio:3/4; max-height:78vw; border-radius:var(--r-lg); overflow:hidden; background:#000; box-shadow:var(--shadow-md); }
+	@media(min-width: 480px) { .c-view { max-height: 420px; } }
 	.c-video { width:100%; height:100%; object-fit:cover; }
 	.c-video.mirror { transform:scaleX(-1); }
 	.c-overlay { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; pointer-events:none; }
