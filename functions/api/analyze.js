@@ -315,12 +315,10 @@ export async function onRequest({ request, env }) {
 		if ((mode === 'audio' || mode === 'both') && spectrogramBlob?.size > 0) {
 			const atlas = await getAtlasBase64(siteUrl);
 			if (atlas) images.push({ b64: atlas.b64, mime: atlas.mime });
-		}
-		if (spectrogramBlob?.size > 0) {
 			const b64 = await blobToBase64(spectrogramBlob);
-			images.push({ b64, mime: spectrogramBlob.type || 'image/png' });
+			images.push({ b64, mime: spectrogramBlob.type || 'image/webp' });
 		}
-		if (imageBlob?.size > 0) {
+		if ((mode === 'image' || mode === 'both') && imageBlob?.size > 0) {
 			const b64 = await blobToBase64(imageBlob);
 			images.push({ b64, mime: imageBlob.type || 'image/jpeg' });
 		}

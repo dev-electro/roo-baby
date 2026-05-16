@@ -216,7 +216,7 @@ function renderSpectrogramCanvas(magnitudes, numFrames) {
 	drawLabels(ctx, SPECTROGRAM_WIDTH, SPECTROGRAM_HEIGHT, SPECTROGRAM_PLOT_W, SPECTROGRAM_PLOT_H, LABEL_MARGIN_LEFT, 0, duration);
 
 	return new Promise((resolve) => {
-		canvas.toBlob((blob) => resolve(blob), 'image/png');
+		canvas.toBlob((blob) => resolve(blob), 'image/webp', 0.92);
 	});
 }
 
@@ -258,7 +258,7 @@ function renderSpectrogramOffscreen(magnitudes, numFrames) {
 	const duration = (numFrames * HOP_SIZE) / SAMPLE_RATE;
 	drawLabels(ctx, SPECTROGRAM_WIDTH, SPECTROGRAM_HEIGHT, SPECTROGRAM_PLOT_W, SPECTROGRAM_PLOT_H, LABEL_MARGIN_LEFT, 0, duration);
 
-	return canvas.convertToBlob({ type: 'image/png' });
+	return canvas.convertToBlob({ type: 'image/webp', quality: 0.92 });
 }
 
 /**

@@ -23,7 +23,7 @@ export async function analyze({ mode, audio, image, spectrogram, audioFeatures, 
 	const formData = new FormData();
 
 	if (mode !== 'image' && spectrogram) {
-		formData.append('spectrogram', spectrogram, 'spectrogram.png');
+		formData.append('spectrogram', spectrogram, 'spectrogram.webp');
 	}
 
 	if (mode !== 'audio' && image) {

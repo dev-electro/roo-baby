@@ -46,10 +46,16 @@
 		if (appState.resetId === rid) await appState.processAudio(finalBlob);
 	}
 
+	/** @type {HTMLInputElement|undefined} */ let aFileEl = $state(undefined);
+	/** @type {HTMLInputElement|undefined} */ let cFileEl = $state(undefined);
+	function pickAudio() { aFileEl?.click(); }
+	function pickImage() { cFileEl?.click(); }
+
 	function aUpload(e) {
 		const f = e.target.files?.[0];
 		if (f) {
 			handleAudioInput(f, appState.resetId);
+			if (aFileEl) aFileEl.value = '';
 		}
 	}
 
@@ -97,6 +103,7 @@
 			preview=URL.createObjectURL(scaled); appState.imageBlob=scaled; imgOk=true;
 			imgFall=false; camDenied=false;
 			cStop();
+			if (cFileEl) cFileEl.value = '';
 		}
 	}
 	function cRetake(){ appState.bumpReset(); if(preview)URL.revokeObjectURL(preview); preview=''; appState.imageBlob=null; imgOk=false; camAsk=false; imgFall=false; camOn=false; camDenied=false; }
@@ -153,11 +160,10 @@
 						<div class="a-actions">
 							<p class="a-hint">Tap to record live cry</p>
 							<div class="a-or"><span>OR</span></div>
-							<label class="btn-secondary">
+							<button class="btn-secondary" onclick={pickAudio}>
 								<Icon name="upload" size={16} color="currentColor" />
 								Upload audio file
-								<input type="file" accept="audio/*" onchange={aUpload} class="c-hidden" />
-							</label>
+							</button>
 						</div>
 					{/if}
 				</div>
@@ -177,10 +183,9 @@
 							<div class="done-badge"><Icon name="check" size={14} color="var(--mint)" /> Captured</div>
 							<div class="act-row">
 								<button class="btn-xs" onclick={cRetake}><Icon name="refresh" size={12} color="currentColor" /> Retake</button>
-								<label class="btn-xs">
+								<button class="btn-xs" onclick={pickImage}>
 									<Icon name="upload" size={12} color="currentColor" /> Replace
-									<input type="file" accept="image/*" onchange={cUpload} class="c-hidden"/>
-								</label>
+								</button>
 							</div>
 						</div>
 					</div>
@@ -191,20 +196,18 @@
 						<p class="denied-sub">Please allow camera or upload a photo</p>
 						<div class="act-row">
 							<button class="btn-secondary" onclick={() => { camDenied = false; cReq(); }}>Try again</button>
-							<label class="btn-primary">
+							<button class="btn-primary" onclick={pickImage}>
 								<Icon name="upload" size={16} color="currentColor" /> Upload photo
-								<input type="file" accept="image/*" onchange={cUpload} class="c-hidden"/>
-							</label>
+							</button>
 						</div>
 					</div>
 				{:else if imgFall}
 					<div class="fall">
-						<label class="fall-label">
+						<div class="fall-label" role="button" tabindex="0" onclick={pickImage} onkeydown={e=>e.key==='Enter'&&pickImage()}>
 							<Icon name="upload" size={32} color="var(--lavender)" />
 							<span class="fall-t">Upload baby's photo</span>
 							<span class="fall-s">Clear, well-lit photo of the face</span>
-							<input type="file" accept="image/*" onchange={cUpload} class="c-hidden"/>
-						</label>
+						</div>
 						<button class="btn-ghost" onclick={()=>{imgFall=false;cReq()}}>
 							<Icon name="camera" size={14} color="currentColor" /> Use camera instead
 						</button>
@@ -214,11 +217,10 @@
 						<div class="c-ask-icon"><Icon name="camera" size={32} color="var(--mint)" /></div>
 						<button class="btn-big" onclick={cReq}>Open Camera</button>
 						<div class="a-or"><span>OR</span></div>
-						<label class="btn-secondary">
+						<button class="btn-secondary" onclick={pickImage}>
 							<Icon name="upload" size={16} color="currentColor" />
 							Upload photo
-							<input type="file" accept="image/*" onchange={cUpload} class="c-hidden"/>
-						</label>
+						</button>
 					</div>
 				{:else}
 					<div class="c-view-container">
@@ -236,10 +238,9 @@
 								<div class="c-snap-i"></div>
 							</button>
 						</div>
-						<label class="lk-upload">
+						<button class="lk-upload" onclick={pickImage}>
 							<Icon name="upload" size={14} color="currentColor" /> Upload instead
-							<input type="file" accept="image/*" onchange={cUpload} class="c-hidden"/>
-						</label>
+						</button>
 					</div>
 				{/if}
 				
@@ -251,7 +252,16 @@
 		{/if}
 	</div>
 </div>
+<!-- Persistent hidden file inputs — NEVER inside #if blocks.
+     Prevents browser focus-restoration from auto-opening the dialog on tab switch. -->
+<input bind:this={aFileEl} type="file" accept="audio/*" onchange={aUpload}
+	style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;top:0;left:0"
+	tabindex="-1" aria-hidden="true" />
+<input bind:this={cFileEl} type="file" accept="image/*" onchange={cUpload}
+	style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;top:0;left:0"
+	tabindex="-1" aria-hidden="true" />
 <canvas bind:this={cEl} style="display:none"></canvas>
+
 
 <style>
 	.both { display:flex; flex-direction:column; gap:20px; padding:20px; width:100%; max-width:500px; margin:0 auto; }
@@ -384,7 +394,7 @@
 	}
 	.btn-back:hover { color:var(--lavender); }
 
-	.c-hidden { position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; height:100%; }
+
 	
 	.fall { display:flex; flex-direction:column; align-items:center; gap:16px; width:100%; }
 	.fall-label {

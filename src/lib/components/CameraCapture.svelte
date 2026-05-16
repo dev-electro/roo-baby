@@ -75,15 +75,20 @@
 		}, 'image/jpeg', .92);
 	}
 
+	/** @type {HTMLInputElement|undefined} */ let fileEl = $state(undefined);
+
+	function pickFile() { fileEl?.click(); }
+
 	function upload(/** @type {Event} */ e) {
 		const f = /** @type {HTMLInputElement} */(e.target).files?.[0];
-		if (f) {
-			if (preview) URL.revokeObjectURL(preview);
-			preview = URL.createObjectURL(f);
-			appState.imageBlob = f;
-			fallback = false; asked = true;
-			trackPhoto('upload');
-		}
+		if (!f) return;
+		if (preview) URL.revokeObjectURL(preview);
+		preview = URL.createObjectURL(f);
+		appState.imageBlob = f;
+		fallback = false; asked = true;
+		trackPhoto('upload');
+		// Reset input so same file can be re-selected
+		if (fileEl) fileEl.value = '';
 	}
 
 	function retake() {
@@ -100,7 +105,7 @@
 	onDestroy(() => { stopStream(); if (preview) URL.revokeObjectURL(preview); });
 </script>
 
-<div class="cc">
+<div class="cc" class:cc--live={asked && active && !appState.imageBlob}>
 	{#if appState.imageBlob && preview}
 		<!-- ── PREVIEW — full-width captured image ── -->
 		<div class="cc-preview animate-in">
@@ -115,11 +120,10 @@
 						<Icon name="refresh" size={16} color="currentColor" />
 						Retake
 					</button>
-					<label class="cc-action-btn cc-accent">
+					<button class="cc-action-btn cc-accent" onclick={pickFile}>
 						<Icon name="upload" size={16} color="currentColor" />
 						Replace
-						<input type="file" accept="image/jpeg,image/png,image/webp" onchange={upload} class="cc-file" />
-					</label>
+					</button>
 				</div>
 			</div>
 		</div>
@@ -136,24 +140,22 @@
 				<button class="btn-secondary" onclick={() => { denied = false; req(); }}>
 					<Icon name="refresh" size={16} color="currentColor" /> Try again
 				</button>
-				<label class="btn-primary">
+				<button class="btn-primary" onclick={pickFile}>
 					<Icon name="upload" size={16} color="currentColor" /> Upload photo
-					<input type="file" accept="image/jpeg,image/png,image/webp" onchange={upload} class="cc-file" />
-				</label>
+				</button>
 			</div>
 		</div>
 
 	{:else if fallback}
 		<!-- ── UPLOAD FALLBACK ── -->
-		<label class="cc-dropzone">
+		<div class="cc-dropzone" role="button" tabindex="0" onclick={pickFile} onkeydown={e => e.key==='Enter' && pickFile()}>
 			<div class="cc-drop-icon">
 				<Icon name="upload" size={30} color="var(--accent)" />
 			</div>
 			<p class="cc-drop-title">Upload a photo</p>
 			<p class="cc-drop-sub">Clear, well-lit photo of baby's face · JPG or PNG</p>
 			<span class="cc-drop-cta">Choose photo</span>
-			<input type="file" accept="image/jpeg,image/png,image/webp" onchange={upload} class="cc-file" />
-		</label>
+		</div>
 		<button class="btn-ghost" style="align-self:center" onclick={() => { fallback = false; req(); }}>
 			<Icon name="camera" size={15} color="currentColor" /> Try camera instead
 		</button>
@@ -170,10 +172,9 @@
 				<Icon name="camera" size={20} color="#fff" />
 				Open Camera
 			</button>
-			<label class="btn-ghost" style="align-self:center; cursor:pointer">
+			<button class="btn-ghost" style="align-self:center; cursor:pointer" onclick={pickFile}>
 				<Icon name="upload" size={15} color="currentColor" /> Upload a photo instead
-				<input type="file" accept="image/jpeg,image/png,image/webp" onchange={upload} class="cc-file" />
-			</label>
+			</button>
 		</div>
 
 	{:else}
@@ -210,10 +211,9 @@
 				<button class="cc-flip-btn" onclick={flip} aria-label="Flip camera">
 					<Icon name="flip-camera" size={18} color="#fff" />
 				</button>
-				<label class="cc-flip-btn" title="Upload instead">
+				<button class="cc-flip-btn" onclick={pickFile} title="Upload instead" aria-label="Upload photo instead">
 					<Icon name="upload" size={18} color="#fff" />
-					<input type="file" accept="image/jpeg,image/png,image/webp" onchange={upload} class="cc-file" />
-				</label>
+				</button>
 			</div>
 
 			<!-- Bottom overlay: shutter -->
@@ -226,6 +226,17 @@
 	{/if}
 
 	<canvas bind:this={canvasEl} style="display:none"></canvas>
+	<!-- Single persistent hidden file input — NEVER inside #if blocks -->
+	<!-- This prevents browser focus-restoration from auto-opening the dialog on tab switch -->
+	<input
+		bind:this={fileEl}
+		type="file"
+		accept="image/jpeg,image/png,image/webp"
+		onchange={upload}
+		style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;top:0;left:0"
+		tabindex="-1"
+		aria-hidden="true"
+	/>
 </div>
 
 <style>
@@ -334,12 +345,16 @@
 		position: relative; width: 100%;
 		/* Tall 3:4 ratio for portrait face capture */
 		aspect-ratio: 3/4;
-		max-height: 78vw;
+		min-height: 360px;
 		border-radius: var(--r-xl);
 		overflow: hidden;
 		background: #000;
+		animation: fade-in .25s ease both;
 	}
-	@media(min-width: 480px) { .cc-viewfinder { max-height: 420px; } }
+	@media(min-width: 480px) { .cc-viewfinder { min-height: 460px; aspect-ratio: 3/5; } }
+
+	/* Full-bleed mode — remove card body padding via parent */
+	.cc--live .cc-viewfinder { border-radius: var(--r-xl); }
 
 	.cc-video {
 		width: 100%; height: 100%;
@@ -402,10 +417,5 @@
 	.cc-shutter-inner {
 		width: 58px; height: 58px; border-radius: 50%;
 		background: rgba(255,255,255,.9);
-	}
-
-	/* ── Shared ── */
-	.cc-file {
-		position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
-	}
+}
 </style>

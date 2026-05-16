@@ -79,8 +79,8 @@
 		display:flex; align-items:center; justify-content:center;
 	}
 	.sh-title {
-		font-family:'Instrument Serif',serif;
-		font-size:1.6rem; font-weight:400; color:var(--text); line-height:1.1;
+		font-family:'Quicksand', sans-serif;
+		font-size:1.6rem; font-weight:700; color:var(--text); line-height:1.1;
 	}
 	.sh-sub { font-size:.8rem; color:var(--text-2); font-weight:600; margin-top:5px; }
 

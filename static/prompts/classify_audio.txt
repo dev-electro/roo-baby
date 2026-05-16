@@ -66,8 +66,10 @@ Below 50%: Return UNKNOWN — cry too obscured to classify reliably
 {{USER_NOTES}}
 
 Respond ONLY in this exact JSON format — no other text:
-{"category":"HUNGER","confidence":78,"severity":"MEDIUM","noise_level":"HIGH","cry_detected":true,"pattern_matched":"rhythmic on-off bands in mid frequency range","reasoning":"Despite background noise, regular rhythmic structure at 400-600Hz visible, matching hunger reference pattern","parent_action":"Baby needs feeding. Try breastfeeding or bottle now.","response_sound":"heartbeat"}
+{"category":"HUNGER","confidence":78,"severity":"MEDIUM","noise_level":"HIGH","cry_detected":true,"pattern_matched":"rhythmic on-off bands in mid frequency range","reasoning":"Despite background noise, regular rhythmic structure at 400-600Hz visible, matching hunger reference pattern","parent_action":"Baby needs feeding. Try breastfeeding or bottle now.","response_sound":"heartbeat","pre_cry":false,"pre_cry_message":null}
 
 severity: LOW | MEDIUM | HIGH | CRITICAL
 noise_level: CLEAN | LOW | MODERATE | HIGH
 response_sound: heartbeat | whitenoise | lullaby | shush
+pre_cry: true if baby shows early distress signals before full crying; false otherwise
+pre_cry_message: brief note for parents when pre_cry is true, null otherwise

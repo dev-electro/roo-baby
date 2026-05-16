@@ -132,7 +132,7 @@
 
 	.rc-head-text { flex: 1; }
 	.rc-label { font-size: .65rem; font-weight: 700; color: var(--text-2); letter-spacing: .04em; }
-	.rc-cat   { font-family:'Instrument Serif',serif; font-size: 1.6rem; font-weight: 400; color: var(--cat-c); line-height: 1.1; margin-top: 3px; }
+	.rc-cat   { font-family:'Quicksand', sans-serif; font-size: 1.6rem; font-weight: 700; color: var(--cat-c); line-height: 1.1; margin-top: 3px; }
 	.rc-sev   { font-size: .62rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; flex-shrink: 0; text-align: right; }
 
 	/* Confidence */

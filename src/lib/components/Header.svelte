@@ -18,9 +18,9 @@
 
 <!-- Tech / trust strip -->
 <div class="trust-strip">
-	<div class="trust-item">
-		<span class="trust-dot teal"></span>
-		<span>Gemma 4 Multimodal AI</span>
+	<div class="trust-item" style="color:var(--text)">
+		<span class="trust-dot" style="background:var(--amber)"></span>
+		<span>Built for Gemma 4 Challenge</span>
 	</div>
 	<div class="trust-div"></div>
 	<div class="trust-item">
@@ -46,8 +46,8 @@
 		display:flex; align-items:center; justify-content:center;
 	}
 	.hdr-title {
-		font-family:'Instrument Serif',serif;
-		font-size:1.6rem; font-weight:400; color:var(--text);
+		font-family:'Quicksand', sans-serif;
+		font-size:1.6rem; font-weight:700; color:var(--text);
 		line-height:1.1; display:flex; align-items:center; gap:6px; flex-wrap:wrap;
 	}
 	.hdr-title-roo {
@@ -75,7 +75,6 @@
 	.trust-dot {
 		width:6px; height:6px; border-radius:50%; flex-shrink:0;
 	}
-	.trust-dot.teal    { background:var(--teal); }
 	.trust-dot.indigo  { background:var(--indigo); }
 	.trust-dot.emerald { background:var(--emerald); }
 	.trust-div { width:1px; height:14px; background:var(--border); flex-shrink:0; }

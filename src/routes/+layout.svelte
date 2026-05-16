@@ -95,8 +95,8 @@
 		display:flex; align-items:center; justify-content:center; flex-shrink:0;
 	}
 	.brand-name {
-		font-family:'Instrument Serif',serif;
-		font-size:1.2rem; font-weight:400;
+		font-family:'Quicksand', sans-serif;
+		font-size:1.2rem; font-weight:700;
 		color:var(--text); letter-spacing:.04em;
 	}
 
