@@ -147,9 +147,6 @@
 	.rc-section { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; flex-direction: column; gap: 4px; }
 	.rc-body    { font-size: .88rem; color: var(--text-2); line-height: 1.6; }
 
-	.rc-meta-grid { display: grid; grid-template-columns: 1fr 1.5fr; gap: 12px; }
-	.rc-meta-item { display: flex; flex-direction: column; gap: 4px; }
-	.rc-meta-val  { font-size: .75rem; font-weight: 800; color: var(--text); text-transform: uppercase; }
 
 	/* Action */
 	.rc-action {

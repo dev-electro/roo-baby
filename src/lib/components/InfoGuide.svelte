@@ -298,20 +298,6 @@
 		border: 1px solid var(--accent-border);
 	}
 
-	/* Cry patterns grid */
-	.ig-patterns-grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
-	@media(min-width: 480px) { .ig-patterns-grid { grid-template-columns: 1fr 1fr; } }
-	.ig-p-card { padding: 14px; border-radius: var(--r-lg); border: 1px solid var(--border); background: var(--surface-2); }
-	.ig-p-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
-	.ig-p-sound { font-family: 'Fraunces', serif; font-weight: 800; font-size: 1.1rem; color: var(--accent); }
-	.ig-p-cat { font-size: .65rem; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; color: var(--text-3); }
-	.ig-p-desc { font-size: .78rem; color: var(--text-2); line-height: 1.5; }
-	
-	.ig-p-card.hunger { border-left: 4px solid var(--cat-hunger); }
-	.ig-p-card.pain   { border-left: 4px solid var(--cat-pain); }
-	.ig-p-card.tired  { border-left: 4px solid var(--cat-tired); }
-	.ig-p-card.discomfort { border-left: 4px solid var(--cat-discomfort); }
-	.ig-p-card.burping { border-left: 4px solid var(--cat-burping); }
 
 	/* Using ROO tips */
 	.ig-tips { display: flex; flex-direction: column; gap: 6px; }

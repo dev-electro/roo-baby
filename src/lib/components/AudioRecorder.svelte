@@ -213,11 +213,6 @@
 	.ar-idle-cta  { font-size:1.05rem; font-weight:800; color:var(--text); }
 	.ar-idle-sub  { font-size:.75rem; color:var(--text-3); margin-top: 8px; }
 
-	.ar-or { display:flex; align-items:center; width:60%; gap:12px; margin: 4px 0; }
-	.ar-or::before, .ar-or::after { content:''; flex:1; height:1px; background:var(--border); }
-	.ar-or span { font-size:.65rem; font-weight:800; color:var(--text-3); letter-spacing:.05em; }
-
-	.ar-file-input { position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; height:100%; }
 
 	.btn-secondary {
 		position: relative;
