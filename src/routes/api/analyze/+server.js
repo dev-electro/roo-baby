@@ -221,8 +221,10 @@ export async function POST({ request, url }) {
 		try { audioFeatures = JSON.parse(audioFeaturesStr); } catch {}
 	}
 
+	const validGemini = isValidKey(geminiKey) ? geminiKey : null;
+	const validOpenRouter = isValidKey(openrouterKey) ? openrouterKey : null;
 	const origin = siteUrl.startsWith('http') ? siteUrl : url.origin;
-	const providerOpts = { geminiKey, openrouterKey, siteUrl: origin };
+	const providerOpts = { geminiKey: validGemini, openrouterKey: validOpenRouter, siteUrl: origin };
 
 	try {
 		const audioStats = await getAudioStats(origin);
