@@ -37,7 +37,7 @@
 			stream?.getTracks().forEach(t => t.stop()); stream = null;
 		};
 		recorder.start(); secs = 0; recording = true;
-		timer = setInterval(() => { secs++; if(secs >= 30) stop(); }, 1000);
+		timer = setInterval(() => { secs++; if(secs >= 10) stop(); }, 1000);
 	}
 	function stop() {
 		if(timer){ clearInterval(timer); timer = null; }
@@ -84,9 +84,13 @@
 			</div>
 			<!-- Static waveform visualisation -->
 			<div class="ar-wave static" aria-hidden="true">
-				{#each Array(32) as _,i}
-					<div class="ar-bar" style="height:{12 + Math.abs(Math.sin(i*0.9+1))*18}px;opacity:{0.4+i/80}"></div>
-				{/each}
+				{#if appState.spectrogramBlob}
+					<img src={URL.createObjectURL(appState.spectrogramBlob)} alt="Spectrogram" style="height:100%; width:100%; object-fit:contain; border-radius:4px;" />
+				{:else}
+					{#each Array(32) as _,i}
+						<div class="ar-bar" style="height:{12 + Math.abs(Math.sin(i*0.9+1))*18}px;opacity:{0.4+i/80}"></div>
+					{/each}
+				{/if}
 			</div>
 		</div>
 
@@ -96,7 +100,7 @@
 			<div class="ar-timer">
 				<div class="rec-dot"></div>
 				<span class="rec-time">{fmtTime}</span>
-				<span class="rec-limit">/ 0:30</span>
+				<span class="rec-limit">/ 0:10</span>
 			</div>
 			<!-- Live waveform -->
 			<div class="ar-wave live" aria-hidden="true">
@@ -119,7 +123,7 @@
 				<Icon name="mic" size={32} color="#fff" />
 			</button>
 			<p class="ar-idle-cta">Tap to Record Cry</p>
-			<p class="ar-idle-sub">Up to 30 seconds · Stays on device</p>
+			<p class="ar-idle-sub">Up to 10 seconds · Stays on device</p>
 		</div>
 	{/if}
 </div>

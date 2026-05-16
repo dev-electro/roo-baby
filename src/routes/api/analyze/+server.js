@@ -42,7 +42,7 @@ async function callGemini(apiKey, model, contents) {
 		headers: { 'Content-Type': 'application/json' },
 		body: JSON.stringify({
 			contents: [{ role: 'user', parts: contents }],
-			generationConfig: { maxOutputTokens: 500, temperature: 0.1, responseMimeType: 'application/json' }
+			generationConfig: { maxOutputTokens: 800, temperature: 0.1, responseMimeType: 'application/json' }
 		})
 	});
 	if (!res.ok) throw new Error(`Gemini ${res.status}: ${(await res.text()).slice(0, 200)}`);
@@ -61,7 +61,7 @@ async function callOpenRouter(apiKey, model, messages, siteUrl) {
 			'HTTP-Referer': siteUrl,
 			'X-Title': 'ROO Baby Cry Analyzer'
 		},
-		body: JSON.stringify({ model, messages, max_tokens: 500, temperature: 0.1, response_format: { type: 'json_object' } })
+		body: JSON.stringify({ model, messages, max_tokens: 800, temperature: 0.1, response_format: { type: 'json_object' } })
 	});
 	if (!res.ok) throw new Error(`OpenRouter ${res.status}: ${(await res.text()).slice(0, 200)}`);
 	const data = await res.json();

@@ -113,7 +113,7 @@ async function callGemini(apiKey, model, contents) {
 		body: JSON.stringify({
 			contents: [{ role: 'user', parts: contents }],
 			generationConfig: {
-				maxOutputTokens: 500,
+				maxOutputTokens: 800,
 				temperature: 0.1,
 				responseMimeType: 'application/json'
 			}
@@ -145,7 +145,7 @@ async function callOpenRouter(apiKey, model, messages, siteUrl) {
 		body: JSON.stringify({
 			model,
 			messages,
-			max_tokens: 500,
+			max_tokens: 800,
 			temperature: 0.1,
 			response_format: { type: 'json_object' }
 		})

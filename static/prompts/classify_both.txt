@@ -44,5 +44,7 @@ STEPS:
 6. Higher confidence when audio + visual signals converge
 
 Respond ONLY in JSON:
-{"category":"HUNGER","confidence":91,"severity":"HIGH","noise_level":"LOW","cry_detected":true,"pattern_matched":"rhythmic on-off bands in mid frequency + facial cues","reasoning":"Dominant 450Hz + rhythmic onset 75% + rooting reflex — all three signals converge on hunger","parent_action":"Feed immediately","response_sound":"heartbeat","pre_cry":false,"pre_cry_message":null,"is_adult":false,"adult_message":null}
+{"category":"HUNGER","confidence":91,"severity":"HIGH","noise_level":"LOW","cry_detected":true,"pattern_matched":"rhythmic on-off bands in mid frequency + facial cues","reasoning":"Dominant 450Hz + rhythmic onset 75% + rooting reflex — all three signals converge on hunger","why_this_cry":"Your baby is making a rhythmic 'neh-neh' sound caused by their tongue pushing to the roof of their mouth — a natural hunger reflex. The rooting reflex visible in their face confirms this: they are searching for food.","parent_action":"Feed your baby immediately — all signals point to hunger.","steps":["Offer breast or bottle immediately","Check when baby last fed","Look for rooting: head turning, mouth open searching","Burp after feeding if baby seems gassy too"],"response_sound":"heartbeat","pre_cry":false,"pre_cry_message":null,"is_adult":false,"adult_message":null}
 For adults: include is_adult:true and adult_message.
+why_this_cry: 2-3 plain-English sentences explaining the science/reason for this cry type in a warm, reassuring tone
+steps: 3-5 ordered practical action steps the parent should take right now

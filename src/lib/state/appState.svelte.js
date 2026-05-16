@@ -129,3 +129,4 @@ export function createAppState() {
 }
 
 export const appState = createAppState();
+if (typeof window !== 'undefined') window.__appState = appState;

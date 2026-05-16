@@ -66,10 +66,12 @@ Below 50%: Return UNKNOWN — cry too obscured to classify reliably
 {{USER_NOTES}}
 
 Respond ONLY in this exact JSON format — no other text:
-{"category":"HUNGER","confidence":78,"severity":"MEDIUM","noise_level":"HIGH","cry_detected":true,"pattern_matched":"rhythmic on-off bands in mid frequency range","reasoning":"Despite background noise, regular rhythmic structure at 400-600Hz visible, matching hunger reference pattern","parent_action":"Baby needs feeding. Try breastfeeding or bottle now.","response_sound":"heartbeat","pre_cry":false,"pre_cry_message":null}
+{"category":"HUNGER","confidence":78,"severity":"MEDIUM","noise_level":"HIGH","cry_detected":true,"pattern_matched":"rhythmic on-off bands in mid frequency range","reasoning":"Despite background noise, regular rhythmic structure at 400-600Hz visible, matching hunger reference pattern","why_this_cry":"Your baby is making a rhythmic 'neh-neh' sound caused by their tongue pushing to the roof of their mouth — a natural reflex that happens when they need milk. This is the hunger reflex described in Dunstan Baby Language research.","parent_action":"Your baby needs to be fed right now. Offer breast or bottle as soon as possible.","steps":["Check when baby last fed — if over 2 hours, hunger is very likely","Offer breast or bottle immediately","Look for rooting reflex: baby turning head side to side, mouth open","If baby refuses feed, check for other discomfort"],"response_sound":"heartbeat","pre_cry":false,"pre_cry_message":null}
 
 severity: LOW | MEDIUM | HIGH | CRITICAL
 noise_level: CLEAN | LOW | MODERATE | HIGH
 response_sound: heartbeat | whitenoise | lullaby | shush
 pre_cry: true if baby shows early distress signals before full crying; false otherwise
 pre_cry_message: brief note for parents when pre_cry is true, null otherwise
+why_this_cry: 2-3 plain-English sentences explaining the science/reason behind this cry type in a warm, reassuring tone for a parent
+steps: array of 3-5 ordered, practical action steps the parent should take right now (strings)

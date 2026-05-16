@@ -8,7 +8,7 @@
 	/* ── Audio state ── */
 	let aChunks=[], aStream=null, aRec=null, aTimer=null;
 	let aElapsed=$state(0), aRecOn=$state(false);
-	const MAX=30;
+	const MAX=10;
 
 	/* ── Camera state ── */
 	let vEl = $state(/** @type {HTMLVideoElement|undefined} */(undefined)), cEl = $state(/** @type {HTMLCanvasElement|undefined} */(undefined));

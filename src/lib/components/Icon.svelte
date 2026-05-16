@@ -82,6 +82,8 @@
 		thermometer: `<path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/>`,
 
 		'info-circle': `<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>`,
+
+		waveform: `<path d="M2 12h2M6 6v12M10 9v6M14 4v16M18 8v8M22 12h-2"/>`,
 	};
 </script>
 
