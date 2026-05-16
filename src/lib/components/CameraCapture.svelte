@@ -1,7 +1,7 @@
 <script>
 	import { appState } from '$state/appState.svelte.js';
 	import { onDestroy } from 'svelte';
-	import { capturePhoto as trackPhoto } from '$utils/analytics.js';
+	import { trackInputCapture } from '$utils/analytics.js';
 	import Icon from './Icon.svelte';
 
 	/** @type {HTMLVideoElement|undefined} */  let videoEl  = $state(undefined);
@@ -70,7 +70,7 @@
 				preview = URL.createObjectURL(b);
 				appState.imageBlob = b;
 				stopStream();
-				trackPhoto('camera');
+				trackInputCapture('image', 'camera');
 			}
 		}, 'image/jpeg', .92);
 	}
@@ -86,7 +86,7 @@
 		preview = URL.createObjectURL(f);
 		appState.imageBlob = f;
 		fallback = false; asked = true;
-		trackPhoto('upload');
+		trackInputCapture('image', 'upload');
 		// Reset input so same file can be re-selected
 		if (fileEl) fileEl.value = '';
 	}

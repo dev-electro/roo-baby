@@ -2,6 +2,7 @@
 	import { appState } from '$state/appState.svelte.js';
 	import { convertToWav, isSupportedAudioFormat } from '$utils/audioEncoder.js';
 	import { downscaleImage } from '$utils/imageUtils.js';
+	import { trackInputCapture } from '$utils/analytics.js';
 	import { onDestroy } from 'svelte';
 	import Icon from './Icon.svelte';
 
@@ -25,6 +26,7 @@
 			aRec.onstop = async()=>{
 				const rid=appState.resetId;
 				const raw=new Blob(aChunks,{type:aRec.mimeType});
+				trackInputCapture('audio', 'record');
 				await handleAudioInput(raw, rid);
 			};
 			aRec.start(); aRecOn=true; appState.isRecording=true; aElapsed=0;
@@ -54,6 +56,7 @@
 	function aUpload(e) {
 		const f = e.target.files?.[0];
 		if (f) {
+			trackInputCapture('audio', 'upload');
 			handleAudioInput(f, appState.resetId);
 			if (aFileEl) aFileEl.value = '';
 		}
@@ -90,6 +93,7 @@
 				if(appState.resetId!==rid) return;
 				if(preview)URL.revokeObjectURL(preview);
 				preview=URL.createObjectURL(scaled); appState.imageBlob=scaled; imgOk=true; cStop();
+				trackInputCapture('image', 'camera');
 			}
 		},'image/jpeg',.9)
 	}
@@ -103,6 +107,7 @@
 			preview=URL.createObjectURL(scaled); appState.imageBlob=scaled; imgOk=true;
 			imgFall=false; camDenied=false;
 			cStop();
+			trackInputCapture('image', 'upload');
 			if (cFileEl) cFileEl.value = '';
 		}
 	}

@@ -65,6 +65,16 @@
 	</header>
 
 	<main class="main">{@render children()}</main>
+
+	<footer class="footer">
+		<div class="footer-links">
+			<a href="/about">About Us</a>
+			<a href="/privacy">Privacy Policy</a>
+			<a href="/terms">Terms of Use</a>
+		</div>
+		<p class="footer-copy">© {new Date().getFullYear()} ROO. Not medical advice.</p>
+	</footer>
+
 	<SettingsPanel />
 </div>
 
@@ -122,8 +132,27 @@
 	/* ── Main ── */
 	.main {
 		flex:1; width:100%; max-width:720px; margin:0 auto;
-		padding:18px 16px 96px; /* extra bottom for thumb reach */
+		padding:18px 16px 40px; /* Reduced bottom padding since we now have a footer */
 		display:flex; flex-direction:column; gap:14px;
 	}
-	@media(min-width:560px) { .main { padding:24px 24px 96px; gap:16px; } }
+	@media(min-width:560px) { .main { padding:24px 24px 40px; gap:16px; } }
+
+	/* ── Footer ── */
+	.footer {
+		width:100%; max-width:720px; margin:0 auto;
+		padding:24px 16px 48px; border-top:1px solid var(--border);
+		text-align:center;
+	}
+	.footer-links {
+		display:flex; justify-content:center; gap:16px; flex-wrap:wrap;
+		margin-bottom:12px;
+	}
+	.footer-links a {
+		font-size:.75rem; font-weight:700; color:var(--text-3);
+		text-decoration:none; transition:color .15s;
+	}
+	.footer-links a:hover { color:var(--text); text-decoration:underline; }
+	.footer-copy {
+		font-size:.7rem; color:var(--text-4, #888); font-weight:500;
+	}
 </style>

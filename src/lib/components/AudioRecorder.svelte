@@ -1,6 +1,7 @@
 <script>
 	import { appState } from '$state/appState.svelte.js';
 	import { convertToWav, isSupportedAudioFormat } from '$utils/audioEncoder.js';
+	import { trackInputCapture } from '$utils/analytics.js';
 	import { onDestroy } from 'svelte';
 	import Icon from './Icon.svelte';
 
@@ -32,6 +33,7 @@
 				appState.isConvertingAudio = false;
 			}
 			appState.audioBlob = blob;
+			trackInputCapture('audio', 'record');
 			await appState.processAudio(blob);
 			stream?.getTracks().forEach(t => t.stop()); stream = null;
 		};
@@ -64,6 +66,7 @@
 		}
 		appState.isConvertingAudio = false;
 		appState.audioBlob = blob;
+		trackInputCapture('audio', 'upload');
 		await appState.processAudio(blob);
 		if (fileEl) fileEl.value = '';
 	}

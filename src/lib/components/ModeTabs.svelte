@@ -1,5 +1,6 @@
 <script>
 	import { appState } from '$state/appState.svelte.js';
+	import { trackModeSelect } from '$utils/analytics.js';
 	import Icon from './Icon.svelte';
 
 	// Each mode has its own color identity
@@ -19,7 +20,7 @@
 			role="tab"
 			aria-selected={active}
 			style={active ? `--tc:${m.color};--tbg:${m.bg};--tbdr:${m.border}` : ''}
-			onclick={() => { appState.currentMode = m.id; appState.reset(); }}
+			onclick={() => { appState.currentMode = m.id; appState.reset(); trackModeSelect(m.id); }}
 		>
 			<div class="mt-icon-wrap" class:on={active}>
 				<Icon name={m.icon} size={20} color={active ? m.color : 'var(--text-3)'} />
