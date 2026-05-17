@@ -2,6 +2,7 @@
 	import { getGroupedHistory, clearHistory } from '$utils/historyStore.js';
 	import Icon from './Icon.svelte';
 
+	let { onclear } = $props();
 	let groups = $state(getGroupedHistory());
 	let confirmClear = $state(false);
 
@@ -9,7 +10,7 @@
 	const COL = {HUNGER:'var(--amber)',PAIN:'var(--blush)',TIRED:'var(--indigo)',DISCOMFORT:'var(--amber)',BURPING:'var(--mint)',UNKNOWN:'var(--text-dim)',INVALID:'var(--blush)'};
 
 	function refresh() { groups = getGroupedHistory(); }
-	function clear()   { clearHistory(); refresh(); confirmClear = false; }
+	function clear()   { clearHistory(); refresh(); confirmClear = false; onclear?.(); }
 
 	// Bug fix: only poll when history exists
 	$effect(() => {

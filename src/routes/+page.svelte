@@ -125,18 +125,9 @@
 
 <!-- History -->
 {#if history.length > 0}
-<div class="hist-head">
-	<span class="label">Recent sessions</span>
-	<button class="btn-ghost" style="font-size:.7rem" onclick={() => { try { localStorage.removeItem('roo_history'); } catch {} history = []; }}>
-		Clear all
-	</button>
-</div>
-{#each history.slice(0, 5) as e (e.id)}
-	<HistoryCard entry={e} />
-{/each}
-{#if history.length > 5}
-	<p class="hist-more">+ {history.length - 5} older sessions</p>
-{/if}
+	{#key history}
+		<HistoryCard onclear={() => history = []} />
+	{/key}
 {/if}
 
 <style>
@@ -211,13 +202,4 @@
 	.sp-title { font-size:.9rem; font-weight:800; color:var(--amber); }
 	.sp-sub   { font-size:.7rem; color:var(--text-2); margin-top:3px; }
 	.sp-arrow { font-size:1.5rem; color:var(--amber); font-weight:300; flex-shrink:0; }
-
-	/* ── History ── */
-	.hist-head {
-		display:flex; align-items:center; justify-content:space-between;
-		padding:2px 0;
-	}
-	.hist-more {
-		text-align:center; font-size:.72rem; color:var(--text-3); padding:4px 0;
-	}
 </style>

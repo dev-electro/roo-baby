@@ -54,6 +54,19 @@ After classifying the cry, ROO actively responds to the baby:
 
 ---
 
+## 🌟 Features
+
+- **Audio Classification**: Convert audio to Mel Spectrograms client-side, sent to Gemma 4 VLM.
+- **Pre-Cry Detection**: Analyze baby faces for distress signals before crying starts.
+- **Multimodal "Both" Mode**: Cross-reference audio & visual signals for maximum accuracy.
+- **Scientific Soothing**: 12+ embedded tracks (heartbeat, white noise, lullabies).
+- **Maternal TTS**: Gentle, auto-generated spoken reassurance.
+- **PWA Ready**: Installable on iOS/Android home screens.
+- **Local History**: Recent sessions saved securely in `localStorage`.
+- **Zero Retention**: Strict privacy. Audio/images processed instantly and discarded.
+
+---
+
 ## 🛠 Tech Stack
 
 - **Frontend:** SvelteKit (Svelte 5 Runes)
