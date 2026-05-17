@@ -28,8 +28,18 @@ export async function GET({ params, request, platform }) {
 	object.writeHttpMetadata(headers);
 	headers.set('etag', object.httpEtag);
 	
-	if (!headers.has('content-type')) {
-		headers.set('content-type', 'audio/mp4');
+	// Force correct audio MIME types (Safari refuses to play audio/octet-stream)
+	const contentType = headers.get('content-type') || '';
+	if (!contentType || contentType === 'application/octet-stream') {
+		if (objectKey.endsWith('.m4a')) {
+			headers.set('content-type', 'audio/mp4');
+		} else if (objectKey.endsWith('.mp3')) {
+			headers.set('content-type', 'audio/mpeg');
+		} else if (objectKey.endsWith('.wav')) {
+			headers.set('content-type', 'audio/wav');
+		} else {
+			headers.set('content-type', 'audio/mp4');
+		}
 	}
 
 	headers.set('Cache-Control', 'public, max-age=31536000');

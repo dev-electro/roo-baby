@@ -1,6 +1,11 @@
 <script>
 	import SoothingPlayer from '$components/SoothingPlayer.svelte';
 	import Icon from '$components/Icon.svelte';
+	import { categories, synths } from '$lib/data/soothingTracks.js';
+
+	const synthCount = synths.length;
+	const r2Count = categories.reduce((sum, c) => sum + c.tracks.length, 0);
+	const totalCount = synthCount + r2Count;
 </script>
 
 <svelte:head>
@@ -17,7 +22,7 @@
 		<h1 class="sh-title">
 			<span style="color:var(--amber)">Soothe</span> · Baby Sounds
 		</h1>
-		<p class="sh-sub">12 synthesized sounds crafted to calm your little one</p>
+		<p class="sh-sub">{totalCount} soothing sounds ({synthCount} synthesized & {r2Count} streaming files)</p>
 	</div>
 </div>
 
@@ -34,7 +39,7 @@
 <div class="block">
 	<div class="block-head" style="border-color:var(--amber-border)">
 		<p class="label">Choose a sound</p>
-		<span class="badge" style="color:var(--amber); border-color:var(--amber-border); background:var(--amber-bg)">12 tracks</span>
+		<span class="badge" style="color:var(--amber); border-color:var(--amber-border); background:var(--amber-bg)">{totalCount} tracks</span>
 	</div>
 	<div style="padding:16px">
 		<SoothingPlayer />

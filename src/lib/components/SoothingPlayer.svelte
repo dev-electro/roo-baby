@@ -51,7 +51,10 @@
 			r2Audio.volume = vol;
 			r2Audio.ontimeupdate = () => { r2Progress = r2Audio?.currentTime ?? 0; };
 			r2Audio.onloadedmetadata = () => { r2Duration = r2Audio?.duration ?? 0; };
-			r2Audio.play().catch(() => { playing = null; });
+			r2Audio.play().catch((err) => {
+				console.error("R2 Audio playback failed:", err);
+				playing = null;
+			});
 			r2Audio.onended = () => { playing = null; r2Progress = 0; };
 		}
 	}
