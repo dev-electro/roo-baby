@@ -45,8 +45,16 @@ export async function GET({ params, request, platform }) {
 	headers.set('Cache-Control', 'public, max-age=31536000');
 	headers.set('Accept-Ranges', 'bytes');
 
-	// If R2 satisfied a range request, return a 206 Partial Content status
-	const status = object.range ? 206 : 200;
+	let status = 200;
+	if (object.range) {
+		status = 206;
+		const offset = object.range.offset;
+		const length = object.range.length;
+		headers.set('Content-Range', `bytes ${offset}-${offset + length - 1}/${object.size}`);
+		headers.set('Content-Length', length.toString());
+	} else {
+		headers.set('Content-Length', object.size.toString());
+	}
 
 	return new Response(object.body, { status, headers });
 }
