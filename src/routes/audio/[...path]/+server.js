@@ -1,7 +1,7 @@
 import { error } from '@sveltejs/kit';
 
 /** @type {import('./$types').RequestHandler} */
-export async function GET({ params, platform }) {
+export async function GET({ params, request, platform }) {
 	// Grab the bucket binding. Supports either ROO_BABY_AUDIO (recommended) or PUBLIC_R2_BASE (user's current)
 	const bucket = platform?.env?.ROO_BABY_AUDIO || platform?.env?.PUBLIC_R2_BASE;
 	
@@ -15,7 +15,10 @@ export async function GET({ params, platform }) {
 		throw error(404, "Not found");
 	}
 
-	const object = await bucket.get(objectKey);
+	const rangeHeader = request.headers.get('range');
+	
+	// Fetch the object from R2 with the specified range if it exists
+	const object = await bucket.get(objectKey, rangeHeader ? { range: rangeHeader } : undefined);
 
 	if (object === null) {
 		throw error(404, "Audio track not found in R2: " + objectKey);
@@ -32,5 +35,8 @@ export async function GET({ params, platform }) {
 	headers.set('Cache-Control', 'public, max-age=31536000');
 	headers.set('Accept-Ranges', 'bytes');
 
-	return new Response(object.body, { headers });
+	// If R2 satisfied a range request, return a 206 Partial Content status
+	const status = object.range ? 206 : 200;
+
+	return new Response(object.body, { status, headers });
 }
